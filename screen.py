@@ -923,7 +923,6 @@ class KlipperScreen(Gtk.Window):
         self.printer.process_update(data['result']['status'])
         self.init_tempstore()
         GLib.timeout_add_seconds(2, self.init_tempstore)  # If devices changed it takes a while to register
-
         self.files.initialize()
         self.files.refresh_files()
 
@@ -944,7 +943,7 @@ class KlipperScreen(Gtk.Window):
     def base_panel_show_all(self):
         self.base_panel.show_macro_shortcut(self._config.get_main_config().getboolean('side_macro_shortcut', True))
         ####      NEW      ####
-        self.base_panel.show_wifi_mode(True)
+        GLib.timeout_add_seconds(1, self.base_panel.show_wifi_mode)
         ####    END NEW    ####
         self.base_panel.show_heaters(True)
         self.base_panel.show_estop(True)
