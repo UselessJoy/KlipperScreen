@@ -36,6 +36,7 @@ class BasePanel(ScreenPanel):
         ####      NEW      ####
         self.control['wifi'] = self._gtk.Button('access_point', scale=abscale)
         self.control['wifi'].connect("clicked", self.change_wifi_mode)
+        self.wifi_mode = None
         ####    END NEW    ####
 
         if len(self._config.get_printers()) > 1:
@@ -122,13 +123,18 @@ class BasePanel(ScreenPanel):
 
     def show_wifi_mode(self, show=True):
         if show:
-            logging.debug(self._printer.data["wifi_mode"]["wifiMode"])
-            if self._printer.data["wifi_mode"]["wifiMode"] == 'AP':
-                self.control['wifi'].set_image(self._gtk.Image("access_point_active"))
-              #  self.control['wifi'] = self._gtk.Button('access_point_active', scale = self.bts * 1.1)
+            #logging.debug(self._printer.data["wifi_mode"]["wifiMode"])
+            if self.wifi_mode == self._printer.data["wifi_mode"]["wifiMode"]:
+                return True
             else:
-                self.control['wifi'].set_image(self._gtk.Image("access_point"))
-               # self.control['wifi'] = self._gtk.Button('access_point', scale = self.bts * 1.1)
+                if self.wifi_mode == 'Default':
+                    self.wifi_mode = 'AP'
+                    self.control['wifi'].set_image(self._gtk.Image("access_point_active"))
+                #  self.control['wifi'] = self._gtk.Button('access_point_active', scale = self.bts * 1.1)
+                else:
+                    self.wifi_mode = 'Default'
+                    self.control['wifi'].set_image(self._gtk.Image("access_point"))
+                # self.control['wifi'] = self._gtk.Button('access_point', scale = self.bts * 1.1)
         return True
 
     def show_heaters(self, show=True):

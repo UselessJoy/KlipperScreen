@@ -17,23 +17,11 @@
 	// }
 
 	"Comment new code python": {
-		"scope": "python",
-		"prefix": "newcode1",
+		"prefix": "newcode",
 		"body": [
 			"####      NEW      ####",
 		   	"$1",
 			"####    END NEW    ####"
-		],
-		"description": "Для комментирования новых кусков кода"
-	},
-
-	"Comment new code css": {
-		"scope": "css",
-		"prefix": "newcode2",
-		"body": [
-			"/*      NEW      */",
-		   	"$1",
-			"/*    END NEW    */"
 		],
 		"description": "Для комментирования новых кусков кода"
 	}

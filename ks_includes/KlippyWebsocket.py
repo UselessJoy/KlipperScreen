@@ -308,11 +308,34 @@ class MoonrakerApi:
             *args
         )
     
-    def get_wifi_mode(self, callback=None, *args):
-        logging.debug("Sending printer.getwifimode")
+    def set_neopixel_color(self, name, r, g, b, callback=None, *args):
+        logging.debug(f"Sending set_led: {KlippyGcodes.set_led(name, r, g, b)}")
         return self._ws.send_method(
-            "printer.getwifimode",
-            {},
+            "printer.gcode.script",
+            {
+                "script": KlippyGcodes.set_led(name, r, g, b)
+            },
+            callback,
+            *args
+        )
+    
+    def save_default_neopixel_color(self, name, r, g, b, callback=None, *args):
+        logging.debug(f"Sending save_default_neopixel_color: {KlippyGcodes.save_default_neopixel_color(name, r, g, b)}")
+        return self._ws.send_method(
+            "printer.gcode.script",
+            {
+                "script": KlippyGcodes.save_default_neopixel_color(name, r, g, b)
+            },
+            callback,
+            *args
+        )
+    def get_neopixel_color(self, name, callback=None, *args):
+        logging.debug(f"Sending get_neopixel_color: {KlippyGcodes.get_default_neopixel_color(name)}")
+        return self._ws.send_method(
+            "printer.get-neopixel-color",
+            {
+                "neopixel": name
+            },
             callback,
             *args
         )

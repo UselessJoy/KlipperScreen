@@ -71,3 +71,13 @@ class KlippyGcodes:
     @staticmethod
     def bed_mesh_save(profile):
         return f"BED_MESH_PROFILE SAVE='{profile}'"
+    
+    ####      NEW      ####
+    @staticmethod
+    def set_led(name, r, g, b):
+        return f"SET_LED LED={name} RED={r} GREEN={g} BLUE={b}"
+    
+    @staticmethod
+    def save_default_neopixel_color(name, r, g, b):
+        return f"SAVE_DEFAULT_COLOR NEOPIXEL={name} RED={r} GREEN={g} BLUE={b}"
+    ####    END NEW    ####

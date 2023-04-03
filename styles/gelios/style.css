@@ -195,7 +195,7 @@ textview .time {
 
 .dialog {
     border: #002b36; /*base03*/
-    background-color: inherit; /*base03*/
+    background-color: #002b36; /*base03*/
 }
 
 .dialog button {

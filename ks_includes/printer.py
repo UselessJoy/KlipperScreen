@@ -190,7 +190,13 @@ class Printer:
 
     def get_gcode_macros(self):
         return self.get_config_section_list("gcode_macro ")
-
+    
+    ####      NEW      ####
+    def get_neopixels(self):
+        neopixels = []
+        neopixels.extend(iter(self.get_config_section_list("neopixel ")))
+        return neopixels
+    ####    END NEW    ####
     def get_heaters(self):
         heaters = []
         if self.has_heated_bed():

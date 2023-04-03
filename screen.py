@@ -47,6 +47,7 @@ PRINTER_BASE_STATUS_OBJECTS = [
     'motion_report',
     'firmware_retraction',
     'exclude_object',
+    'neopixel my_neopixel'
 ]
 
 klipperscreendir = pathlib.Path(__file__).parent.resolve()
@@ -119,10 +120,10 @@ class KlipperScreen(Gtk.Window):
             raise RuntimeError("Couldn't get default monitor")
         self.width = self._config.get_main_config().getint("width", monitor.get_geometry().width)
         self.height = self._config.get_main_config().getint("height", monitor.get_geometry().height)
-        self.set_default_size(self.width, self.height)
+        self.set_default_size(800, 600)
         self.set_resizable(True)
-        if not (self._config.get_main_config().get("width") or self._config.get_main_config().get("height")):
-            self.fullscreen()
+       # if not (self._config.get_main_config().get("width") or self._config.get_main_config().get("height")):
+           # self.fullscreen()
         self.vertical_mode = self.width < self.height
         logging.info(f"Screen resolution: {self.width}x{self.height}")
         self.theme = self._config.get_main_config().get('theme')
@@ -239,7 +240,8 @@ class KlipperScreen(Gtk.Window):
                 "webhooks": ["state", "state_message"],
                 "firmware_retraction": ["retract_length", "retract_speed", "unretract_extra_length", "unretract_speed"],
                 "motion_report": ["live_position", "live_velocity", "live_extruder_velocity"],
-                "exclude_object": ["current_object", "objects", "excluded_objects"]
+                "exclude_object": ["current_object", "objects", "excluded_objects"],
+                "neopixel my_neopixel": ["color_data"]
             }
         }
         for extruder in self.printer.get_tools():
@@ -327,14 +329,17 @@ class KlipperScreen(Gtk.Window):
             msg.get_style_context().add_class("message_popup_echo")
         elif level == 2:
             msg.get_style_context().add_class("message_popup_warning")
+            self.remove_window_classes(self.base_panel.main_grid.get_style_context())
+            self.base_panel.main_grid.get_style_context().add_class("window-warning")
         else:
             msg.get_style_context().add_class("message_popup_error")
+            self.remove_window_classes(self.base_panel.main_grid.get_style_context())
+            self.base_panel.main_grid.get_style_context().add_class("window-error")
 
         popup = Gtk.Popover.new(self.base_panel.titlebar)
         popup.get_style_context().add_class("message_popup_popover")
-        popup.set_size_request(self.width * .9, self.height * .5)
+        popup.set_size_request(self.width * .5, self.height * .2)
         popup.set_halign(Gtk.Align.CENTER)
-        popup.set_valign(Gtk.Align.CENTER)
         popup.add(msg)
         popup.popup()
 
@@ -351,6 +356,8 @@ class KlipperScreen(Gtk.Window):
             return
         self.popup_message.popdown()
         self.popup_message = None
+        self.remove_window_classes(self.base_panel.main_grid.get_style_context())
+        self.base_panel.main_grid.get_style_context().add_class("window-ready")
 
     def show_error_modal(self, err, e=""):
         logging.error(f"Showing error modal: {err} {e}")
@@ -360,26 +367,24 @@ class KlipperScreen(Gtk.Window):
         title.set_line_wrap(True)
         title.set_halign(Gtk.Align.START)
         title.set_hexpand(True)
+
         version = Gtk.Label(label=f"{self.version}")
         version.set_halign(Gtk.Align.END)
-      #  fill = Gtk.Layout()
-      #  fill_object = Gtk.Label()
-      #  fill_object.set_halign(Gtk.Align.START)
-      #  fill_object.set_valign(Gtk.Align.START)
-      #  fill_object.get_style_context().add_class("fill_window")
-      #  fill_object.set_opacity(0.5)
-      #  fill.put(fill_object, 0, 0)
 
         message = Gtk.Label(label=f"{e}")
         message.set_line_wrap(True)
+
         scroll = self.gtk.ScrolledWindow()
         scroll.set_vexpand(True)
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroll.add(message)
+
         help_msg = _("Provide KlipperScreen.log when asking for help.\n")
         help_msg += _("KlipperScreen will reboot")
+
         help_notice = Gtk.Label(label=help_msg)
         help_notice.set_line_wrap(True)
+        
         grid = Gtk.Grid()
         grid.attach(title, 0, 0, 1, 1)
         grid.attach(version, 1, 0, 1, 1)
@@ -911,11 +916,11 @@ class KlipperScreen(Gtk.Window):
                        + self.printer.get_fans()
                        + self.printer.get_filament_sensors()
                        + self.printer.get_output_pins()
+                       + self.printer.get_neopixels()
                        )
 
         data = self.apiclient.send_request("printer/objects/query?" + "&".join(PRINTER_BASE_STATUS_OBJECTS +
                                                                                extra_items))
-        logging.debug(data["result"]["status"]["wifi_mode"])
         if data is False:
             self.printer_initializing("Error getting printer object data with extra items")
             GLib.timeout_add_seconds(3, self.init_printer)

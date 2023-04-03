@@ -7,9 +7,8 @@ import json
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from jinja2 import Environment, Template
-
 from ks_includes.screen_panel import ScreenPanel
-
+from gi.repository import GLib
 
 def create_panel(*args):
     return MenuPanel(*args)
@@ -23,6 +22,7 @@ class MenuPanel(ScreenPanel):
         super().__init__(screen, title)
         self.items = None
         self.grid = self._gtk.HomogeneousGrid()
+        self.wifi_mode = None
 
     def initialize(self, items):
         self.items = items
@@ -74,10 +74,8 @@ class MenuPanel(ScreenPanel):
         for i in range(len(self.items)):
             key = list(self.items[i])[0]
             item = self.items[i][key]
-
             env = Environment(extensions=["jinja2.ext.i18n"], autoescape=True)
             env.install_gettext_translations(self._config.get_lang())
-
             printer = self._printer.get_printer_status_data()
 
             name = env.from_string(item['name']).render(printer)
@@ -89,6 +87,8 @@ class MenuPanel(ScreenPanel):
             if item['panel'] is not None:
                 panel = env.from_string(item['panel']).render(printer)
                 b.connect("clicked", self.menu_item_clicked, panel, item)
+                if item['panel'] == 'network':
+                    GLib.timeout_add_seconds(1, self.update_wifi_mode, b)
             elif item['method'] is not None:
                 params = {}
 
@@ -107,6 +107,22 @@ class MenuPanel(ScreenPanel):
             else:
                 b.connect("clicked", self._screen._go_to_submenu, key)
             self.labels[key] = b
+            
+    ####      NEW      ####
+    def update_wifi_mode(self, b):
+        if self.wifi_mode == self._printer.data["wifi_mode"]["wifiMode"]:
+            return True
+        else:
+            self.wifi_mode = self._printer.data["wifi_mode"]["wifiMode"]
+            self.update_network_image(b)
+        return True
+    
+    def update_network_image(self, b):
+        if self.wifi_mode == 'AP':
+            b.set_image(self._gtk.Image("retract"))
+        else:
+            b.set_image(self._gtk.Image("network"))
+    ####    END NEW    ####
 
     def evaluate_enable(self, enable):
         if enable == "{{ moonraker_connected }}":
