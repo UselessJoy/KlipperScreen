@@ -80,4 +80,8 @@ class KlippyGcodes:
     @staticmethod
     def save_default_neopixel_color(name, r, g, b):
         return f"SAVE_DEFAULT_COLOR NEOPIXEL={name} RED={r} GREEN={g} BLUE={b}"
+    
+    @staticmethod
+    def turn_off_led():
+        return f"DISABLE_LED_EFFECTS"
     ####    END NEW    ####

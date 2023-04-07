@@ -18,7 +18,7 @@ class LightingPanel(ScreenPanel):
     def __init__(self, screen, title):
         super().__init__(screen, title)
         self.colorWheel = Gtk.HSV()
-        self.colorWheel.set_metrics(500,50)
+        self.colorWheel.set_metrics(self._gtk.content_width/3,self._gtk.content_width/30)
         self.colors = self.get_default_color()
         hsv = Gtk.rgb_to_hsv(self.colors[0], self.colors[1], self.colors[2])
         logging.info(str(self.colors))
@@ -35,7 +35,12 @@ class LightingPanel(ScreenPanel):
 
         self.labels['set_default'] = self._gtk.Button("refresh", _("Set Default"), "color1")
         self.labels['set_default'].connect("clicked", self.set_default_color)
+
+        self.labels['turn_off_led'] = self._gtk.Button("refresh", _("Turn off"), "color2")
+        self.labels['turn_off_led'].connect("clicked", self.turn_off_led)
+
         self.colorWheel.connect("changed", self.color_changed)
+
         self.labels['actions'] = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.labels['actions'].set_hexpand(True)
         self.labels['actions'].set_vexpand(False)
@@ -59,6 +64,7 @@ class LightingPanel(ScreenPanel):
         self.content.add(main)
         if self._screen.initialized:
             self.labels['actions'].add(self.labels['set_default'])
+            self.labels['actions'].add(self.labels['turn_off_led'])
         self.labels['actions'].show_all()
 
    # def init_color(self):
@@ -84,3 +90,11 @@ class LightingPanel(ScreenPanel):
 
     def set_default_color(self, widget):
         self._screen._ws.klippy.save_default_neopixel_color(self.get_neopixel(), str("%.1f" % (self.colors[0])), str("%.1f" % (self.colors[1])), str("%.1f" % (self.colors[2])))
+
+    def turn_off_led(self, widget):
+        if widget.get_label() == _("Turn off"):
+            widget.set_label(_("Turn on"))
+        else:
+            widget.set_label(_("Turn off"))
+        self._screen._ws.klippy.turn_off_led()
+        return
