@@ -76,7 +76,7 @@ class Printer:
                     or x.startswith('temperature_sensor ') \
                     or x.startswith('temperature_fan '):
                 self.devices[x] = {"temperature": 0}
-                if not x.startswith('temperature_sensor '):
+                if not x.startswith('temperatur  e_sensor '):
                     self.devices[x]["target"] = 0
                 # Support for hiding devices by name
                 name = x.split()[1] if len(x.split()) > 1 else x
@@ -120,6 +120,8 @@ class Printer:
         # webhooks states: startup, ready, shutdown, error
         # print_stats: standby, printing, paused, error, complete
         # idle_timeout: Idle, Printing, Ready
+        if self.data['autooff']['autoOff']:
+            return "autooff"
         if self.data['webhooks']['state'] == "interrupt" or self.data['print_stats']['state'] == 'interrupt':
             return "interrupt"
         if self.data['webhooks']['state'] == "ready" and self.data['print_stats']:
@@ -280,6 +282,11 @@ class Printer:
             if speed < off_below:
                 speed = 0
         return speed
+    
+    ####      NEW      ####
+    def get_autooff(self):
+        return self.data['autooff']['autoOff']
+    ####    END NEW    ####
     
     def get_pin_value(self, pin):
         if pin in self.data:

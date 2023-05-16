@@ -23,7 +23,7 @@ class KlippyGcodes:
     TESTZ = "TESTZ Z="
     ABORT = "ABORT"
     ACCEPT = "ACCEPT"
-
+    
     @staticmethod
     def set_bed_temp(temp):
         return f"{KlippyGcodes.SET_BED_TEMP} S{temp}"

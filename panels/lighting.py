@@ -77,6 +77,7 @@ class LightingPanel(ScreenPanel):
         if not self.colorWheel.is_adjusting():
             self.labels['text'].set_text(str(self.colors[0])+ " \n" +str(self.colors[1])+ " \n"+str(self.colors[2]) + " \n" + str(self._printer.config['neopixel my_neopixel']))
             self._screen._ws.klippy.set_neopixel_color(self.neopixel, self.colors[0], self.colors[1], self.colors[2])
+            self.labels['turn_off_led'].set_label(_("Turn off"))
     
     def get_neopixel(self):
         return self._printer.get_neopixels()[0][9:]

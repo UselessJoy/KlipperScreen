@@ -342,11 +342,31 @@ class MoonrakerApi:
         )
     
     def get_neopixel_color(self, name, callback=None, *args):
-        logging.debug(f"Sending get_neopixel_color: {KlippyGcodes.get_default_neopixel_color(name)}")
+        logging.debug(f"Sending get_neopixel_color")
         return self._ws.send_method(
             "printer.get-neopixel-color",
             {
                 "neopixel": name
+            },
+            callback,
+            *args
+        )
+        
+    def cancel_autooff(self, callback=None, *args):
+        logging.debug(f"Sending printer.offautooff")
+        return self._ws.send_method(
+            "printer.offautooff",
+            {},
+            callback,
+            *args
+        )
+    
+    def set_autooff(self, autooff, callback=None, *args):
+        logging.debug(f"Sending printer.setautooff")
+        return self._ws.send_method(
+            "printer.setautooff",
+            {
+                "autoOff_enable" : autooff
             },
             callback,
             *args

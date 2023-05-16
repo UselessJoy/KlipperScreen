@@ -202,7 +202,8 @@ class KlipperScreen(Gtk.Window):
             "startup": self.state_startup,
             "shutdown": self.state_shutdown,
             ####      NEW      ####
-            "interrupt": self.state_interrupt
+            "interrupt": self.state_interrupt,
+            "autooff": self.state_autooff
             ####    END NEW    ####
         }
         self.printer.busy_cb = self.process_busy_state
@@ -237,6 +238,7 @@ class KlipperScreen(Gtk.Window):
                              "max_accel", "max_accel_to_decel", "max_velocity", "square_corner_velocity"],
                 "virtual_sdcard": ["file_position", "is_active", "progress"],
                 "wifi_mode": ["wifiMode"],
+                "autooff": ["autoOff"],
                 "webhooks": ["state", "state_message"],
                 "firmware_retraction": ["retract_length", "retract_speed", "unretract_extra_length", "unretract_speed"],
                 "motion_report": ["live_position", "live_velocity", "live_extruder_velocity"],
@@ -590,6 +592,14 @@ class KlipperScreen(Gtk.Window):
             logging.debug("Screen wake up")
             os.system("xset -display :0 dpms force on")
 
+    ####      NEW      ####
+    def set_autooff(self, autooff_enable):
+        self._ws.klippy.set_autooff(autooff_enable)
+        
+    def get_autooff(self):
+        return self.printer.get_autooff()
+    ####    END NEW    ####
+    
     def set_dpms(self, use_dpms):
         self.use_dpms = use_dpms
         logging.info(f"DPMS set to: {self.use_dpms}")
@@ -655,6 +665,16 @@ class KlipperScreen(Gtk.Window):
         self.close_popup_message()
         self.printer_initializing(_(""), remove=True)
         self.show_panel('interrupt_panel', "interrupt_panel", None, 2)
+        
+    def state_autooff(self):
+        ####      NEW      ####
+        self.remove_window_classes(self.base_panel.main_grid.get_style_context())
+        ####    END NEW    ####
+        self.base_panel.main_grid.get_style_context().add_class("window-interrupt")
+        self.close_screensaver()
+        self.close_popup_message()
+        self.printer_initializing(_(""), remove=True)
+        self.show_panel('autooff_panel', "autooff_panel", None, 2)
     ####    END NEW    ####
 
 
