@@ -223,6 +223,8 @@ class WifiManager:
                         "ssid": settings['802-11-wireless']['ssid'],
                         "connected": self.get_connected_ssid() == ssid
                     })
+        if ssid is None:
+            return
         path = self.path_by_ssid[ssid]
         aps = self.visible_networks
         if path in aps:

@@ -131,14 +131,15 @@ class NetworkPanel(ScreenPanel):
                 network_id = net
 
         display_name = _("Hidden") if ssid.startswith("\x00") else f"{ssid}"
-        netinfo = self.wifi.get_network_info(ssid)
+        # netinfo = self.wifi.get_network_info(ssid)
         connected_ssid = self.wifi.get_connected_ssid()
-        if netinfo is None:
-            logging.debug("Couldn't get netinfo")
-            if connected_ssid == ssid:
-                netinfo = {'connected': True}
-            else:
-                netinfo = {'connected': False}
+        # if netinfo is None:
+        #     logging.debug("Couldn't get netinfo")
+        netinfo = False
+        if connected_ssid == ssid:
+            netinfo = {'connected': True}
+        else:
+            netinfo = {'connected': False}
 
         if connected_ssid == ssid:
             display_name += " (" + _("Connected") + ")"
@@ -277,25 +278,25 @@ class NetworkPanel(ScreenPanel):
             return
         self.prev_network = self.wifi.get_connected_ssid()
 
-        buttons = [
-            {"name": _("Close"), "response": Gtk.ResponseType.CANCEL}
-        ]
+        # buttons = [
+        #     {"name": _("Close"), "response": Gtk.ResponseType.CANCEL}
+        # ]
 
-        scroll = self._gtk.ScrolledWindow()
-        self.labels['connecting_info'] = Gtk.Label(_("Starting WiFi Association"))
-        self.labels['connecting_info'].set_halign(Gtk.Align.START)
-        self.labels['connecting_info'].set_valign(Gtk.Align.START)
-        scroll.add(self.labels['connecting_info'])
-        dialog = self._gtk.Dialog(self._screen, buttons, scroll, self._gtk.remove_dialog)
-        dialog.set_title(_("Starting WiFi Association"))
-        self._screen.show_all()
+        # scroll = self._gtk.ScrolledWindow()
+        # self.labels['connecting_info'] = Gtk.Label(_("Starting WiFi Association"))
+        # self.labels['connecting_info'].set_halign(Gtk.Align.START)
+        # self.labels['connecting_info'].set_valign(Gtk.Align.START)
+        # scroll.add(self.labels['connecting_info'])
+        # dialog = self._gtk.Dialog(self._screen, buttons, scroll, self._gtk.remove_dialog)
+        # dialog.set_title(_("Starting WiFi Association"))
+        # self._screen.show_all()
 
         if ssid in list(self.networks):
             self.remove_network(ssid)
         if self.prev_network in list(self.networks):
             self.remove_network(self.prev_network)
 
-        self.wifi.add_callback("connecting_status", self.connecting_status_callback)
+        # self.wifi.add_callback("connecting_status", self.connecting_status_callback)
         self.wifi.connect(ssid)
 
     def connecting_status_callback(self, msg):

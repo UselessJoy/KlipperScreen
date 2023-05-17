@@ -215,6 +215,7 @@ class KlipperScreenConfig:
         return "".join(f'{error}\n\n' for error in self.errors)
 
     def _create_configurable_options(self, screen):
+        aut = "False"
         self.configurable_options = [
             {"language": {
                 "section": "main", "name": _("Language"), "type": "dropdown", "value": "system_lang",
@@ -263,7 +264,7 @@ class KlipperScreenConfig:
                                    "value": "False", "callback": screen.reload_panels}},
             ####      NEW      ####
              {"autoOff_enable": {"section": "main", "name": _("Enable autooff after print"), "type": "binary",
-                                 "value": "False", "callback": screen.set_autooff}},
+                                 "value": aut, "callback": screen.set_autooff}},
             ####    END NEW    ####
             # {"": {"section": "main", "name": _(""), "type": ""}}
         ]
