@@ -120,8 +120,6 @@ class Printer:
         # webhooks states: startup, ready, shutdown, error
         # print_stats: standby, printing, paused, error, complete
         # idle_timeout: Idle, Printing, Ready
-        if self.data['autooff']['autoOff']:
-            return "autooff"
         if self.data['webhooks']['state'] == "interrupt" or self.data['print_stats']['state'] == 'interrupt':
             return "interrupt"
         if self.data['webhooks']['state'] == "ready" and self.data['print_stats']:
@@ -285,7 +283,7 @@ class Printer:
     
     ####      NEW      ####
     def get_autooff(self):
-        return self.data['autooff']['autoOff']
+        return self.data['autooff']['autoOff_enable']
     ####    END NEW    ####
     
     def get_pin_value(self, pin):

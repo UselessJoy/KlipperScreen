@@ -30,6 +30,7 @@ from panels.base_panel import BasePanel
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 PRINTER_BASE_STATUS_OBJECTS = [
+    'autooff',
     'bed_mesh',
     'configfile',
     'display_status',
@@ -202,8 +203,7 @@ class KlipperScreen(Gtk.Window):
             "startup": self.state_startup,
             "shutdown": self.state_shutdown,
             ####      NEW      ####
-            "interrupt": self.state_interrupt,
-            "autooff": self.state_autooff
+            "interrupt": self.state_interrupt
             ####    END NEW    ####
         }
         self.printer.busy_cb = self.process_busy_state
@@ -225,6 +225,7 @@ class KlipperScreen(Gtk.Window):
     def ws_subscribe(self):
         requested_updates = {
             "objects": {
+                "autooff": ["autoOff_enable"],
                 "bed_mesh": ["profile_name", "mesh_max", "mesh_min", "probed_matrix", "profiles"],
                 "configfile": ["config"],
                 "display_status": ["progress", "message"],
@@ -238,7 +239,6 @@ class KlipperScreen(Gtk.Window):
                              "max_accel", "max_accel_to_decel", "max_velocity", "square_corner_velocity"],
                 "virtual_sdcard": ["file_position", "is_active", "progress"],
                 "wifi_mode": ["wifiMode"],
-                "autooff": ["autoOff"],
                 "webhooks": ["state", "state_message"],
                 "firmware_retraction": ["retract_length", "retract_speed", "unretract_extra_length", "unretract_speed"],
                 "motion_report": ["live_position", "live_velocity", "live_extruder_velocity"],
@@ -314,6 +314,52 @@ class KlipperScreen(Gtk.Window):
             self.panels[panel_name].activate()
         self.show_all()
 
+    def show_popup_autooff(self, message):
+        self.close_screensaver()
+        if self.popup_message is not None:
+            self.close_popup_message()
+        msg = Gtk.Label(label=f"{message}")
+        msg.set_hexpand(True)
+        msg.set_vexpand(True)
+        plug = Gtk.Label()
+        plug.set_size_request(self.width * .7, self.height * .2)
+        button_cancel = self.gtk.Button("refresh", _("Cancel"), "color1")
+        button_cancel.connect("clicked", self.stop_autooff)
+        button_power_off = self.gtk.Button("refresh", _("Power_off_now"), "color2")
+        button_power_off.connect("clicked", self.shutdown_now)
+        self.remove_window_classes(self.base_panel.main_grid.get_style_context())
+        self.base_panel.main_grid.get_style_context().add_class("window-warning")
+        
+        grid = Gtk.Grid()
+        grid.set_row_spacing(15)
+        grid.get_style_context().add_class("message_popup")
+        grid.get_style_context().add_class("message_popup_warning")
+        grid.attach(msg, 0,2,3,1)
+        grid.attach(plug,0,3,3,1)
+        grid.attach(button_cancel, 0,4,1,1)
+        grid.attach(button_power_off, 1,4,1,1)
+        grid.show_all()
+        popup = Gtk.Popover.new(self.base_panel.titlebar)
+        popup.get_style_context().add_class("message_popup_popover")
+        popup.set_size_request(self.width * .7, self.height * .6)
+        popup.set_halign(Gtk.Align.CENTER)
+        popup.set_valign(Gtk.Align.CENTER)
+        popup.add(grid)
+        
+        #popup.popup()
+        
+        self.popup_message = popup
+        self.popup_message.show_all()
+
+        return False
+    
+    def shutdown_now(self, widget):
+        self._ws.send_method("machine.shutdown")
+    
+    def stop_autooff(self, widget):
+        self._ws.klippy.cancel_autooff()
+        self.close_popup_message()
+    
     def show_popup_message(self, message, level=3):
         self.close_screensaver()
         if self.popup_message is not None:
@@ -338,6 +384,8 @@ class KlipperScreen(Gtk.Window):
             self.remove_window_classes(self.base_panel.main_grid.get_style_context())
             self.base_panel.main_grid.get_style_context().add_class("window-error")
 
+        
+        
         popup = Gtk.Popover.new(self.base_panel.titlebar)
         popup.get_style_context().add_class("message_popup_popover")
         popup.set_size_request(self.width * .5, self.height * .2)

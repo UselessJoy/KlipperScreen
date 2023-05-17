@@ -66,11 +66,7 @@ class LightingPanel(ScreenPanel):
             self.labels['actions'].add(self.labels['set_default'])
             self.labels['actions'].add(self.labels['turn_off_led'])
         self.labels['actions'].show_all()
-
-   # def init_color(self):
-   #     colors = dict()
-   #     colors["RED"] = self._printer.data["wifi_mode"]
-   #     return colors
+        
     def color_changed(self, widget):
         self.colors = self.colorWheel.get_color()
         self.colors = self.colorWheel.to_rgb(self.colors[0], self.colors[1], self.colors[2])

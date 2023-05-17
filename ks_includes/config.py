@@ -148,7 +148,7 @@ class KlipperScreenConfig:
                 bools = (
                     'invert_x', 'invert_y', 'invert_z', '24htime', 'only_heaters', 'show_cursor', 'confirm_estop',
                     'autoclose_popups', 'use_dpms', 'use_default_menu', 'side_macro_shortcut', 'use-matchbox-keyboard',
-                    'show_heater_power', 'enable_autooff'
+                    'show_heater_power', 'autoOff_enable'
                 )
                 strs = (
                     'default_printer', 'language', 'print_sort_dir', 'theme', 'screen_blanking', 'font_size',
@@ -215,7 +215,6 @@ class KlipperScreenConfig:
         return "".join(f'{error}\n\n' for error in self.errors)
 
     def _create_configurable_options(self, screen):
-
         self.configurable_options = [
             {"language": {
                 "section": "main", "name": _("Language"), "type": "dropdown", "value": "system_lang",
@@ -263,8 +262,8 @@ class KlipperScreenConfig:
             {"show_heater_power": {"section": "main", "name": _("Show Heater Power"), "type": "binary",
                                    "value": "False", "callback": screen.reload_panels}},
             ####      NEW      ####
-             {"enable_autooff": {"section": "main", "name": _("Enable autooff after print"), "type": "binary",
-                                 "value": str(screen.get_autooff), "callback": screen.set_autooff}},
+             {"autoOff_enable": {"section": "main", "name": _("Enable autooff after print"), "type": "binary",
+                                 "value": "False", "callback": screen.set_autooff}},
             ####    END NEW    ####
             # {"": {"section": "main", "name": _(""), "type": ""}}
         ]

@@ -691,6 +691,9 @@ class JobStatusPanel(ScreenPanel):
             self.progress = 1
             self.update_progress()
             self.set_state("complete")
+            # autoOff_enable = self._screen.get_autooff()
+            # if autoOff_enable:
+            self._screen.show_popup_autooff(_("Printing is finished, the printer will be turned off after cooling the extruder"))
             return self._add_timeout(self._config.get_main_config().getint("job_complete_timeout", 0))
         elif ps['state'] == "error":
             self.set_state("error")
