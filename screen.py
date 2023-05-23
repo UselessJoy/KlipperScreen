@@ -324,7 +324,7 @@ class KlipperScreen(Gtk.Window):
         plug.set_size_request(self.width * .7, self.height * .2)
         button_cancel = self.gtk.Button("refresh", _("Cancel"), "color1")
         button_cancel.connect("clicked", self.stop_autooff)
-        button_power_off = self.gtk.Button("refresh", _("Power_off_now"), "color2")
+        button_power_off = self.gtk.Button("refresh", _("Poweroff now"), "color2")
         button_power_off.connect("clicked", self.shutdown_now)
         if not just_popup:
             self.remove_window_classes(self.base_panel.main_grid.get_style_context())

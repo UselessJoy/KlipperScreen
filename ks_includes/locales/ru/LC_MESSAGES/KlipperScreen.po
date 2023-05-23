@@ -591,7 +591,7 @@ msgid "Save"
 msgstr "Сохранить"
 
 msgid "Save Config"
-msgstr "Сохр. конфигурацию"
+msgstr "Сохранить конфиг"
 
 msgid "Save Z"
 msgstr "Сохранить Z"
