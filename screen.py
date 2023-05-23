@@ -106,7 +106,6 @@ class KlipperScreen(Gtk.Window):
         self.version = version
         self.dialogs = []
         self.confirm = None
-
         configfile = os.path.normpath(os.path.expanduser(args.configfile))
 
         self._config = KlipperScreenConfig(configfile, self)
@@ -314,7 +313,7 @@ class KlipperScreen(Gtk.Window):
             self.panels[panel_name].activate()
         self.show_all()
 
-    def show_popup_autooff(self, message):
+    def show_popup_autooff(self, message, just_popup=True):
         self.close_screensaver()
         if self.popup_message is not None:
             self.close_popup_message()
@@ -327,8 +326,9 @@ class KlipperScreen(Gtk.Window):
         button_cancel.connect("clicked", self.stop_autooff)
         button_power_off = self.gtk.Button("refresh", _("Power_off_now"), "color2")
         button_power_off.connect("clicked", self.shutdown_now)
-        self.remove_window_classes(self.base_panel.main_grid.get_style_context())
-        self.base_panel.main_grid.get_style_context().add_class("window-warning")
+        if not just_popup:
+            self.remove_window_classes(self.base_panel.main_grid.get_style_context())
+            self.base_panel.main_grid.get_style_context().add_class("window-warning")
         
         grid = Gtk.Grid()
         grid.set_row_spacing(15)
@@ -360,7 +360,7 @@ class KlipperScreen(Gtk.Window):
         self._ws.klippy.cancel_autooff()
         self.close_popup_message()
     
-    def show_popup_message(self, message, level=3):
+    def show_popup_message(self, message, level=3, just_popup=False):
         self.close_screensaver()
         if self.popup_message is not None:
             self.close_popup_message()
@@ -377,12 +377,14 @@ class KlipperScreen(Gtk.Window):
             msg.get_style_context().add_class("message_popup_echo")
         elif level == 2:
             msg.get_style_context().add_class("message_popup_warning")
-            self.remove_window_classes(self.base_panel.main_grid.get_style_context())
-            self.base_panel.main_grid.get_style_context().add_class("window-warning")
+            if not just_popup:
+                self.remove_window_classes(self.base_panel.main_grid.get_style_context())
+                self.base_panel.main_grid.get_style_context().add_class("window-warning")
         else:
             msg.get_style_context().add_class("message_popup_error")
-            self.remove_window_classes(self.base_panel.main_grid.get_style_context())
-            self.base_panel.main_grid.get_style_context().add_class("window-error")
+            if not just_popup:
+                self.remove_window_classes(self.base_panel.main_grid.get_style_context())
+                self.base_panel.main_grid.get_style_context().add_class("window-error")
 
         
         
@@ -671,7 +673,7 @@ class KlipperScreen(Gtk.Window):
             os.system("xset -display :0 +dpms")
             if functions.get_DPMS_state() == functions.DPMS_State.Fail:
                 logging.info("DPMS State FAIL")
-                self.show_popup_message("DPMS has failed to load")
+                self.show_popup_message(_("DPMS has failed to load"))
                 self._config.set("main", "use_dpms", "False")
             else:
                 logging.debug("Using DPMS")
@@ -1051,7 +1053,7 @@ class KlipperScreen(Gtk.Window):
         self.keyboard = {"box": box}
         self.base_panel.content.pack_end(box, False, False, 0)
         self.base_panel.content.show_all()
-
+    
     def _show_matchbox_keyboard(self, box):
         env = os.environ.copy()
         usrkbd = os.path.expanduser("~/.matchbox/keyboard.xml")
@@ -1087,7 +1089,7 @@ class KlipperScreen(Gtk.Window):
             os.kill(self.keyboard['process'].pid, SIGTERM)
         self.base_panel.content.remove(self.keyboard['box'])
         self.keyboard = None
-
+    
     def _key_press_event(self, widget, event):
         keyval_name = Gdk.keyval_name(event.keyval)
         if keyval_name == "Escape":

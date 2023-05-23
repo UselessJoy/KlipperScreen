@@ -4,12 +4,11 @@ import os
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk, GLib, GObject
 
 
 class Keyboard(Gtk.Box):
     langs = ["de", "en", "fr", "es"]
-
     def __init__(self, screen, close_cb, entry=None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
         self.close_cb = close_cb
@@ -17,7 +16,6 @@ class Keyboard(Gtk.Box):
         self.keyboard.set_direction(Gtk.TextDirection.LTR)
         self.timeout = self.clear_timeout = None
         self.entry = entry
-
         language = self.detect_language(screen._config.get_main_config().get("language", None))
         logging.info(f"Keyboard {language}")
 
@@ -97,6 +95,7 @@ class Keyboard(Gtk.Box):
 
         for pallet in self.keys:
             pallet.append(["✕", " ", "✔"])
+            #pallet.append(["✕", " "])
 
         self.buttons = self.keys.copy()
         for p, pallet in enumerate(self.keys):
@@ -107,7 +106,7 @@ class Keyboard(Gtk.Box):
                     elif key == "✕":
                         self.buttons[p][r][k] = screen.gtk.Button("cancel", scale=.6)
                     elif key == "✔":
-                        self.buttons[p][r][k] = screen.gtk.Button("complete", scale=.6)
+                         self.buttons[p][r][k] = screen.gtk.Button("complete", scale=.6)
                     else:
                         self.buttons[p][r][k] = screen.gtk.Button(label=key, lines=1)
                     self.buttons[p][r][k].set_hexpand(True)
@@ -168,16 +167,15 @@ class Keyboard(Gtk.Box):
         if self.clear_timeout is not None:
             GLib.source_remove(self.clear_timeout)
             self.clear_timeout = None
-
+        
     def update_entry(self, widget, key):
         if key == "⌫":
             Gtk.Entry.do_backspace(self.entry)
         elif key == "✔":
             self.close_cb()
-            return
         elif key == "✕":
             self.clear()
-            self.close_cb()
+            #self.close_cb()
             return
         elif key == "abc":
             self.set_pallet(0)

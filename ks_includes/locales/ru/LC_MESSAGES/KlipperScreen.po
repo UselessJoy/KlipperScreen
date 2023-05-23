@@ -7,16 +7,16 @@ msgstr ""
 "Project-Id-Version: KlipperScreen\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-01-29 09:28-0600\n"
-"PO-Revision-Date: 2022-11-30 18:15-0300\n"
+"PO-Revision-Date: 2023-05-23 09:33+0300\n"
 "Last-Translator: Jakob Kais <schpuntik@freenet.de>\n"
 "Language-Team: \n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
-"X-Generator: Poedit 3.2.1\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
+"X-Generator: Poedit 3.2.2\n"
 "X-Poedit-Flags-xgettext: --add-comments\n"
 
 #, python-format
@@ -24,7 +24,7 @@ msgid "%s will be updated to version"
 msgstr "%s будет обновлен до версии"
 
 msgid "(default)"
-msgstr "(дефолт)"
+msgstr "(по умолчанию)"
 
 msgid "24 Hour Time"
 msgstr "24-часовой формат"
@@ -155,7 +155,7 @@ msgid "Configuration"
 msgstr "Конфигурация"
 
 msgid "Confirm Emergency Stop"
-msgstr "Подтвердите аварийную остановку"
+msgstr "Подтверждать аварийную остановку"
 
 msgid "Connected"
 msgstr "Соединен"
@@ -189,7 +189,7 @@ msgid "Disable Motors"
 msgstr "Откл. моторы"
 
 msgid "Disable XY"
-msgstr "Отключить XY"
+msgstr "Отключить моторы"
 
 msgid "Distance (mm)"
 msgstr "Расстояние (мм)"
@@ -245,6 +245,12 @@ msgstr "Файл"
 
 msgid "File:"
 msgstr "Файл:"
+
+msgid "Connecting"
+msgstr "Соединение"
+
+msgid "Lighting"
+msgstr "Подсветка"
 
 msgid "Finding ADXL"
 msgstr "Поиск ADXL"
@@ -385,7 +391,7 @@ msgid "Lower Nozzle"
 msgstr "Опустить сопло"
 
 msgid "Macro shortcut on sidebar"
-msgstr "Показать макросы в панели"
+msgstr "Показывать макросы в панели"
 
 msgid "Macros"
 msgstr "Макросы"
@@ -465,7 +471,7 @@ msgid "Outdated by %d"
 msgstr "Устарело на %d"
 
 msgid "PSK for"
-msgstr "PSK для"
+msgstr "Пароль для"
 
 msgid "Package will be updated"
 msgid_plural "Packages will be updated"
@@ -516,7 +522,7 @@ msgid "Printer"
 msgstr "Принтер"
 
 msgid "Printer Connections"
-msgstr "Подключение принтера"
+msgstr "Подключенные принтеры"
 
 msgid "Printer Select"
 msgstr "Выбор принтера"
@@ -585,7 +591,7 @@ msgid "Save"
 msgstr "Сохранить"
 
 msgid "Save Config"
-msgstr "Сохр. Конфиг"
+msgstr "Сохр. конфигурацию"
 
 msgid "Save Z"
 msgstr "Сохранить Z"
@@ -766,8 +772,42 @@ msgid "mm/s²"
 msgstr "мм/с²"
 
 msgid "mm³/s"
-msgstr "мм/с³"
+msgstr "мм³/с"
 
+# ###      NEW      ####
+# popups
+msgid "DPMS has failed to load"
+msgstr "DPMS: ошибка при загрузке"
+
+msgid "Macro UNLOAD_FILAMENT not found"
+msgstr "Макрос UNLOAD_FILAMENT не найден"
+
+#, python-format
+msgid "Error adding network %s"
+msgstr "Ошибка при добавлении сети %s"
+
+msgid "Password must contains over 8 symbols"
+msgstr "Пароль должен содержать минимум 8 символов"
+
+msgid "Failed to connect to the requested network"
+msgstr "Не удалось подключиться к запрашиваемой сети"
+
+msgid "No mesh has been loaded"
+msgstr "Ни одна сетка не была загружена"
+
+msgid "Enable autooff after print"
+msgstr "Включить автовыключение после печати"
+
+msgid "Set Default"
+msgstr "По умолчанию"
+
+msgid "Turn off"
+msgstr "Выключить"
+
+msgid "Poweroff now"
+msgstr "Выключить сейчас"
+
+# ###    END NEW    ####
 #~ msgid "Decrease"
 #~ msgstr "Уменьшить"
 

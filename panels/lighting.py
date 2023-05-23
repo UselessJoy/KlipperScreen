@@ -24,14 +24,14 @@ class LightingPanel(ScreenPanel):
         logging.info(str(self.colors))
         self.colorWheel.set_color(hsv[0], hsv[1], hsv[2])
         #image = self._gtk.Image("color-palette", self._gtk.content_width * .3, self._gtk.content_height * .5)
-        self.labels['text'] = Gtk.Label(self.colorWheel.get_color())
-        self.labels['text'].set_text(str(self.colors[0])+ " \n" +str(self.colors[1])+ " \n"+str(self.colors[2]) + " \n" + str(self._printer.config['neopixel my_neopixel']))
-        #"Here you can choose printer color \n\n" 
-        #                                "End set default color\n"
-        self.labels['text'].set_line_wrap(True)
-        self.labels['text'].set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
-        self.labels['text'].set_halign(Gtk.Align.CENTER)
-        self.labels['text'].set_valign(Gtk.Align.CENTER)
+        # self.labels['text'] = Gtk.Label(self.colorWheel.get_color())
+        # self.labels['text'].set_text(str(self.colors[0])+ " \n" +str(self.colors[1])+ " \n"+str(self.colors[2]) + " \n" + str(self._printer.config['neopixel my_neopixel']))
+        # #"Here you can choose printer color \n\n" 
+        # #                                "End set default color\n"
+        # self.labels['text'].set_line_wrap(True)
+        # self.labels['text'].set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        # self.labels['text'].set_halign(Gtk.Align.CENTER)
+        # self.labels['text'].set_valign(Gtk.Align.CENTER)
 
         self.labels['set_default'] = self._gtk.Button("refresh", _("Set Default"), "color1")
         self.labels['set_default'].connect("clicked", self.set_default_color)
@@ -47,14 +47,14 @@ class LightingPanel(ScreenPanel):
         self.labels['actions'].set_halign(Gtk.Align.CENTER)
         self.labels['actions'].set_homogeneous(True)
         self.labels['actions'].set_size_request(self._gtk.content_width, -1)
-        scroll = self._gtk.ScrolledWindow()
-        scroll.set_hexpand(True)
-        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        scroll.add(self.labels['text'])
+        # scroll = self._gtk.ScrolledWindow()
+        # scroll.set_hexpand(True)
+        # scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        #scroll.add(self.labels['text'])
 
         info = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
         info.pack_start(self.colorWheel, True, True, 8)
-        info.pack_end(scroll, True, True, 8)
+        #info.pack_end(scroll, True, True, 8)
 
         main = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         main.pack_start(info, True, True, 8)
