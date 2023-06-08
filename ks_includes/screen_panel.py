@@ -113,6 +113,7 @@ class ScreenPanel:
     def unload_menu(self, widget=None):
         logging.debug(f"self.menu: {self.menu}")
         if len(self.menu) <= 1 or self.menu[-2] not in self.labels:
+            logging.debug(f"something wrong")
             return
         self._screen.base_panel.set_title(self._screen.panels[self._screen._cur_panels[-1]].title)
         self.menu.pop()

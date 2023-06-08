@@ -48,7 +48,7 @@ PRINTER_BASE_STATUS_OBJECTS = [
     'motion_report',
     'firmware_retraction',
     'exclude_object',
-    'neopixel my_neopixel'
+    'neopixel my_neopixel',
 ]
 
 klipperscreendir = pathlib.Path(__file__).parent.resolve()
@@ -242,7 +242,7 @@ class KlipperScreen(Gtk.Window):
                 "firmware_retraction": ["retract_length", "retract_speed", "unretract_extra_length", "unretract_speed"],
                 "motion_report": ["live_position", "live_velocity", "live_extruder_velocity"],
                 "exclude_object": ["current_object", "objects", "excluded_objects"],
-                "neopixel my_neopixel": ["color_data"]
+                "neopixel my_neopixel": ["color_data"],
             }
         }
         for extruder in self.printer.get_tools():
@@ -312,6 +312,8 @@ class KlipperScreen(Gtk.Window):
         if hasattr(self.panels[panel_name], "activate"):
             self.panels[panel_name].activate()
         self.show_all()
+        # if hasattr(self.panels[panel_name], "init_sizes"):
+        #     self.panels[panel_name].init_sizes()
 
     def show_popup_autooff(self, message, just_popup=True):
         self.close_screensaver()

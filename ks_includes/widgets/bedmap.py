@@ -1,8 +1,8 @@
 import gi
 
+from jinja2 import Environment, Template
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-
 
 class BedMap(Gtk.DrawingArea):
     def __init__(self, font_size, bm):
@@ -27,7 +27,7 @@ class BedMap(Gtk.DrawingArea):
         if self.bm is None:
             ctx.move_to(self.font_spacing, height / 2)
             ctx.set_source_rgb(0.5, 0.5, 0.5)
-            ctx.show_text(_("No mesh has been loaded"))
+            #ctx.show_text("No mesh has been loaded")
             ctx.stroke()
             return
 

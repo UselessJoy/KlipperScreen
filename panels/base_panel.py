@@ -117,6 +117,12 @@ class BasePanel(ScreenPanel):
 
 
     ####      NEW      ####
+    def get_width_action_bar(self):
+        return self.action_bar.get_allocation().width
+    
+    def get_height_titlebar(self):
+        return self.titlebar.get_allocation().height
+    
     def change_wifi_mode(self, widget):
         self._screen._ws.klippy.change_wifi_mode()
     ####    END NEW    ####
