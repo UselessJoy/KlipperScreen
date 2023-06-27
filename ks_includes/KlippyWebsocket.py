@@ -371,6 +371,17 @@ class MoonrakerApi:
             callback,
             *args
         )
+        
+    def set_safety(self, safety, callback=None, *args):
+        logging.debug(f"Sending printer.setSafetyPrinting")
+        return self._ws.send_method(
+            "printer.setSafetyPrinting",
+            {
+                "safety" : safety
+            },
+            callback,
+            *args
+        )
     ####    END NEW    ####
     def set_bed_temp(self, target, callback=None, *args):
         logging.debug(f"Sending set_bed_temp: {KlippyGcodes.set_bed_temp(target)}")

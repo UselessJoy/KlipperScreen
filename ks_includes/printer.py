@@ -284,6 +284,9 @@ class Printer:
     ####      NEW      ####
     def get_autooff(self):
         return self.data['autooff']['autoOff_enable']
+    
+    def get_safety_printing(self):
+        return self.data['safety_printing']
     ####    END NEW    ####
     
     def get_pin_value(self, pin):

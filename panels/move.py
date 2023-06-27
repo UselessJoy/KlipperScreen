@@ -23,12 +23,18 @@ class MovePanel(ScreenPanel):
         self.settings = {}
         self.menu = ['move_menu']
         
-        self.initialized = False
-        self.image = self._gtk.Image("big_extruder", 4000, 4000)
-        self.buffer_image = self._gtk.Image("big_extruder_opacity", 4000, 4000)
+        self.init = False
+        self.label_put = False
+        self.image = self._gtk.Image("big_extruder", self._screen.width*2, self._screen.height*2)
+        self.buffer_image = self._gtk.Image("big_extruder_opacity", self._screen.width*2, self._screen.height*2)
+        self.label_pop = Gtk.Label()
+        self.label_pop.set_text("Must home axis first")
         self.movement_area = Gtk.Layout()
         self.movement_area.put(self.image, 0,0)
         self.movement_area.put(self.buffer_image, 0,0)
+        self.movement_area.put(self.label_pop, 0,0)
+        self.movement_area.set_opacity(0)
+        #self.movement_area.put(self.text_image, 0,0)
         self.movement_area.set_resize_mode(False)
         self.border_corner = "inside" #value that indicates which boundary or corner we are at
         self.X_GCODE = self.Y_GCODE = self.Z_GCODE = 0
@@ -39,7 +45,12 @@ class MovePanel(ScreenPanel):
         self.MAX_Z = float(self._printer.get_config_section("stepper_z")['position_max'])
         self.stepper_endstop = {"x" : float(self._printer.get_config_section("stepper_x")['position_endstop']), 
                                 "y" : float(self._printer.get_config_section("stepper_y")['position_endstop']), 
-                                "z" : float(self._printer.get_config_section("stepper_z")['position_endstop'])}
+                                "z" : float(self._printer.get_config_section("stepper_z")['position_endstop']),
+                                "x_min" : float(self._printer.get_config_section("stepper_x")['position_min']), 
+                                "y_min" : float(self._printer.get_config_section("stepper_y")['position_min']), 
+                                "z_min" : float(self._printer.get_config_section("stepper_z")['position_min'])}
+        
+        
         self.mode = False
         self.clicked = False
         self.moving_timer = None
@@ -72,6 +83,7 @@ class MovePanel(ScreenPanel):
         self.event_field.connect('button-release-event', self.stop_moving)
         self.event_field.connect('button-press-event', self.area_clicked)
         self.event_field.add_events(Gdk.EventMask.POINTER_MOTION_MASK)
+        self.event_field.set_resize_mode(False)
         distgrid = Gtk.Grid()
         for j, i in enumerate(self.distances):
             self.labels[i] = self._gtk.Button(label=i)
@@ -87,7 +99,6 @@ class MovePanel(ScreenPanel):
             if i == self.distance:
                 ctx.add_class("distbutton_active")
             distgrid.attach(self.labels[i], j, 0, 1, 1)
-            distgrid.set_resize_mode(False)
         self.buttons = {
             'x+': self._gtk.Button("arrow-right", None, "color1"),
             'x-': self._gtk.Button("arrow-left", None, "color1"),
@@ -99,7 +110,7 @@ class MovePanel(ScreenPanel):
             'home_xy': self._gtk.Button("home", _("XY"), "color4"),
             'motors_off': self._gtk.Button("motor-off", _("Off"), "color4"),
             'home_z': self._gtk.Button("home", _("Z"), "color4"),
-            'mode' : self._gtk.Button("Z-axis", None, "color2", 1, Gtk.PositionType.LEFT, 1)
+            'mode' : self._gtk.Button("Z-axis", None, "color2")
         }
         self.buttons['x+'].connect("clicked", self.move, "X", "+")
         self.buttons['x-'].connect("clicked", self.move, "X", "-")
@@ -111,7 +122,6 @@ class MovePanel(ScreenPanel):
         self.buttons['home_xy'].connect("clicked", self.homexy)
         self.buttons['home_z'].connect("clicked", self.homez)
         self.buttons['mode'].connect("clicked", self.change_mode)
-        
         script = {"script": "M18"}
         self.buttons['motors_off'].connect("clicked", self._screen._confirm_send_action,
                                            _("Are you sure you wish to disable motors?"),
@@ -182,6 +192,9 @@ class MovePanel(ScreenPanel):
             
         for p in ('pos_x', 'pos_y', 'pos_z'):
             self.labels[p] = Gtk.Label()
+            # self.labels[p].set_ellipsize(Pango.EllipsizeMode.END)
+            # self.labels[p].set_halign(Pango.EllipsizeMode.END)
+            self.labels[p].set_width_chars(8)
         positions_grid = self._gtk.HomogeneousGrid()
         positions_grid.set_direction(Gtk.TextDirection.LTR)
         positions_grid.attach(self.labels['pos_x'], 0, 0, 1, 1)
@@ -197,8 +210,6 @@ class MovePanel(ScreenPanel):
         self.event_field.set_hexpand(True)
         self.event_field.set_size_request(int(self._screen.width/3.5),int(self._screen.height/1.5))
         
-        self.label_pop = Gtk.Label()
-        self.label_pop.set_text("Must home axis first")
         self.labels['move_menu'].attach(distgrid, 2, 0, 1, 1)
         self.labels['move_menu'].attach(self.event_field, 0,1,2,1)
         self.labels['move_menu'].attach(grid, 2, 1, 1, 1)
@@ -223,45 +234,35 @@ class MovePanel(ScreenPanel):
             self.cursor_button_height = int(self.image_height*0.064)
             self.buffer_image_height = self.cursor_button_height
             if "z" in homed_axes and "gcode_move" in self._printer.data and "gcode_position" in self._printer.data["gcode_move"]:
-                    self.old_x, self.old_y, image_to_pixel_w, image_to_pixel_h = self.mm_coordinates_to_pixel_coordinates(0,0, self._printer.data['gcode_move']['gcode_position'][2])
-                    self.old_y = self.old_y + self.cursor_button_height/2
-                    field_center_w = self.area_w/2 - self.image_width/2
-                    self.movement_area.move(self.image, field_center_w, image_to_pixel_h)
-                    buffer_h = self.mm_coordinates_to_pixel_coordinates_buffer(self._printer.data['gcode_move']['gcode_position'][2])
-                    self.movement_area.move(self.buffer_image, field_center_w, buffer_h)
-                    self.initialized = True
-                    self.movement_area.remove(self.label_pop)
-                    self.movement_area.show_all()
-                    self.event_field.set_sensitive(True)
-            else:
-                field_center = self.area_w/2 - self.image_width/2, self.area_h/2 - self.image_height/2
-                self.movement_area.move(self.image, field_center[0], field_center[1])
-                self.movement_area.move(self.buffer_image, field_center[0], field_center[1])
-                self.movement_area.put(self.label_pop, self.area_w/4, self.area_h/5)
-                self.movement_area.show_all()
-                self.event_field.set_sensitive(False)
-                self.initialized = False
-        else:
+                self.old_x, self.old_y, image_to_pixel_w, image_to_pixel_h = self.mm_coordinates_to_pixel_coordinates(0,0, self._printer.data['gcode_move']['gcode_position'][2])
+                self.init = True
+        else:    
             self.cursor_button_width = int(self.image_width*0.032)
             self.cursor_button_height = self.image_height
             if "x" in homed_axes and "y" in homed_axes and "gcode_move" in self._printer.data and "gcode_position" in self._printer.data["gcode_move"]:
                     self.old_x, self.old_y, image_to_pixel_w, image_to_pixel_h = self.mm_coordinates_to_pixel_coordinates(self._printer.data['gcode_move']['gcode_position'][0], self._printer.data['gcode_move']['gcode_position'][1], 0)
-                    self.old_x = self.old_x + self.cursor_button_width/2
-                    self.old_y = self.old_y - self.cursor_button_height/2
-                    self.movement_area.move(self.image, image_to_pixel_w, image_to_pixel_h)
-                    self.movement_area.move(self.buffer_image, image_to_pixel_w, image_to_pixel_h)
-                    self.initialized = True
-                    self.movement_area.remove(self.label_pop)
-                    self.movement_area.show_all()
-                    self.event_field.set_sensitive(True)
+                    self.init = True         
+        if self.init:
+            self.label_pop.set_opacity(0)
+            self.movement_area.move(self.image, image_to_pixel_w, image_to_pixel_h)
+            if not self.mode:
+                self.movement_area.move(self.buffer_image, image_to_pixel_w, image_to_pixel_h)
             else:
-                field_center = self.area_w/2 - self.image_width/2, self.area_h/2 - self.image_height/2
-                self.movement_area.move(self.image, field_center[0], field_center[1])
+                buffer_h = self.mm_coordinates_to_pixel_coordinates_buffer(self._printer.data['gcode_move']['gcode_position'][2])
+                self.movement_area.move(self.buffer_image, image_to_pixel_w, buffer_h)
+            self.event_field.set_sensitive(True) 
+            
+        else:
+            field_center = self.area_w/2 - self.image_width/2, self.area_h/2 - self.image_height/2
+            self.movement_area.move(self.image, field_center[0], field_center[1])
+            if self.mode:
                 self.movement_area.move(self.buffer_image, field_center[0], field_center[1])
-                self.movement_area.put(self.label_pop, self.area_w/4, self.area_h/5)
-                self.movement_area.show_all()
-                self.event_field.set_sensitive(False)
-                self.initialized = False
+            else:
+                self.movement_area.move(self.buffer_image, field_center[0], field_center[1])
+            self.label_pop.set_opacity(1)
+            self.movement_area.put(self.label_pop, self.area_w/4, self.area_h/5)
+            self.event_field.set_sensitive(False)
+        self.movement_area.set_opacity(1)
         return False
     
     def mm_coordinates_to_pixel_coordinates_buffer(self, z):
@@ -276,37 +277,33 @@ class MovePanel(ScreenPanel):
             cursor_position_h = abs(((z)*(self.area_h - self.cursor_button_height))/self.MAX_Z)
             image_to_cursor_w = cursor_position_w - self.image_width/2
             image_to_cursor_h = cursor_position_h - self.image_height/2 + self.cursor_button_height/2
-            return cursor_position_w, cursor_position_h, image_to_cursor_w, image_to_cursor_h
+            return cursor_position_w, cursor_position_h + self.cursor_button_height/2, image_to_cursor_w, image_to_cursor_h
             
         else:
             cursor_position_w = abs(((x)*(self.area_w - self.cursor_button_width))/self.MAX_X)
             cursor_position_h = abs(((y)*(self.area_h - self.cursor_button_height))/self.MAX_Y)
             image_to_cursor_w = -self.image_width/2 + cursor_position_w + self.cursor_button_width/2
             image_to_cursor_h = self.area_h - cursor_position_h - self.cursor_button_height
-            return cursor_position_w, self.area_h - cursor_position_h, image_to_cursor_w, image_to_cursor_h
+            return cursor_position_w + self.cursor_button_width/2, self.area_h  - self.cursor_button_height/2 - cursor_position_h, image_to_cursor_w, image_to_cursor_h
     
     def change_mode(self, widget):
         self.movement_area.remove(self.image)
         self.movement_area.remove(self.buffer_image)
-        self.initialized = False
+        self.init = False
         if self.mode:
             self.mode = False
             self.buttons["mode"].set_image(self._gtk.Image("Z-axis"))
-            self.image = self._gtk.Image("big_extruder", 4000, 4000)
-            self.buffer_image = self._gtk.Image("big_extruder_opacity", 4000, 4000)
-            self.movement_area.put(self.image, self.area_w/2 - self.image_width/2, self.area_h/2 - self.image_height/2)
-            self.movement_area.put(self.buffer_image, self.area_w/2 - self.image_width/2, self.area_h/2 - self.image_height/2)
-            self.movement_area.show_all()
-            GLib.timeout_add(100, self.init_sizes)
+            self.image = self._gtk.Image("big_extruder", self._screen.width*2, self._screen.height*2)
+            self.buffer_image = self._gtk.Image("big_extruder_opacity", self._screen.width*2, self._screen.height*2)
         else:
             self.mode = True
             self.buttons["mode"].set_image(self._gtk.Image("XY-axis"))
-            self.image = self._gtk.Image("heater_bed_lines",500, 2500)
-            self.buffer_image = self._gtk.Image("heater_bed_outlines",500, 2500)
-            self.movement_area.put(self.image, self.area_w/2 - self.image_width/2, self.area_h/2 - self.image_height/2)
-            self.movement_area.put(self.buffer_image,self.area_w/2 - self.image_width/2, self.area_h/2 - self.image_height/2)
-            self.movement_area.show_all()
-            GLib.timeout_add(100, self.init_sizes)
+            self.image = self._gtk.Image("heater_bed_lines", self._screen.width/4, self._screen.height*2)
+            self.buffer_image = self._gtk.Image("heater_bed_outlines", self._screen.width/4, self._screen.height*2)
+        self.movement_area.put(self.image, self.area_w/2 - self.image_width/2, self.area_h/2 - self.image_height/2)
+        self.movement_area.put(self.buffer_image,self.area_w/2 - self.image_width/2, self.area_h/2 - self.image_height/2)
+        self.movement_area.show_all()
+        GLib.timeout_add(100, self.init_sizes)
   
     def in_borders(self, cursor_x, cursor_y):
         borders = [
@@ -315,6 +312,7 @@ class MovePanel(ScreenPanel):
                     cursor_y + self.cursor_button_height/2 < self.area_h, #bottom
                     cursor_y - self.cursor_button_height/2 > 0, #top
                    ]
+        logging.info(str(borders))
         return borders
     
     def correcting_coordinates(self, current_x, current_y):
@@ -405,6 +403,7 @@ class MovePanel(ScreenPanel):
     def move_to_cursor(self, widget, args):
         try:
             correct_x, correct_y = self.correcting_coordinates(args.x, args.y)
+            logging.info("from move " + str(args.x) + " " + str(args.y))
             if self.mode:
                 center_width = correct_x
                 center_height = correct_y - self.image_height/2
@@ -426,8 +425,10 @@ class MovePanel(ScreenPanel):
         self.move_from_layout(correct_x, correct_y, speed)
         
     def move_from_layout(self, pixel_x, pixel_y, speed):
+        logging.info("corrective from layout " + str(pixel_x) + " " + str(pixel_y))
         self.cursor_coordinates_to_printer_cordinates(pixel_x, pixel_y)
         if self.mode:
+            logging.info(str(self.Z_GCODE))
             self.main_gcode.append(f"{KlippyGcodes.MOVE} Z{self.Z_GCODE} F{speed}")
         else:
             self.main_gcode.append(f"{KlippyGcodes.MOVE} X{self.X_GCODE} Y{self.Y_GCODE} F{speed}")
@@ -440,25 +441,17 @@ class MovePanel(ScreenPanel):
             logging.info(f"point parameters {str(self.point_parameters)}")
             
             self.hypot = ((self.old_x - self.point_parameters["to_x"])**2 + (self.old_y - self.point_parameters["to_y"])**2)**0.5
-            if self.old_x - self.point_parameters["to_x"] == 0:
-                self.speed_x, self.speed_y = self.speed_mm_to_speed_pixel(self.point_parameters["speed"], x=True)
-            elif self.old_y - self.point_parameters["to_y"] == 0:
-                self.speed_x, self.speed_y = self.speed_mm_to_speed_pixel(self.point_parameters["speed"], y=True)
+            if not self.mode:
+                Ghypot = ((self.point_parameters["Gx"])**2 + (self.point_parameters["Gy"]**2))**0.5
+                sin_Gx = (self.point_parameters["Gx"])/(Ghypot)
+                sin_Gy = -1*(self.point_parameters["Gy"])/(Ghypot)
+                self.speed_x, self.speed_y = self.speed_mm_to_speed_pixel(self.point_parameters["speed"], sin_Gx, sin_Gy)
             else:
-                sin_x = abs(self.old_y - self.point_parameters["to_y"])/(self.hypot)
-                sin_y = abs(self.old_x - self.point_parameters["to_x"])/(self.hypot)
-                self.speed_x, self.speed_y = self.speed_mm_to_speed_pixel(self.point_parameters["speed"], sin_x, sin_y)
+                self.speed_x, self.speed_y = self.speed_mm_to_speed_pixel(self.point_parameters["speed"])
             self.corrective_time = time.time()
         time_now = time.time() - self.corrective_time
-        if self.old_y - self.point_parameters["to_y"] >= 0:
-            now_y = self.old_y - time_now * self.speed_y
-        else:
-            now_y = self.old_y + time_now * self.speed_y
-        if self.old_x - self.point_parameters["to_x"] >= 0:
-            now_x = self.old_x - time_now * self.speed_x
-        else:
-            now_x = self.old_x + time_now * self.speed_x
-            
+        now_x = self.old_x + time_now * self.speed_x
+        now_y = self.old_y + time_now * self.speed_y
         dist_now = ((self.old_x - now_x)**2 + (self.old_y - now_y)**2)**0.5
         if self.hypot - dist_now <= 0:
             self.old_x, self.old_y = self.point_parameters["to_x"], self.point_parameters["to_y"]
@@ -487,34 +480,32 @@ class MovePanel(ScreenPanel):
             
     
     def speed_mm_to_speed_pixel(self, speed, sin_x=0, sin_y=0, x=False, y=False):
+        mm_speed = ((speed)/60)
+        mm_speed_x = mm_speed * sin_x
+        mm_speed_y = mm_speed * sin_y
+        
         if self.mode:
             speed_pixel_x = 0
-            speed_pixel_y = ((speed/60)*(self.area_h - self.cursor_button_height))/self.MAX_Z
+            speed_pixel_y = ((mm_speed)*(self.area_h - self.cursor_button_height))/self.MAX_Z
         else:
-            speed_pixel_x = (((speed - self.cursor_button_width/2)/60)*(self.area_w - self.cursor_button_width))/self.MAX_X
-            speed_pixel_y = (((speed - self.cursor_button_height)/60)*(self.area_h - self.cursor_button_height))/self.MAX_Y
-        if x == True:
-            speed_to_x = 0
-            speed_to_y = speed_pixel_y
-        elif y == True:
-            speed_to_x = speed_pixel_x
-            speed_to_y = 0
-        else:
-            speed_to_x = speed_pixel_x*sin_y
-            speed_to_y = speed_pixel_y*sin_x
-        return speed_to_x, speed_to_y
+            speed_pixel_x = ((mm_speed_x)*(self.area_w - self.cursor_button_width))/self.MAX_X
+            speed_pixel_y = ((mm_speed_y)*(self.area_h - self.cursor_button_height))/self.MAX_Y
+        return speed_pixel_x, speed_pixel_y
     
     def cursor_coordinates_to_printer_cordinates(self, pixel_x, pixel_y):
+        logging.info("to printer coordinate " + str(pixel_x) + " " +str(pixel_y))
         if self.mode:
-            if not "top" in self.border_corner and not "bottom" in self.border_corner:
-                self.calculate_z_pixels_to_z_mm(pixel_y)
+            #if not self.border_corner.endswith("top") and not self.border_corner.endswith("bottom"):
+            self.calculate_z_pixels_to_z_mm(pixel_y)
         else:
             if self.border_corner == "corner":
                 return
             self.calculate_xy_pixels_to_xy_mm(pixel_x, pixel_y)
     
     def calculate_z_pixels_to_z_mm(self, pixel_y):
+        logging.info("calculate " +str(pixel_y))
         self.Z_GCODE = abs(((pixel_y - self.cursor_button_height/2)*self.MAX_Z)/(self.area_h - self.cursor_button_height))
+        logging.info("calculated Gcode" +str(self.Z_GCODE))
         
     def calculate_xy_pixels_to_xy_mm(self, pixel_x, pixel_y):
         if self.border_corner.startswith("border"):
@@ -540,7 +531,7 @@ class MovePanel(ScreenPanel):
                 self.buttons[button].set_sensitive(sensitive)
 
     def process_update(self, action, data):
-        change_coord = False
+        change_coord = [False, False, False]
         if action == "notify_busy":
             self.process_busy(data)
             return
@@ -551,59 +542,71 @@ class MovePanel(ScreenPanel):
             if "gcode_move" in data and "gcode_position" in data["gcode_move"]:
                 self.labels['pos_x'].set_text(f"X: {data['gcode_move']['gcode_position'][0]:.2f}")
                 self.sensitive_axes("x", True)
-                self.LAST_X = data['gcode_move']['gcode_position'][0]
                 if self.last_coord[0] != data['gcode_move']['gcode_position'][0]:
+                    self.LAST_X = self.last_coord[0]
                     self.last_coord[0] = data['gcode_move']['gcode_position'][0]
-                    change_coord = True
+                    change_coord[0] = True
         else:
             self.labels['pos_x'].set_text("X: ?")
             self.sensitive_axes("x", False)
             self.sensitive_axes("y", False)
             if not self.mode:
-                self.initialized = False
+                self.init = False
                 self.init_sizes()
         if "y" in homed_axes:
             if "gcode_move" in data and "gcode_position" in data["gcode_move"]:
                 self.labels['pos_y'].set_text(f"Y: {data['gcode_move']['gcode_position'][1]:.2f}")
                 self.sensitive_axes("y", True)
-                self.LAST_Y = data['gcode_move']['gcode_position'][1]
                 if self.last_coord[1] != data['gcode_move']['gcode_position'][1]:
+                    self.LAST_Y = self.last_coord[1]
                     self.last_coord[1] = data['gcode_move']['gcode_position'][1]
-                    change_coord = True
+                    change_coord[1] = True
         else:
             self.labels['pos_y'].set_text("Y: ?")
             self.sensitive_axes("y", False)
             self.sensitive_axes("x", False)
             if not self.mode:
-                self.initialized = False
+                self.init = False
                 self.init_sizes()
         if "z" in homed_axes:
             if "gcode_move" in data and "gcode_position" in data["gcode_move"]:
                 self.labels['pos_z'].set_text(f"Z: {data['gcode_move']['gcode_position'][2]:.2f}")
                 self.sensitive_axes("z", True)
-                self.LAST_Z = data['gcode_move']['gcode_position'][2]
                 if self.last_coord[2] != data['gcode_move']['gcode_position'][2]:
+                    self.LAST_Z = self.last_coord[2]
                     self.last_coord[2] = data['gcode_move']['gcode_position'][2]
-                    change_coord = True
+                    change_coord[2] = True
         else:
             self.labels['pos_z'].set_text("Z: ?")
             self.sensitive_axes("z", False)
             if self.mode:
-                self.initialized = False
+                self.init = False
                 self.init_sizes()
         if ("x" in homed_axes and "y" in homed_axes or "z" in homed_axes) and "gcode_move" in data and "gcode_position" in data["gcode_move"]:
-            if not self.initialized and self.in_home_position(data):
+            if not self.init and self.in_home_position(data):
                 self.init_sizes()
-            elif self.initialized and change_coord:
+            elif self.init and True in change_coord:
                 new_x, new_y, new_position_w, new_position_h = self.mm_coordinates_to_pixel_coordinates(data['gcode_move']['gcode_position'][0], 
                                                          data['gcode_move']['gcode_position'][1],
                                                          data['gcode_move']['gcode_position'][2])
                 if not self.mode:
-                    point_tuple = {"to_x" : new_x + self.cursor_button_width/2, "to_y" : new_y - self.cursor_button_height/2, 
-                                    "speed" : self._printer.data['gcode_move']['speed']}
+                    if change_coord[0] and change_coord[1]:
+                        cathet_x = data['gcode_move']['gcode_position'][0] - self.LAST_X
+                        cathet_y = data['gcode_move']['gcode_position'][1] - self.LAST_Y
+                    elif change_coord[0]:
+                        cathet_x = data['gcode_move']['gcode_position'][0] - self.LAST_X
+                        cathet_y = 0
+                    else:
+                        cathet_x = 0
+                        cathet_y = data['gcode_move']['gcode_position'][1] - self.LAST_Y
+                    point_tuple = {"to_x" : new_x, "to_y" : new_y, 
+                                    "speed" : self._printer.data['gcode_move']['speed'], "Gy": cathet_y, "Gx": cathet_x}
                 else:
-                    point_tuple = {"to_x" : new_x, "to_y" : new_y + self.cursor_button_height/2, 
-                                    "speed" : self._printer.data['gcode_move']['speed']}
+                    speed = self._printer.data['gcode_move']['speed'] * self._printer.data['gcode_move']['speed_factor']
+                    if data['gcode_move']['gcode_position'][2] - self.LAST_Z < 0:
+                        speed = speed * -1
+                    point_tuple = {"to_x" : new_x, "to_y" : new_y, 
+                                    "speed" : speed}
                 self.query_points.append(point_tuple)
                 if self.printing_timer is None:
                     self.printing_timer = GLib.idle_add(self.print_to_cursor)
@@ -612,13 +615,13 @@ class MovePanel(ScreenPanel):
     def in_home_position(self, data):
         if self.mode:
             z = abs(float(f"{data['gcode_move']['gcode_position'][2]:.2f}"))
-            if z == abs(self.stepper_endstop["z"]):
+            if z - abs(self.stepper_endstop["z"]) <= 0.2: #z - abs(self.stepper_endstop["z"]) <= 0.2
                 return True
         else:
-            x = abs(float(f"{data['gcode_move']['gcode_position'][0]:.2f}"))
-            y = abs(float(f"{data['gcode_move']['gcode_position'][1]:.2f}"))
-            if x == abs(self.stepper_endstop["x"]) \
-                and y == abs(self.stepper_endstop["y"]):
+            x = abs(float(f"{data['gcode_move']['gcode_position'][0]:.2f}")) #x - abs(self.stepper_endstop["x"]) <= 0.2
+            y = abs(float(f"{data['gcode_move']['gcode_position'][1]:.2f}")) #y - abs(self.stepper_endstop["y"]) <= 0.2
+            if (x - abs(self.stepper_endstop["x"]) <= 0.2) \
+                and (y - abs(self.stepper_endstop["y"]) <= 0.2):
                 return True
         return False
     
@@ -644,16 +647,16 @@ class MovePanel(ScreenPanel):
 
     def last_mm_to_pixels(self, axis, dist):
         if axis == "X":
-            cursor_position_w = ((self.LAST_X + int(dist))*(self.area_w - self.cursor_button_width))/self.MAX_X + self.cursor_button_width/2
-            cursor_position_h = self.area_h - (self.LAST_Y*(self.area_h - self.cursor_button_height))/self.MAX_Y - self.cursor_button_height/2
+            cursor_position_w = ((self.last_coord[0] + int(dist))*(self.area_w - self.cursor_button_width))/self.MAX_X + self.cursor_button_width/2
+            cursor_position_h = self.area_h - (self.last_coord[1]*(self.area_h - self.cursor_button_height))/self.MAX_Y - self.cursor_button_height/2
             return cursor_position_w, cursor_position_h
         elif axis == "Y":
             cursor_position_w = (self.LAST_X*(self.area_w - self.cursor_button_width))/self.MAX_X + self.cursor_button_width/2
-            cursor_position_h = self.area_h - ((self.LAST_Y + int(dist))*(self.area_h - self.cursor_button_height))/self.MAX_Y - self.cursor_button_height/2
+            cursor_position_h = self.area_h - ((self.last_coord[1] + int(dist))*(self.area_h - self.cursor_button_height))/self.MAX_Y - self.cursor_button_height/2
             return cursor_position_w, cursor_position_h
         elif axis == "Z":
             cursor_position_w = self.area_w/2
-            cursor_position_h = ((self.LAST_Z + int(dist))*(self.area_h - self.cursor_button_height))/self.MAX_Z
+            cursor_position_h = ((self.last_coord[2] + int(dist))*(self.area_h - self.cursor_button_height))/self.MAX_Z
             return cursor_position_w, cursor_position_h
 
     def add_option(self, boxname, opt_array, opt_name, option):
@@ -714,15 +717,15 @@ class MovePanel(ScreenPanel):
         return False
 
     def home(self, widget):
-        self.initialized = False
+        self.init = False
         self._screen._ws.klippy.gcode_script(KlippyGcodes.HOME)
 
     def homexy(self, widget):
-        self.initialized = False
+        self.init = False
         self._screen._ws.klippy.gcode_script(KlippyGcodes.HOME_XY)
     
     def homez(self, widget):
-        self.initialized = False
+        self.init = False
         self._screen._ws.klippy.gcode_script(KlippyGcodes.HOME_Z)
 
     def z_tilt(self, widget):

@@ -795,8 +795,14 @@ msgstr "Не удалось подключиться к запрашиваемо
 msgid "No mesh has been loaded"
 msgstr "Ни одна сетка не была загружена"
 
-msgid "Enable autooff after print"
-msgstr "Включить автовыключение после печати"
+msgid "Autooff after print"
+msgstr "Автовыключение после печати"
+
+msgid "Printing is paused due to open cap or doors. Close the cap and doors to continue print"
+msgstr "Печать приостановлена из-за открытой крышки или створок. Закройте крышку и створки для продолжения печати"
+
+msgid "Printing is finished, the printer will be turned off after cooling the extruder"
+msgstr "Печать закончена. Принтер будет выключен после охлаждения экструдера"
 
 msgid "Set Default"
 msgstr "По умолчанию"
@@ -806,6 +812,19 @@ msgstr "Выключить"
 
 msgid "Poweroff now"
 msgstr "Выключить сейчас"
+
+msgid "Safety Printing"
+msgstr "Безопасная печать"
+
+#, python-format
+msgid "\nPrinting was interrupted\n\nDid you want to continue print?\n"
+msgstr "\nПечать была прервана\n\nЖелаете продолжить печать?\n"
+
+msgid "Continue Print"
+msgstr "Продолжить печать"
+
+msgid "Delete Print"
+msgstr "Отменить печать"
 
 # ###    END NEW    ####
 #~ msgid "Decrease"

@@ -41,6 +41,7 @@ PRINTER_BASE_STATUS_OBJECTS = [
     'idle_timeout',
     'pause_resume',
     'print_stats',
+    'safety_printing',
     'toolhead',
     'virtual_sdcard',
     'wifi_mode',
@@ -122,8 +123,8 @@ class KlipperScreen(Gtk.Window):
         self.height = self._config.get_main_config().getint("height", monitor.get_geometry().height)
         self.set_default_size(800, 600)
         self.set_resizable(True)
-       # if not (self._config.get_main_config().get("width") or self._config.get_main_config().get("height")):
-           # self.fullscreen()
+        # if not (self._config.get_main_config().get("width") or self._config.get_main_config().get("height")):
+        #     self.fullscreen()
         self.vertical_mode = self.width < self.height
         logging.info(f"Screen resolution: {self.width}x{self.height}")
         self.theme = self._config.get_main_config().get('theme')
@@ -224,7 +225,8 @@ class KlipperScreen(Gtk.Window):
     def ws_subscribe(self):
         requested_updates = {
             "objects": {
-                "autooff": ["autoOff_enable"],
+                "autooff": ["autoOff_enable", "autoOff"],
+                "safety_printing": ["safety", "open"],
                 "bed_mesh": ["profile_name", "mesh_max", "mesh_min", "probed_matrix", "profiles"],
                 "configfile": ["config"],
                 "display_status": ["progress", "message"],
@@ -316,14 +318,13 @@ class KlipperScreen(Gtk.Window):
         #     self.panels[panel_name].init_sizes()
 
     def show_popup_autooff(self, message, just_popup=True):
+        self.base_panel.content.set_sensitive(False)
         self.close_screensaver()
         if self.popup_message is not None:
             self.close_popup_message()
         msg = Gtk.Label(label=f"{message}")
         msg.set_hexpand(True)
         msg.set_vexpand(True)
-        plug = Gtk.Label()
-        plug.set_size_request(self.width * .7, self.height * .2)
         button_cancel = self.gtk.Button("refresh", _("Cancel"), "color1")
         button_cancel.connect("clicked", self.stop_autooff)
         button_power_off = self.gtk.Button("refresh", _("Poweroff now"), "color2")
@@ -333,27 +334,65 @@ class KlipperScreen(Gtk.Window):
             self.base_panel.main_grid.get_style_context().add_class("window-warning")
         
         grid = Gtk.Grid()
-        grid.set_row_spacing(15)
-        grid.get_style_context().add_class("message_popup")
-        grid.get_style_context().add_class("message_popup_warning")
+        grid.get_style_context().add_class("popup")
+        grid.get_style_context().add_class("message_popup_default")
         grid.attach(msg, 0,2,3,1)
-        grid.attach(plug,0,3,3,1)
-        grid.attach(button_cancel, 0,4,1,1)
-        grid.attach(button_power_off, 1,4,1,1)
+        grid.attach(button_cancel, 1,4,1,1)
+        grid.attach(button_power_off, 0,4,1,1)
         grid.show_all()
         popup = Gtk.Popover.new(self.base_panel.titlebar)
-        popup.get_style_context().add_class("message_popup_popover")
         popup.set_size_request(self.width * .7, self.height * .6)
         popup.set_halign(Gtk.Align.CENTER)
         popup.set_valign(Gtk.Align.CENTER)
-        popup.add(grid)
+        popup.add(grid)       
+        self.popup_message = popup
+        self.popup_message.show_all()
         
-        #popup.popup()
+        return False
+    
+    def show_popup_interrupt(self, message, just_popup=True):
+        self.base_panel.content.set_sensitive(False)
+        self.close_screensaver()
+        if self.popup_message is not None:
+            self.close_popup_message()
+        msg = Gtk.Label(label=f"{message}")
+        msg.set_hexpand(True)
+        msg.set_vexpand(True)
+        msg.set_line_wrap(True)
+        msg.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        msg.set_max_width_chars(40)
+        button_refresh = self.gtk.Button("refresh",  _("Continue Print"), "color1")
+        button_refresh.connect("clicked", self.refresh_print)
+        button_delete = self.gtk.Button("refresh", _("Delete Print"), "color2")
+        button_delete.connect("clicked", self.delete_print)
+        if not just_popup:
+            self.remove_window_classes(self.base_panel.main_grid.get_style_context())
+            self.base_panel.main_grid.get_style_context().add_class("window-warning")
+        grid = Gtk.Grid()
+        grid.get_style_context().add_class("popup")
+        grid.get_style_context().add_class("message_popup_default")
+        grid.attach(msg, 0,2,3,1)
+        grid.attach(button_refresh, 1,4,1,1)
+        grid.attach(button_delete, 0,4,1,1)
+        grid.show_all()
+        popup = Gtk.Popover.new(self.base_panel.titlebar)
+        popup.get_style_context().add_class("message_popup_popover")
+        popup.set_size_request(self.width * .7, self.height * .7)
+        popup.popdown()
+        popup.set_halign(Gtk.Align.CENTER)
+        popup.set_valign(Gtk.Align.CENTER)
+        popup.add(grid)
         
         self.popup_message = popup
         self.popup_message.show_all()
 
         return False
+    
+    def delete_print(self, widget):
+        self._ws.klippy.print_remove()
+
+    def refresh_print(self, widget):
+        self._ws.klippy.print_rebuild()
     
     def shutdown_now(self, widget):
         self._ws.send_method("machine.shutdown")
@@ -392,7 +431,7 @@ class KlipperScreen(Gtk.Window):
         
         popup = Gtk.Popover.new(self.base_panel.titlebar)
         popup.get_style_context().add_class("message_popup_popover")
-        popup.set_size_request(self.width * .5, self.height * .2)
+        popup.set_size_request(self.width * .7, self.height * .2)
         popup.set_halign(Gtk.Align.CENTER)
         popup.add(msg)
         popup.popup()
@@ -408,6 +447,8 @@ class KlipperScreen(Gtk.Window):
     def close_popup_message(self, widget=None):
         if self.popup_message is None:
             return
+        if not self.base_panel.content.get_sensitive():
+                self.base_panel.content.set_sensitive(True)
         self.popup_message.popdown()
         self.popup_message = None
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
@@ -647,9 +688,15 @@ class KlipperScreen(Gtk.Window):
     ####      NEW      ####
     def set_autooff(self, autooff_enable):
         self._ws.klippy.set_autooff(autooff_enable)
-        
+    
+    def set_safety(self, safety):
+        self._ws.klippy.set_safety(safety)
+      
     def get_autooff(self):
         return self.printer.get_autooff()
+    
+    def get_safety(self):
+        return self.printer.get_safety_printing()
     ####    END NEW    ####
     
     def set_dpms(self, use_dpms):
@@ -709,24 +756,7 @@ class KlipperScreen(Gtk.Window):
         self.connect_printer(self.connecting_to_printer)
     ####      NEW      ####
     def state_interrupt(self):
-        ####      NEW      ####
-        self.remove_window_classes(self.base_panel.main_grid.get_style_context())
-        ####    END NEW    ####
-        self.base_panel.main_grid.get_style_context().add_class("window-interrupt")
-        self.close_screensaver()
-        self.close_popup_message()
-        self.printer_initializing(_(""), remove=True)
-        self.show_panel('interrupt_panel', "interrupt_panel", None, 2)
-        
-    def state_autooff(self):
-        ####      NEW      ####
-        self.remove_window_classes(self.base_panel.main_grid.get_style_context())
-        ####    END NEW    ####
-        self.base_panel.main_grid.get_style_context().add_class("window-interrupt")
-        self.close_screensaver()
-        self.close_popup_message()
-        self.printer_initializing(_(""), remove=True)
-        self.show_panel('autooff_panel', "autooff_panel", None, 2)
+        self.show_popup_interrupt(_("\nPrinting was interrupted\n\nDid you want to continue print?\n"))
     ####    END NEW    ####
 
 

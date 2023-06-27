@@ -238,6 +238,16 @@ textview .time {
     border-bottom-color: #fdf6e3; /*base3*/
 }
 
+
+.message_popup_default {
+    border: .1em solid white;
+    border-radius: 1em;
+    padding: 1em;
+    margin: 0;
+}
+.message_popup_default button {
+    background-color: inherit; /*base3*/
+}
 .message_popup button {
     background-color: #dc322f; /*solarazed-red*/
 }
