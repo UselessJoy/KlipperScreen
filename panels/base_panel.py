@@ -184,7 +184,7 @@ class BasePanel(ScreenPanel):
     ####    END NEW    ####
 
     def show_wifi_mode(self, show=True):
-        self.wifi_mode = self._printer.data["wifi_mode"]["wifiMode"] == 'Default'
+        self.wifi_mode = self._printer.data["wifi_mode"]["wifiMode"]
         if show:
                 if self.wifi_mode == 'Default':
                     self.control['wifi'].set_image(self._gtk.Image("access_point"))
