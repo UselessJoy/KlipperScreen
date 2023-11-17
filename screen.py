@@ -101,7 +101,7 @@ class KlipperScreen(Gtk.Window):
         except Exception as e:
             logging.exception(e)
             raise RuntimeError from e
-        self.set_interactive_debugging(True)
+        #self.set_interactive_debugging(True)
         self.blanking_time = 600
         self.use_dpms = True
         self.apiclient = None
