@@ -9,83 +9,90 @@ from gi.repository import Gtk, GLib, GObject
 
 class Keyboard(Gtk.Box):
     langs = ["de", "en", "fr", "es"]
-    def __init__(self, screen, close_cb, entry=None):
+    def __init__(self, screen, reject_cb, accept_cb, entry=None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
-        self.close_cb = close_cb
-        self.keyboard = Gtk.Grid()
+        self.reject_cb = reject_cb
+        self.accept_cb = accept_cb
+        self.keyboard = screen.gtk.HomogeneousGrid()
         self.keyboard.set_direction(Gtk.TextDirection.LTR)
         self.timeout = self.clear_timeout = None
         self.entry = entry
+        
+        self.isLowerCase = True
         language = self.detect_language(screen._config.get_main_config().get("language", None))
         logging.info(f"Keyboard {language}")
 
         if language == "de":
             self.keys = [
                 [
-                    ["q", "w", "e", "r", "t", "z", "u", "i", "o", "p", "ü", "⌫"],
+                    ["q", "w", "e", "r", "t", "z", "u", "i", "o", "p", "ü"],
                     ["a", "s", "d", "f", "g", "h", "j", "k", "l", "ö", "ä"],
-                    ["ABC", "123", "#+=", "y", "x", "c", "v", "b", "n", "m"],
+                    ["ABC", "123", "y", "x", "c", "v", "b", "n", "m", "⌫"],
                 ],
                 [
-                    ["Q", "W", "E", "R", "T", "Z", "U", "I", "O", "P", "Ü", "⌫"],
+                    ["Q", "W", "E", "R", "T", "Z", "U", "I", "O", "P", "Ü"],
                     ["A", "S", "D", "F", "G", "H", "J", "K", "L", "Ö", "Ä"],
-                    ["abc", "123", "#+=", "Y", "X", "C", "V", "B", "N", "M"],
+                    ["abc", "123","Y", "X", "C", "V", "B", "N", "M", "⌫"],
                 ],
                 [
-                    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "ß", "⌫"],
+                    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "ß"],
                     ["-", "/", ":", ";", "(", ")", "$", "&", "@", "\"", "ẞ"],
-                    ["ABC", "abc", "#+=", ".", ",", "?", "!", "'"],
+                    ["ABC", "abc", "#+=", ".", ",", "?", "!", "'", "⌫"],
                 ],
                 [
-                    ["[", "]", "{", "}", "#", "%", "^", "*", "+", "=", "⌫"],
+                    ["[", "]", "{", "}", "#", "%", "^", "*", "+", "="],
                     ["_", "\\", "|", "~", "<", ">", "€", "£", "¥", "•"],
-                    ["ABC", "abc", "123", ".", ",", "?", "!", "'"],
+                    ["ABC", "abc", "123", ".", ",", "?", "!", "'", "⌫"],
                 ]
             ]
         elif language == "fr":
             self.keys = [
                 [
-                    ["a", "z", "e", "r", "t", "y", "u", "i", "o", "p", "⌫"],
+                    ["a", "z", "e", "r", "t", "y", "u", "i", "o", "p"],
                     ["q", "s", "d", "f", "g", "h", "j", "k", "l", "m"],
-                    ["ABC", "123", "#+=", "w", "x", "c", "v", "b", "n"],
+                    ["ABC", "123", "#+=", "w", "x", "c", "v", "b", "n", "⌫"],
                 ],
                 [
-                    ["A", "Z", "E", "R", "T", "Y", "U", "I", "O", "P", "⌫"],
+                    ["A", "Z", "E", "R", "T", "Y", "U", "I", "O", "P"],
                     ["Q", "S", "D", "F", "G", "H", "J", "K", "L", "M"],
-                    ["abc", "123", "#+=", "W", "X", "C", "V", "B", "N"],
+                    ["abc", "123", "#+=", "W", "X", "C", "V", "B", "N", "⌫"],
                 ],
                 [
-                    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "⌫"],
+                    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
                     ["-", "/", ":", ";", "(", ")", "$", "&", "@", "\""],
-                    ["ABC", "abc", "#+=", ".", ",", "?", "!", "'"],
+                    ["ABC", "abc", "#+=", ".", ",", "?", "!", "'", "⌫"],
                 ],
                 [
-                    ["[", "]", "{", "}", "#", "%", "^", "*", "+", "=", "⌫"],
+                    ["[", "]", "{", "}", "#", "%", "^", "*", "+", "="],
                     ["_", "\\", "|", "~", "<", ">", "€", "£", "¥", "•"],
-                    ["ABC", "abc", "123", ".", ",", "?", "!", "'"],
+                    ["ABC", "abc", "123", ".", ",", "?", "!", "'", "⌫"],
                 ]
             ]
         else:
             self.keys = [
                 [
-                    ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "⌫"],
-                    ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
-                    ["ABC", "123", "#+=", "z", "x", "c", "v", "b", "n", "m"],
+                    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+                    ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
+                    ["⇮", "a", "s", "d", "f", "g", "h", "j", "k", "l"],
+                    ["!#1", "z", "x", "c", "v", "b", "n", "m", "⌫"],
                 ],
                 [
-                    ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "⌫"],
-                    ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
-                    ["abc", "123", "#+=", "Z", "X", "C", "V", "B", "N", "M"],
+                    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+                    ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+                    ["⇧","A", "S", "D", "F", "G", "H", "J", "K", "L"],
+                    ["!#1", "Z", "X", "C", "V", "B", "N", "M", "⌫"],
                 ],
                 [
-                    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "⌫"],
-                    ["-", "/", ":", ";", "(", ")", "$", "&", "@", "\""],
-                    ["ABC", "abc", "#+=", ".", ",", "?", "!", "'"],
+                    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+                    ["+", "-", "*", "/", "=", "_", "{", "}", "[", "]"],
+                    ["1/2", "!", "@", "#", "$", "%", "^", "&", "(", ")"],
+                    ["ABC", "'", "\"", ":", ";", ".", ",", "?", "⌫"],
                 ],
                 [
-                    ["[", "]", "{", "}", "#", "%", "^", "*", "+", "=", "⌫"],
-                    ["_", "\\", "|", "~", "<", ">", "€", "£", "¥", "•"],
-                    ["ABC", "abc", "123", ".", ",", "?", "!", "'"],
+                    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+                    ["`", "~", "\\", "|", "<", ">", "€", "£", "¥", "฿"],
+                    ["2/2", "÷", "×", "○", "●", "□", "■", "—", "≈", "√"],
+                    ["ABC", "≤", "≥", "≪", "≫", "Ⅰ", "Ⅴ", "Ⅹ", "⌫"],
                 ]
             ]
 
@@ -135,11 +142,12 @@ class Keyboard(Gtk.Box):
         self.pallet_nr = p
         for r, row in enumerate(self.keys[p][:-1]):
             for k, key in enumerate(row):
-                x = k * 2 + 1 if r == 1 else k * 2
+                x = k *2 + 1 if r == 3 else k * 2
+                # x = k * 2 + 1 if r == 1 else k * 2
                 self.keyboard.attach(self.buttons[p][r][k], x, r, 2, 1)
-        self.keyboard.attach(self.buttons[p][3][0], 0, 4, 3, 1)  # ✕
-        self.keyboard.attach(self.buttons[p][3][1], 3, 4, 16, 1)  # Space
-        self.keyboard.attach(self.buttons[p][3][2], 19, 4, 3, 1)  # ✔
+        self.keyboard.attach(self.buttons[p][4][0], 0, 4, 2, 1)  # ✕
+        self.keyboard.attach(self.buttons[p][4][1], 2, 4, 16, 1)  # Space
+        self.keyboard.attach(self.buttons[p][4][2], 18, 4, 2, 1)  # ✔
         self.show_all()
 
     def repeat(self, widget, event, key):
@@ -167,23 +175,38 @@ class Keyboard(Gtk.Box):
         if self.clear_timeout is not None:
             GLib.source_remove(self.clear_timeout)
             self.clear_timeout = None
-        
+    
+    
+    def change_entry(self, entry, event=None):
+        self.entry = entry
+               
     def update_entry(self, widget, key):
-        if key == "⌫":
-            Gtk.Entry.do_backspace(self.entry)
-        elif key == "✔":
-            self.close_cb()
+        if key == "✔":
+            self.accept_cb()
         elif key == "✕":
-            self.clear()
-            #self.close_cb()
+            self.reject_cb()
+            #self.reject_cb()
             return
-        elif key == "abc":
+        elif key == "⇧":
+            self.isLowerCase = True
             self.set_pallet(0)
         elif key == "ABC":
+            if self.isLowerCase:
+                self.set_pallet(0)
+            else:
+                self.set_pallet(1)
+        elif key == "⇮":
+            self.isLowerCase = False
             self.set_pallet(1)
-        elif key == "123":
+        elif key == "!#1" or key == "2/2":
             self.set_pallet(2)
-        elif key == "#+=":
+        elif key == "1/2":
             self.set_pallet(3)
         else:
-            Gtk.Entry.do_insert_at_cursor(self.entry, key)
+            self.entry.update_entry(key)
+            # result = self.change_cb(self.entry, key) if self.change_cb != None else True
+            # if result:
+            #     if key == "⌫":
+            #         Gtk.Entry.do_backspace(self.entry)
+            #     else:
+            #         Gtk.Entry.do_insert_at_cursor(self.entry, key)

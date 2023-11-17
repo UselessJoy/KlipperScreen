@@ -22,7 +22,6 @@ class JobStatusPanel(ScreenPanel):
         self.grid = self._gtk.HomogeneousGrid()
         self.grid.set_row_homogeneous(False)
         self.pos_z = 0
-        self.show_autooff = False
         self.extrusion = 100
         self.speed_factor = 1
         self.speed = 100
@@ -430,10 +429,12 @@ class JobStatusPanel(ScreenPanel):
             self.new_print()
 
     def resume(self, widget):
+        self.disable_button("pause", "resume", "cancel")
         self._screen._ws.klippy.print_resume(self._response_callback, "enable_button", "pause", "cancel")
         self._screen.show_all()
 
     def pause(self, widget):
+        self.disable_button("pause", "resume", "cancel")
         self._screen._ws.klippy.print_pause(self._response_callback, "enable_button", "resume", "cancel")
         self._screen.show_all()
 
@@ -507,15 +508,7 @@ class JobStatusPanel(ScreenPanel):
             return
         elif action != "notify_status_update":
             return
-        if "autooff" in data and "autoOff" in data["autooff"]:
-            if data["autooff"]["autoOff"] and not self.show_autooff:
-                if self._screen.popup_message is not None:
-                    self._screen.close_popup_message()
-                self.show_autooff = True
-                self._screen.show_popup_autooff(_("Printing is finished, the printer will be turned off after cooling the extruder"))
-            elif not data["autooff"]["autoOff"] and self.show_autooff and self._screen.popup_message is not None:
-                self.show_autooff = False
-                self._screen.close_popup_message()
+
         for x in self._printer.get_tools():
             if x in self.buttons['extruder']:
                 self.update_temp(
@@ -700,6 +693,9 @@ class JobStatusPanel(ScreenPanel):
             self.progress = 1
             self.update_progress()
             self.set_state("complete")
+            autoOff_enable = self._screen.get_autooff()
+            if autoOff_enable:
+                self._screen.show_popup_autooff(_("Printing is finished, the printer will be turned off after cooling the extruder"))
             return self._add_timeout(self._config.get_main_config().getint("job_complete_timeout", 0))
         elif ps['state'] == "error":
             self.set_state("error")
@@ -711,10 +707,6 @@ class JobStatusPanel(ScreenPanel):
             return self._add_timeout(self._config.get_main_config().getint("job_cancelled_timeout", 0))
         elif ps['state'] == "paused":
             self.set_state("paused")
-            safety_printing = self._screen.get_safety()
-            logging.info(f"safe {safety_printing['safety']}, open {safety_printing['open']}")
-            if safety_printing['safety'] and safety_printing['open']:
-                self._screen.show_popup_message(_("Printing is paused due to open cap or doors. Close the cap and doors to continue print"), 2, True)
         elif ps['state'] == "standby":
             self.set_state("standby")
         return True

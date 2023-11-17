@@ -166,25 +166,44 @@ class KlippyGtk:
         b.connect("clicked", self.screen.reset_screensaver_timeout)
         return b
 
-    def Dialog(self, screen, buttons, content, callback=None, *args, error = False):
+    def Dialog(self, screen, buttons, content, callback=None, *args, width=None, height=None, style=None):
         dialog = Gtk.Dialog()
-        dialog.set_default_size(screen.width, screen.height)
+        if not width:
+            if not height:
+                dialog.set_default_size(screen.width, screen.height)
+            else:
+                dialog.set_default_size(screen.width, height)
+        else:
+            if height:
+                dialog.set_default_size(width, height)
+            else:
+                dialog.set_default_size(width, screen.height)
         dialog.set_resizable(False)
         dialog.set_transient_for(screen)
         dialog.set_modal(True)
 
         for button in buttons:
             dialog.add_button(button['name'], button['response'])
-            button = dialog.get_widget_for_response(button['response'])
-            button.set_size_request((screen.width - 30) / 3, screen.height / 5)
+            b = dialog.get_widget_for_response(button['response'])
+            if "image_name" in button:
+                w = h = self.img_scale * self.button_image_scale
+                b.set_image(self.Image(button['image_name'], w, h))
+                b.set_image_position(Gtk.PositionType.TOP)
+                b.set_always_show_image(True)
+            if "style" in button:
+                b.get_style_context().add_class(button['style'])
+            if width and height:
+                if "width" and "height" in button:
+                    b.set_size_request(button['width'], button['height'])
+            else:
+                b.set_size_request((screen.width - 30) / 3, screen.height / 5)
             format_label(button, 3)
 
         dialog.connect("response", self.screen.reset_screensaver_timeout)
         dialog.connect("response", callback, *args)
-        if error:
-            dialog.get_style_context().add_class("dialog-error")
-        else:    
-            dialog.get_style_context().add_class("dialog")
+        if style is not None:
+            for cl in style:   
+                dialog.get_style_context().add_class(cl)
 
         content_area = dialog.get_content_area()
         content_area.set_margin_start(15)
@@ -192,7 +211,7 @@ class KlippyGtk:
         content_area.set_margin_top(15)
         content_area.set_margin_bottom(15)
         content_area.add(content)
-
+        
         dialog.show_all()
         # Change cursor to blank
         if self.cursor:
@@ -242,3 +261,17 @@ class KlippyGtk:
                           Gdk.EventMask.BUTTON_RELEASE_MASK)
         scroll.set_kinetic_scrolling(True)
         return scroll
+
+    
+    @staticmethod
+    def VerticalNotebook(pages):
+        notebook = Gtk.Notebook()
+        notebook.set_tab_pos(Gtk.PositionType.LEFT)
+        notebook.set_show_border(True)
+        for page in pages:
+            page['content'].set_border_width(10)
+            notebook.append_page(page['content'], Gtk.Label(label=page['label']))
+        return notebook
+    
+            
+        

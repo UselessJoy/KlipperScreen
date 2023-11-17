@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import contextlib
 import logging
-
+import os
+import subprocess
 import gi
 
 gi.require_version("Gtk", "3.0")
@@ -11,7 +12,7 @@ from datetime import datetime
 from math import log
 
 from ks_includes.screen_panel import ScreenPanel
-
+from ks_includes.widgets.timepicker import Timepicker
 
 class BasePanel(ScreenPanel):
     def __init__(self, screen, title):
@@ -26,6 +27,8 @@ class BasePanel(ScreenPanel):
             'macros_shortcut': False,
             'printer_select': len(self._config.get_printers()) > 1,
         }
+        self.hours = None
+        self.minutes = None
         self.current_extruder = None
         # Action bar buttons
         abscale = self.bts * 1.1
@@ -51,6 +54,9 @@ class BasePanel(ScreenPanel):
 
         self.control['estop'] = self._gtk.Button('emergency', scale=abscale)
         self.control['estop'].connect("clicked", self.emergency_stop)
+        
+        self.control['power'] = self._gtk.Button('shutdown_red', scale=abscale)
+        self.control['power'].connect("clicked", self.show_power_dialog)
 
         # Any action bar button should close the keyboard
         for item in self.control:
@@ -74,6 +80,7 @@ class BasePanel(ScreenPanel):
             self.action_bar.add(self.control['printer_select'])
         self.show_macro_shortcut(self._config.get_main_config().getboolean('side_macro_shortcut', True))
         self.action_bar.add(self.control['estop'])
+        self.action_bar.add(self.control['power'])
         self.show_estop(False)
 
         # Titlebar
@@ -88,10 +95,10 @@ class BasePanel(ScreenPanel):
         self.set_title(title)
 
         self.control['time'] = Gtk.Label("00:00 AM")
-        self.control['time_box'] = Gtk.Box()
+        self.control['time_box'] = Gtk.EventBox()
         self.control['time_box'].set_halign(Gtk.Align.END)
-        self.control['time_box'].pack_end(self.control['time'], True, True, 10)
-
+        self.control['time_box'].add(self.control['time'])#, True, True, 10
+        self.control['time_box'].connect("button-release-event", self.create_time_modal)
         self.titlebar = Gtk.Box(spacing=5)
         self.titlebar.get_style_context().add_class("title_bar")
         self.titlebar.set_valign(Gtk.Align.CENTER)
@@ -115,6 +122,33 @@ class BasePanel(ScreenPanel):
 
         self.update_time()
 
+    def create_time_modal(self, widget, event):
+        
+        buttons = [
+                    {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL},
+                    {"name": _("Resume"), "response": Gtk.ResponseType.OK}
+                ]
+        now = datetime.now()
+        self.hours = int(f'{now:%H}')
+        self.minutes = int(f'{now:%M}')
+        timepicker = Timepicker(self._screen, self.on_change)
+        dialog = self._gtk.Dialog(self._screen, buttons, timepicker, self.close_time_modal, width=100, height=300)
+        dialog.set_title(_("Time"))
+        dialog.show_all()
+    
+    def close_time_modal(self, dialog, response_id):
+        self._gtk.remove_dialog(dialog)
+        if response_id == Gtk.ResponseType.OK:
+            os.system(f"timedatectl set-time {self.hours}:{self.minutes}:00")
+            logging.info(f"set time to {self.hours}:{self.minutes}")
+            
+            
+    def on_change(self, name, value):
+        logging.info(f'in on_change name is {name} value is {value}')
+        if name == 'hours':
+            self.hours = value
+        else:
+            self.minutes = value
 
     ####      NEW      ####
     def get_width_action_bar(self):
@@ -124,16 +158,37 @@ class BasePanel(ScreenPanel):
         return self.titlebar.get_allocation().height
     
     def change_wifi_mode(self, widget):
-        self._screen._ws.klippy.change_wifi_mode()
+        if self.wifi_mode == 'AP':
+            return self._screen._ws.klippy.change_wifi_mode('Default')
+        self._screen._ws.klippy.change_wifi_mode('AP')
+        
+    def show_power_dialog(self, widget):
+        buttons = [
+                    {"name": _("Restart"), "response": Gtk.ResponseType.YES, "style": "color1"},
+                    {"name": _("Shutdown"), "response": Gtk.ResponseType.OK, "style": "color2"},
+                    {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color3"},
+                ]
+        grid = self._gtk.HomogeneousGrid()
+        grid.attach(Gtk.Label(label=_("Select action")), 0, 0, 1, 1)
+        dialog = self._gtk.Dialog(self._screen, buttons, grid, self.close_power_modal, width=500, height=300)
+        self.main_grid.set_opacity(0.2)
+        dialog.set_title(_("Power Manager"))
+    
+    def close_power_modal(self, dialog, response_id):
+        self.main_grid.set_opacity(1)
+        if response_id == Gtk.ResponseType.OK:
+            os.system("systemctl poweroff")
+        elif response_id == Gtk.ResponseType.YES: 
+            os.system("systemctl reboot")
+        self._gtk.remove_dialog(dialog)
     ####    END NEW    ####
 
     def show_wifi_mode(self, show=True):
+        self.wifi_mode = self._printer.data["wifi_mode"]["wifiMode"] == 'Default'
         if show:
-                if self._printer.data["wifi_mode"]["wifiMode"] == 'Default':
-                    self.wifi_mode = 'Default'
+                if self.wifi_mode == 'Default':
                     self.control['wifi'].set_image(self._gtk.Image("access_point"))
-                elif self._printer.data["wifi_mode"]["wifiMode"] == 'AP':
-                    self.wifi_mode = 'AP'
+                else:
                     self.control['wifi'].set_image(self._gtk.Image("access_point_active"))
         return True
 

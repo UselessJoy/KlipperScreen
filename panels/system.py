@@ -88,10 +88,10 @@ class SystemPanel(ScreenPanel):
         scroll.add(infogrid)
 
         grid.attach(scroll, 0, 0, 4, 2)
-        grid.attach(update_all, 0, 2, 1, 1)
-        grid.attach(self.refresh, 1, 2, 1, 1)
-        grid.attach(reboot, 2, 2, 1, 1)
-        grid.attach(shutdown, 3, 2, 1, 1)
+        grid.attach(update_all, 1, 2, 1, 1)
+        grid.attach(self.refresh, 2, 2, 1, 1)
+        # grid.attach(reboot, 2, 2, 1, 1)
+        # grid.attach(shutdown, 3, 2, 1, 1)
         self.content.add(grid)
 
     def activate(self):
@@ -326,8 +326,8 @@ class SystemPanel(ScreenPanel):
         vbox.add(label)
         scroll.add(vbox)
         buttons = [
-            {"name": _("Host"), "response": Gtk.ResponseType.OK},
-            {"name": _("Printer"), "response": Gtk.ResponseType.APPLY},
+            {"name": _("Yes"), "response": Gtk.ResponseType.OK},
+            # {"name": _("Printer"), "response": Gtk.ResponseType.APPLY},
             {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL}
         ]
         dialog = self._gtk.Dialog(self._screen, buttons, scroll, self.reboot_poweroff_confirm, method)

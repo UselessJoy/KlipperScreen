@@ -51,13 +51,13 @@ class MacroPanel(ScreenPanel):
             self.unload_menu()
         self.reload_macros()
 
-    def add_gcode_macro(self, macro):
+    def add_gcode_macro(self, macro, macro_locale):
         # Support for hiding macros by name
         if macro.startswith("_"):
             return
 
         name = Gtk.Label()
-        name.set_markup(f"<big><b>{macro}</b></big>")
+        name.set_markup(f"<big><b>{macro_locale}</b></big>")
         name.set_hexpand(True)
         name.set_vexpand(True)
         name.set_halign(Gtk.Align.START)
@@ -128,7 +128,12 @@ class MacroPanel(ScreenPanel):
 
     def load_gcode_macros(self):
         for macro in self._printer.get_gcode_macros():
+            macro_locale = None
+            if 'macro_locale' in self._printer.config[macro]:
+                logging.info(self._printer.config[macro]['macro_locale'])
+                macro_locale = self._printer.config[macro]['macro_locale']
             macro = macro[12:].strip()
+            macro_locale = macro if macro_locale == None else macro_locale
             if macro.startswith("_"):  # Support for hiding macros by name
                 continue
             self.options[macro] = {
@@ -137,7 +142,7 @@ class MacroPanel(ScreenPanel):
             }
             show = self._config.get_config().getboolean(self.options[macro]["section"], macro.lower(), fallback=True)
             if macro not in self.macros and show:
-                self.add_gcode_macro(macro)
+                self.add_gcode_macro(macro, macro_locale)
 
         for macro in list(self.options):
             self.add_option('options', self.options, macro, self.options[macro])

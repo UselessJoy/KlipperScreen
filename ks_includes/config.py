@@ -148,7 +148,7 @@ class KlipperScreenConfig:
                 bools = (
                     'invert_x', 'invert_y', 'invert_z', '24htime', 'only_heaters', 'show_cursor', 'confirm_estop',
                     'autoclose_popups', 'use_dpms', 'use_default_menu', 'side_macro_shortcut', 'use-matchbox-keyboard',
-                    'show_heater_power', 'autooff_enable', 'safety',
+                    'show_heater_power', 'autooff_enable', 'safety_printing'
                 )
                 strs = (
                     'default_printer', 'language', 'print_sort_dir', 'theme', 'screen_blanking', 'font_size',
@@ -263,10 +263,10 @@ class KlipperScreenConfig:
             {"show_heater_power": {"section": "main", "name": _("Show Heater Power"), "type": "binary",
                                    "value": "False", "callback": screen.reload_panels}},
             ####      NEW      ####
-            {"autoOff_enable": {"section": "main", "name": _("Autooff after print"), "type": "binary",
-                                "value": aut, "callback": screen.set_autooff}},
-            {"safety": {"section": "main", "name": _("Safety Printing"), "type": "binary",
-                                 "value": aut, "callback": screen.set_safety}},
+             {"autooff_enable": {"section": "main", "name": _("Enable autooff after print"), "type": "binary",
+                                 "value": "False", "callback": screen.set_autooff}},
+             {"safety_printing": {"section": "main", "name": _("Enable safety printing"), "type": "binary",
+                                 "value": "False", "callback": screen.set_safety}},
             ####    END NEW    ####
             # {"": {"section": "main", "name": _(""), "type": ""}}
         ]

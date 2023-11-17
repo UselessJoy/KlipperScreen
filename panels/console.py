@@ -34,17 +34,17 @@ class ConsolePanel(ScreenPanel):
         o1_switch.set_active(self.autoscroll)
         o1_switch.connect("notify::active", self.set_autoscroll)
 
-        o2_lbl = Gtk.Label(_("Hide temp."))
-        o2_switch = Gtk.Switch()
-        o2_switch.set_active(self.hidetemps)
-        o2_switch.connect("notify::active", self.hide_temps)
+        # o2_lbl = Gtk.Label(_("Hide temp."))
+        # o2_switch = Gtk.Switch()
+        # o2_switch.set_active(self.hidetemps)
+        # o2_switch.connect("notify::active", self.hide_temps)
 
         if self._screen.vertical_mode:
             o1_lbl.set_halign(Gtk.Align.CENTER)
-            o2_lbl.set_halign(Gtk.Align.CENTER)
+            # o2_lbl.set_halign(Gtk.Align.CENTER)
         else:
             o1_lbl.set_halign(Gtk.Align.END)
-            o2_lbl.set_halign(Gtk.Align.END)
+            # o2_lbl.set_halign(Gtk.Align.END)
         o3_button = self._gtk.Button("refresh", _('Clear') + " ", None, self.bts, Gtk.PositionType.RIGHT, 1)
         o3_button.connect("clicked", self.clear)
 
@@ -53,15 +53,15 @@ class ConsolePanel(ScreenPanel):
         if self._screen.vertical_mode:
             options.attach(o1_lbl, 0, 0, 1, 1)
             options.attach(o1_switch, 0, 1, 1, 1)
-            options.attach(o2_lbl, 1, 0, 1, 1)
-            options.attach(o2_switch, 1, 1, 1, 1)
-            options.attach(o3_button, 3, 0, 1, 2)
+            # options.attach(o2_lbl, 1, 0, 1, 1)
+            # options.attach(o2_switch, 1, 1, 1, 1)
+            options.attach(o3_button, 1, 0, 1, 2)
         else:
             options.attach(o1_lbl, 0, 0, 1, 1)
             options.attach(o1_switch, 1, 0, 1, 1)
-            options.attach(o2_lbl, 2, 0, 1, 1)
-            options.attach(o2_switch, 3, 0, 1, 1)
-            options.attach(o3_button, 4, 0, 1, 1)
+            # options.attach(o2_lbl, 2, 0, 1, 1)
+            # options.attach(o2_switch, 3, 0, 1, 1)
+            options.attach(o3_button, 2, 0, 1, 1)
 
         sw = Gtk.ScrolledWindow()
         sw.set_hexpand(True)

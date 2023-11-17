@@ -60,43 +60,8 @@ class ScreenPanel:
         return None
 
     def menu_item_clicked(self, widget, panel, item):
-        if item['panel'] == 'network' and self._printer.data["wifi_mode"]["wifiMode"] == 'AP':
-            self.network_item_clicked(widget)
-        else:
-            self._screen.show_panel(panel, item['panel'], item['name'], 1, False)
+        self._screen.show_panel(panel, item['panel'], item['name'], 1, False)
     
-    ####      NEW      ####
-    def network_item_clicked(self, widget):
-        title = Gtk.Label()
-        title.set_markup(f"<b>Disable the access point?</b>\n")
-        title.set_line_wrap(True)
-        title.set_halign(Gtk.Align.CENTER)
-        title.set_hexpand(True)
-        message = Gtk.Label(label="After turning on the access point, Wi-fi is turned off.\n To turn on wi-fi, turn off the access point")
-        message.set_line_wrap(True)
-        scroll = Gtk.ScrolledWindow()
-        scroll.set_vexpand(True)
-        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        scroll.add(message)
-        grid = Gtk.Grid()
-        grid.attach(title, 0, 0, 1, 1)
-        grid.attach(Gtk.Separator(), 0, 1, 2, 1)
-        grid.attach(scroll, 0, 2, 2, 1)
-        buttons = [
-                    {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL},
-                    {"name": _("Resume"), "response": Gtk.ResponseType.OK}
-                ]
-        dialog = self._gtk.Dialog(self._screen, buttons, grid, self.network_responce)
-        dialog.set_title(_("Network"))
-
-    def network_responce(self, dialog, response_id):
-        self._gtk.remove_dialog(dialog)
-        if response_id == Gtk.ResponseType.OK:
-            self._screen._ws.klippy.change_wifi_mode()
-           # self._screen.show_panel("network", "network", _("Network"), 1, False)
-
-    ####    END NEW    ####
-
     def load_menu(self, widget, name, title=None):
         if f"{name}_menu" not in self.labels:
             return

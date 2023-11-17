@@ -192,7 +192,7 @@ class DmovePanel(ScreenPanel):
         self.event_field.set_size_request(int(self._screen.width/3.5),int(self._screen.height/1.5))
         
         self.label_pop = Gtk.Label()
-        self.label_pop.set_text("Must home axis first")
+        self.label_pop.set_text(_("Must home axis first"))
         self.grid.attach(distgrid, 2, 0, 1, 1)
         self.grid.attach(self.event_field, 0,1,2,1)
         self.grid.attach(grid, 2, 1, 1, 1)

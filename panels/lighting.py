@@ -33,39 +33,33 @@ class LightingPanel(ScreenPanel):
         # self.labels['text'].set_halign(Gtk.Align.CENTER)
         # self.labels['text'].set_valign(Gtk.Align.CENTER)
 
-        self.labels['set_default'] = self._gtk.Button("refresh", _("Set Default"), "color1")
+        self.labels['set_default'] = self._gtk.Button("complete", _("Set Default"), "color1")
         self.labels['set_default'].connect("clicked", self.set_default_color)
 
-        self.labels['turn_off_led'] = self._gtk.Button("refresh", _("Turn off"), "color2")
+        self.labels['turn_off_led'] = self._gtk.Button("shutdown", _("Turn off"), "color2")
         self.labels['turn_off_led'].connect("clicked", self.turn_off_led)
 
         self.colorWheel.connect("changed", self.color_changed)
 
         self.labels['actions'] = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.labels['actions'].set_hexpand(True)
-        self.labels['actions'].set_vexpand(False)
-        self.labels['actions'].set_halign(Gtk.Align.CENTER)
+        self.labels['actions'].set_vexpand(True)
+        self.labels['actions'].set_halign(Gtk.Align.END)
         self.labels['actions'].set_homogeneous(True)
         self.labels['actions'].set_size_request(self._gtk.content_width, -1)
-        # scroll = self._gtk.ScrolledWindow()
-        # scroll.set_hexpand(True)
-        # scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        #scroll.add(self.labels['text'])
+        
 
-        info = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
-        info.pack_start(self.colorWheel, True, True, 8)
-        #info.pack_end(scroll, True, True, 8)
 
         main = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        main.pack_start(info, True, True, 8)
-        main.pack_end(self.labels['actions'], False, False, 0)
+        main.pack_start(self.colorWheel, True, True, 8)
+        main.pack_end(self.labels['actions'], True, False, 8)
         self.neopixel = self.get_neopixel()
       #  self.colors = self.init_color()
         self.content.add(main)
         if self._screen.initialized:
             self.labels['actions'].add(self.labels['set_default'])
             self.labels['actions'].add(self.labels['turn_off_led'])
-        self.labels['actions'].show_all()
+        self.content.show_all()
         
     def color_changed(self, widget):
         self.colors = self.colorWheel.get_color()

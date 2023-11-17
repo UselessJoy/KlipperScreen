@@ -101,6 +101,7 @@ class KlipperScreen(Gtk.Window):
         except Exception as e:
             logging.exception(e)
             raise RuntimeError from e
+        self.set_interactive_debugging(True)
         self.blanking_time = 600
         self.use_dpms = True
         self.apiclient = None
@@ -121,14 +122,16 @@ class KlipperScreen(Gtk.Window):
             raise RuntimeError("Couldn't get default monitor")
         self.width = self._config.get_main_config().getint("width", monitor.get_geometry().width)
         self.height = self._config.get_main_config().getint("height", monitor.get_geometry().height)
-        self.set_default_size(800, 600)
-        self.set_resizable(True)
-        # if not (self._config.get_main_config().get("width") or self._config.get_main_config().get("height")):
-        #     self.fullscreen()
+        self.set_default_size(self.width, self.height)
+        # self.set_size_request(self.width-100, self.height-100)
+        # self.resize(self.width-100, self.height-100)
+        self.set_resizable(False)
+        if not (self._config.get_main_config().get("width") or self._config.get_main_config().get("height")):
+            self.fullscreen()
         self.vertical_mode = self.width < self.height
         logging.info(f"Screen resolution: {self.width}x{self.height}")
         self.theme = self._config.get_main_config().get('theme')
-        self.show_cursor = True#self._config.get_main_config().getboolean("show_cursor", fallback=False)
+        self.show_cursor = self._config.get_main_config().getboolean("show_cursor", fallback=False)
         self.gtk = KlippyGtk(self)
         self.init_style()
         self.set_icon_from_file(os.path.join(klipperscreendir, "styles", "icon.svg"))
@@ -314,8 +317,8 @@ class KlipperScreen(Gtk.Window):
         if hasattr(self.panels[panel_name], "activate"):
             self.panels[panel_name].activate()
         self.show_all()
-        # if hasattr(self.panels[panel_name], "init_sizes"):
-        #     self.panels[panel_name].init_sizes()
+        if hasattr(self.panels[panel_name], "init_sizes"):
+            self.panels[panel_name].init_sizes()
 
     def show_popup_autooff(self, message, just_popup=True):
         self.base_panel.content.set_sensitive(False)
@@ -489,7 +492,7 @@ class KlipperScreen(Gtk.Window):
         buttons = [
             {"name": _("Go Back"), "response": Gtk.ResponseType.CANCEL}
         ]
-        dialog = self.gtk.Dialog(self, buttons, grid, self.error_modal_response, error = True)
+        dialog = self.gtk.Dialog(self, buttons, grid, self.error_modal_response, style="dialog-error")
         dialog.set_title(_("Error"))
 
     def error_modal_response(self, dialog, response_id):
@@ -1068,22 +1071,24 @@ class KlipperScreen(Gtk.Window):
             self.gtk.remove_dialog(dialog)
         self.show_panel('job_status', "job_status", _("Printing"), 2)
 
-    def show_keyboard(self, entry=None, event=None):
+    def show_keyboard(self, entry=None, event=None, accept_function=None):
         if self.keyboard is not None:
             return
+        # box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        # box.set_size_request(self.gtk.content_width, self.gtk.keyboard_height)
 
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        box.set_size_request(self.gtk.content_width, self.gtk.keyboard_height)
-
-        if self._config.get_main_config().getboolean("use-matchbox-keyboard", False):
-            return self._show_matchbox_keyboard(box)
+        # if self._config.get_main_config().getboolean("use-matchbox-keyboard", False):
+        #     return self._show_matchbox_keyboard(box)
         if entry is None:
             logging.debug("Error: no entry provided for keyboard")
             return
-        box.get_style_context().add_class("keyboard_box")
-        box.add(Keyboard(self, self.remove_keyboard, entry=entry))
-        self.keyboard = {"box": box}
-        self.base_panel.content.pack_end(box, False, False, 0)
+        
+        self.keyboard = Keyboard(self, self.remove_keyboard, accept_function, entry=entry)
+        self.keyboard.set_size_request(self.gtk.content_width, self.gtk.keyboard_height)
+        # box.get_style_context().add_class("keyboard_box")
+        # box.add(Keyboard(self, self.remove_keyboard, entry=entry))
+        # self.keyboard = {"box": box}
+        self.base_panel.content.pack_end(self.keyboard, True, True, 0)
         self.base_panel.content.show_all()
     
     def _show_matchbox_keyboard(self, box):
@@ -1119,7 +1124,7 @@ class KlipperScreen(Gtk.Window):
             return
         if 'process' in self.keyboard:
             os.kill(self.keyboard['process'].pid, SIGTERM)
-        self.base_panel.content.remove(self.keyboard['box'])
+        self.base_panel.content.remove(self.keyboard)
         self.keyboard = None
     
     def _key_press_event(self, widget, event):

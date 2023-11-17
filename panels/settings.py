@@ -1,5 +1,5 @@
 import gi
-
+import logging
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Pango
 
@@ -21,12 +21,13 @@ class SettingsPanel(ScreenPanel):
             "type": "menu",
             "menu": "printers"
         }})
-
+        self.options_data = {}
         self.labels['settings_menu'] = self._gtk.ScrolledWindow()
         self.labels['settings'] = Gtk.Grid()
         self.labels['settings_menu'].add(self.labels['settings'])
         for option in options:
             name = list(option)[0]
+            #self.options[option[name]['name']] = option[name]['name']
             self.add_option('settings', self.settings, name, option[name])
 
         self.labels['printers_menu'] = self._gtk.ScrolledWindow()
@@ -45,6 +46,24 @@ class SettingsPanel(ScreenPanel):
 
         self.content.add(self.labels['settings_menu'])
 
+    def process_update(self, action, data):
+        if action != "notify_status_update":
+            return
+        
+        if "autooff" in data:
+            logging.info(f"autooff changed to {data['autooff']}")
+            for child in self.options_data['autooff']['row']:
+                if hasattr(child, "set_active"):
+                    child.set_active(data['autooff']['autooff_enable'])
+                    
+        if "safety_printing" in data:
+            logging.info(f"safety_printing changed to {data['safety_printing']}")
+            for child in self.options_data['safety_printing']['row']:
+                if hasattr(child, "set_active"):
+                    child.set_active(data['safety_printing']['safety'])
+            
+            #self.options_data['safety_printing']['row'][1]
+        
     def activate(self):
         while len(self.menu) > 1:
             self.unload_menu()
@@ -119,7 +138,7 @@ class SettingsPanel(ScreenPanel):
             "name": option['name'],
             "row": dev
         }
-
+        self.options_data[opt_name] = opt_array[opt_name]
         opts = sorted(list(opt_array), key=lambda x: opt_array[x]['name'])
         pos = opts.index(opt_name)
 

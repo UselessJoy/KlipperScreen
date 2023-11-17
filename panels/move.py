@@ -429,9 +429,9 @@ class MovePanel(ScreenPanel):
         self.cursor_coordinates_to_printer_cordinates(pixel_x, pixel_y)
         if self.mode:
             logging.info(str(self.Z_GCODE))
-            self.main_gcode.append(f"{KlippyGcodes.MOVE} Z{self.Z_GCODE} F{speed}")
+            self.main_gcode.append(f"{KlippyGcodes.MOVE} Z{self.Z_GCODE:.2f} F{speed}")
         else:
-            self.main_gcode.append(f"{KlippyGcodes.MOVE} X{self.X_GCODE} Y{self.Y_GCODE} F{speed}")
+            self.main_gcode.append(f"{KlippyGcodes.MOVE} X{self.X_GCODE:.2f} Y{self.Y_GCODE:.2f} F{speed}")
     
     def print_to_cursor(self):
         self.move_to_coordinate = True
@@ -602,7 +602,7 @@ class MovePanel(ScreenPanel):
                     point_tuple = {"to_x" : new_x, "to_y" : new_y, 
                                     "speed" : self._printer.data['gcode_move']['speed'], "Gy": cathet_y, "Gx": cathet_x}
                 else:
-                    speed = self._printer.data['gcode_move']['speed'] * self._printer.data['gcode_move']['speed_factor']
+                    speed = self._printer.data['gcode_move']['speed']
                     if data['gcode_move']['gcode_position'][2] - self.LAST_Z < 0:
                         speed = speed * -1
                     point_tuple = {"to_x" : new_x, "to_y" : new_y, 

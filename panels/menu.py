@@ -22,7 +22,6 @@ class MenuPanel(ScreenPanel):
         super().__init__(screen, title)
         self.items = None
         self.grid = self._gtk.HomogeneousGrid()
-        self.wifi_mode = None
 
     def initialize(self, items):
         self.items = items
@@ -87,8 +86,6 @@ class MenuPanel(ScreenPanel):
             if item['panel'] is not None:
                 panel = env.from_string(item['panel']).render(printer)
                 b.connect("clicked", self.menu_item_clicked, panel, item)
-                if item['panel'] == 'network':
-                    GLib.timeout_add_seconds(1, self.update_wifi_mode, b)
             elif item['method'] is not None:
                 params = {}
 
@@ -107,22 +104,6 @@ class MenuPanel(ScreenPanel):
             else:
                 b.connect("clicked", self._screen._go_to_submenu, key)
             self.labels[key] = b
-            
-    ####      NEW      ####
-    def update_wifi_mode(self, b):
-        if self.wifi_mode == self._printer.data["wifi_mode"]["wifiMode"]:
-            return True
-        else:
-            self.wifi_mode = self._printer.data["wifi_mode"]["wifiMode"]
-            self.update_network_image(b)
-        return True
-    
-    def update_network_image(self, b):
-        if self.wifi_mode == 'AP':
-            b.set_image(self._gtk.Image("retract"))
-        else:
-            b.set_image(self._gtk.Image("network"))
-    ####    END NEW    ####
 
     def evaluate_enable(self, enable):
         if enable == "{{ moonraker_connected }}":

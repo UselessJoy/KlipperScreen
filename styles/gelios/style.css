@@ -1,12 +1,11 @@
-/* Colorized theme created by Alfredo Monclus 2021 */
-/* Using solarized colors */
+/* Colorized theme created by Farinov 2023 */
 
 * {
     color: #fdf6e3; /*base3*/
 }
 
 window {
-    background-color: #002b36; /*base03*/
+    background-color: #002b36; 
 }
 
 .window-startup {
@@ -23,7 +22,7 @@ window {
     -gtk-icon-shadow: none;
 }
 .window-paused {
-    background: linear-gradient(to bottom right, #26b6c9 30%, #002b36 70%);
+    background: linear-gradient(to bottom right, #e7e406 30%, #002b36 70%);
     -gtk-icon-shadow: none;
 }
 
@@ -140,16 +139,90 @@ combobox box button {
 }
 
 switch {
-    background-color: inherit; /* base02 */
+    background-color: #93a1a1; /* base02 */
+}
+
+switch:disabled slider {
+    background-image: image(rgb(110, 119, 119));
+    /* #6e7777 */
 }
 
 switch:checked {
     background-color: #859900; /*solarized-green*/
 }
 
+switch:checked:disabled {
+    background-color: #93a1a1;
+}
+
 entry {
-    background-color: inherit; /*base02*/
+    background-color: rgba(255, 255, 255, 0.3); /*base02*/
     border-color: #002b36; /*base03*/
+}
+
+entry:disabled {
+    background-color: white; /*base02*/
+    border-color: #002b36; /*base03*/
+    color: grey;
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+spinbutton button.up {
+    padding-top: 50px;
+    padding-bottom: 50px;
+    font-size: xx-large;
+    font-weight: 900;
+    text-decoration-line: underline;
+}
+
+
+.dialog button {
+    background-color: inherit; 
+    border-bottom-color: #268bd2; 
+    border-radius: .75em;
+}
+dialog {
+    border: #002129;
+    background-color: #002b36; 
+}
+
+notebook {
+    background-color: inherit;
+}
+notebook > * {
+    background-color: inherit; /*base03*/
+}
+notebook header {
+    margin-right: 10px;
+    padding-right: 10px;
+    border-right: 3px solid #93a1a1;
+}
+notebook tab {
+    background-color: inherit; /*base03*/
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 30px;
+    padding-bottom: 30px;
+}
+
+notebook > header > tabs > tab:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+notebook > header > tabs > tab:checked {
+    background-color: rgba(255, 255, 255, 0.6);
+}
+/* dialog > button {
+    border-style: none;
+} */
+
+.listbox {
+    border: #002b36; /*base03*/
+    background-color: #002b36; /*base03*/
+}
+.listbox > * {
+    border: #002b36; /*base03*/
+    background-color: #002b36; /*base03*/
 }
 
 label {
@@ -238,16 +311,6 @@ textview .time {
     border-bottom-color: #fdf6e3; /*base3*/
 }
 
-
-.message_popup_default {
-    border: .1em solid white;
-    border-radius: 1em;
-    padding: 1em;
-    margin: 0;
-}
-.message_popup_default button {
-    background-color: inherit; /*base3*/
-}
 .message_popup button {
     background-color: #dc322f; /*solarazed-red*/
 }
