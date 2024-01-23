@@ -134,6 +134,7 @@ class WifiManager:
             self.connected = False
 
     def _ap_prop_changed(self, ap, interface, signal, properties):
+        logging.info(properties)
         pass
 
     def _add_ap(self, ap):
@@ -231,6 +232,7 @@ class WifiManager:
         return ret
 
     def get_network_info(self, ssid):
+        self.rescan()
         netinfo = {}
         if ssid in self.visible_networks:
             con = self.visible_networks[ssid]

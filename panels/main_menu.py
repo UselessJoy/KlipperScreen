@@ -60,10 +60,13 @@ class MainPanel(MenuPanel):
             if visible:
                 count += 1
                 self.devices[device]['name'].get_style_context().add_class(self.devices[device]['class'])
+                if self._printer.device_has_target(device):
+                    self.devices[device]['temp'].get_style_context().add_class(f"{self.devices[device]['class']}_temp")
                 self.devices[device]['name'].get_style_context().remove_class("graph_label_hidden")
             else:
                 self.devices[device]['name'].get_style_context().add_class("graph_label_hidden")
                 self.devices[device]['name'].get_style_context().remove_class(self.devices[device]['class'])
+                self.devices[device]['temp'].get_style_context().remove_class(f"{self.devices[device]['class']}_temp")
         if count > 0:
             if self.labels['da'] not in self.left_panel:
                 self.left_panel.add(self.labels['da'])
@@ -125,6 +128,8 @@ class MainPanel(MenuPanel):
         else:
             self.h += sum("sensor" in d for d in self.devices)
             image = "heat-up"
+            if "locale" in self._printer.config[device]:
+                devname = self._printer.config[device]['locale']
             class_name = f"graph_label_sensor_{self.h}"
             dev_type = "sensor"
 
@@ -135,19 +140,22 @@ class MainPanel(MenuPanel):
         if can_target:
             self.labels['da'].add_object(device, "targets", rgb, True, False)
 
-        name = self._gtk.Button(image, _(devname).title().replace("_", " "), None, self.bts, Gtk.PositionType.LEFT, 1)
+        name = self._gtk.Button(image, _(devname), None, self.bts, Gtk.PositionType.LEFT, 1)
         name.connect("clicked", self.toggle_visibility, device)
         name.set_alignment(0, .5)
         visible = self._config.get_config().getboolean(f"graph {self._screen.connected_printer}", device, fallback=True)
+        temp = self._gtk.Button(label="", lines=1)
         if visible:
             name.get_style_context().add_class(class_name)
         else:
             name.get_style_context().add_class("graph_label_hidden")
         self.labels['da'].set_showing(device, visible)
-
-        temp = self._gtk.Button(label="", lines=1)
         if can_target:
             temp.connect("clicked", self.show_numpad, device)
+            temp.get_style_context().add_class(f"{class_name}_temp")
+        else:
+            temp.set_sensitive(False)
+            temp.get_style_context().add_class("unused_temp_button")
 
         self.devices[device] = {
             "class": class_name,
@@ -229,7 +237,7 @@ class MainPanel(MenuPanel):
         return self.left_panel
 
     def hide_numpad(self, widget=None):
-        self.devices[self.active_heater]['name'].get_style_context().remove_class("button_active")
+        self.devices[self.active_heater]['temp'].get_style_context().remove_class("button_active")
         self.active_heater = None
 
         if self._screen.vertical_mode:
@@ -254,9 +262,9 @@ class MainPanel(MenuPanel):
     def show_numpad(self, widget, device):
 
         if self.active_heater is not None:
-            self.devices[self.active_heater]['name'].get_style_context().remove_class("button_active")
+            self.devices[self.active_heater]['temp'].get_style_context().remove_class("button_active")
         self.active_heater = device
-        self.devices[self.active_heater]['name'].get_style_context().add_class("button_active")
+        self.devices[self.active_heater]['temp'].get_style_context().add_class("button_active")
 
         if "keypad" not in self.labels:
             self.labels["keypad"] = Keypad(self._screen, self.change_target_temp, self.hide_numpad)

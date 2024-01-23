@@ -10,18 +10,21 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, GdkPixbuf, Gio, Gtk, Pango
 
 
-def format_label(widget, lines=2):
+def format_label(widget, lines=2, is_ellipsize=True):
     if type(widget) == Gtk.Label:
-        return widget
+        return widget, lines, is_ellipsize
     if type(widget) in (Gtk.Container, Gtk.Bin, Gtk.Button, Gtk.Alignment, Gtk.Box):
         for _ in widget.get_children():
-            lbl = format_label(_)
+            lbl, lines, is_ellipsize = format_label(_, lines, is_ellipsize)
             if lbl is not None:
-                lbl.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
                 lbl.set_line_wrap(True)
-                lbl.set_ellipsize(True)
-                lbl.set_ellipsize(Pango.EllipsizeMode.END)
-                lbl.set_lines(lines)
+                lbl.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
+                lbl.set_justify(Gtk.Justification.CENTER)
+                if is_ellipsize:
+                    lbl.set_ellipsize(True)
+                    lbl.set_ellipsize(Pango.EllipsizeMode.END)
+                    lbl.set_lines(lines)
+    return None, lines, is_ellipsize
 
 
 class KlippyGtk:
@@ -140,7 +143,7 @@ class KlippyGtk:
         stream.close_async(2)
         return pixbuf
 
-    def Button(self, image_name=None, label=None, style=None, scale=None, position=Gtk.PositionType.TOP, lines=2):
+    def Button(self, image_name=None, label=None, style=None, scale=None, position=Gtk.PositionType.TOP, lines=2, is_ellipsize=True):
         if self.font_size_type == "max" and label is not None and scale is None:
             image_name = None
         b = Gtk.Button()
@@ -160,7 +163,7 @@ class KlippyGtk:
         b.set_always_show_image(True)
 
         if label is not None:
-            format_label(b, lines)
+            format_label(b, lines, is_ellipsize)
         if style is not None:
             b.get_style_context().add_class(style)
         b.connect("clicked", self.screen.reset_screensaver_timeout)
@@ -170,14 +173,14 @@ class KlippyGtk:
         dialog = Gtk.Dialog()
         if not width:
             if not height:
-                dialog.set_default_size(screen.width, screen.height)
+                dialog.set_size_request(screen.width, screen.height)
             else:
-                dialog.set_default_size(screen.width, height)
+                dialog.set_size_request(screen.width, height)
         else:
             if height:
-                dialog.set_default_size(width, height)
+                dialog.set_size_request(width, height)
             else:
-                dialog.set_default_size(width, screen.height)
+                dialog.set_size_request(width, screen.height)
         dialog.set_resizable(False)
         dialog.set_transient_for(screen)
         dialog.set_modal(True)
@@ -211,7 +214,8 @@ class KlippyGtk:
         content_area.set_margin_top(15)
         content_area.set_margin_bottom(15)
         content_area.add(content)
-        
+        self.screen.base_panel.main_grid.set_opacity(0.2)
+        self.screen.base_panel.main_grid.set_sensitive(False)
         dialog.show_all()
         # Change cursor to blank
         if self.cursor:
@@ -228,6 +232,8 @@ class KlippyGtk:
         if self.screen.updating:
             return
         dialog.destroy()
+        self.screen.base_panel.main_grid.set_opacity(1)
+        self.screen.base_panel.main_grid.set_sensitive(True)
         if dialog in self.screen.dialogs:
             logging.info("Removing Dialog")
             self.screen.dialogs.remove(dialog)

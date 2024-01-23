@@ -9,7 +9,7 @@ from gi.repository import Gtk, GLib, Pango
 from datetime import datetime
 
 from ks_includes.screen_panel import ScreenPanel
-
+from ks_includes.widgets.typed_entry import TypedEntry
 
 def create_panel(*args):
     return PrintPanel(*args)
@@ -420,11 +420,11 @@ class PrintPanel(ScreenPanel):
             lbl = self._gtk.Label(_("Rename/Move:"))
             lbl.set_halign(Gtk.Align.START)
             lbl.set_hexpand(False)
-            self.labels['new_name'] = Gtk.Entry()
+            self.labels['new_name'] = TypedEntry()
             self.labels['new_name'].set_text(fullpath)
             self.labels['new_name'].set_hexpand(True)
             self.labels['new_name'].connect("activate", self.rename)
-            self.labels['new_name'].connect("focus-in-event", self._screen.show_keyboard)
+            self.labels['new_name'].connect("focus-in-event", self.on_change_entry)
 
             save = self._gtk.Button("complete", _("Save"), "color3")
             save.set_hexpand(False)
@@ -446,6 +446,10 @@ class PrintPanel(ScreenPanel):
         self.labels['new_name'].grab_focus_without_selecting()
         self.showing_rename = True
 
+    def on_change_entry(self, entry, event):
+        self._screen.show_keyboard(entry=entry)
+        self._screen.keyboard.change_entry(entry=entry)
+    
     def hide_rename(self):
         self._screen.remove_keyboard()
         for child in self.content.get_children():

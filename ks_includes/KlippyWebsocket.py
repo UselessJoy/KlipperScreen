@@ -311,11 +311,11 @@ class MoonrakerApi:
         )
         
     def set_safety(self, safety, callback=None, *args):
-        logging.debug("Sending printer.setwifimode")
+        logging.debug("Sending printer.setSafetyPrinting")
         return self._ws.send_method(
             "printer.setSafetyPrinting",
             {
-                "safety": safety
+                "safety_enabled": safety
             },
             callback,
             *args

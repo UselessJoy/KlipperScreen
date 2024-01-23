@@ -106,9 +106,6 @@ msgstr "Калибровка"
 msgid "Calibrated"
 msgstr "Откалиброван"
 
-msgid "Must home axis first"
-msgstr "Необходимо припарковать оси"
-
 msgid "Calibrated, save configuration to make it permanent"
 msgstr "Откалибровано, сохраните конфигурацию, чтобы применить"
 
@@ -303,6 +300,20 @@ msgstr "Скрыть температуру."
 msgid "Home All"
 msgstr "Парковать все"
 
+msgid "All"
+msgstr "Все"
+
+msgid "Off"
+msgstr "Выкл."
+
+#, python-format
+msgid "Must home XY"
+msgstr "Необходимо припарковаться\nпо осям XY"
+
+#, python-format
+msgid "Must home Z"
+msgstr "Необходимо припарковаться\nпо оси Z"
+
 msgid "Home X"
 msgstr "Парковать X"
 
@@ -331,7 +342,18 @@ msgid "Initializing printer..."
 msgstr "Инициализация принтера..."
 
 msgid "Input Shaper"
-msgstr "Input Shaper"
+msgstr "Компенсация резонанса"
+
+msgid "Auto Calibration"
+msgstr "Автоматическая калибровка"
+
+msgid "Manual Calibration"
+msgstr "Ручная калибровка"
+
+msgid "NOTE: Edit your printer.cfg to save manual calibration changes."
+msgstr ""
+"ПРИМЕЧАНИЕ: Отредактируйте файл printer.cfg, чтобы сохранить изменения калибровки "
+"вручную"
 
 msgid "Interface"
 msgstr "Интерфейс"
@@ -807,7 +829,7 @@ msgstr "Автовыключение после печати"
 msgid "Printing is paused due to open cap or doors. Close the cap and doors to continue print"
 msgstr "Печать приостановлена из-за открытой крышки или створок. Закройте крышку и створки для продолжения печати"
 
-msgid "Printing is finished, the printer will be turned off after cooling the extruder"
+msgid "Printing is finished. The printer will be turned off after cooling the extruder"
 msgstr "Печать закончена. Принтер будет выключен после охлаждения экструдера"
 
 msgid "extruder"
@@ -903,6 +925,12 @@ msgstr "Продолжить печать"
 msgid "Delete Print"
 msgstr "Отменить печать"
 
+msgid "Select action"
+msgstr "Выберите действие"
+
+msgid "Set new time"
+msgstr "Установите время"
+
 # ###    END NEW    ####
 #~ msgid "Decrease"
 #~ msgstr "Уменьшить"
@@ -953,9 +981,6 @@ msgstr "Отменить печать"
 
 #~ msgid "Home"
 #~ msgstr "Парковка"
-
-#~ msgid "Off"
-#~ msgstr "Выкл."
 
 #~ msgid "View Mesh"
 #~ msgstr "Смотреть сетку"

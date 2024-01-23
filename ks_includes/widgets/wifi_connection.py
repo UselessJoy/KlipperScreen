@@ -21,7 +21,6 @@ class WiFiConnection(Gtk.Box):
         nmcli.disable_use_sudo()
         self.show_add = False
         self._screen = screen
-        
         self.wifi_mode = None
         self.networks = {}
         self.interface = None
@@ -88,14 +87,14 @@ class WiFiConnection(Gtk.Box):
             self.wifi.add_callback("disconnected", self.disconnected_callback)
             self.wifi.add_callback("connecting", self.connecting_callback)
             if self.update_timeout is None:
-                self.update_timeout = GLib.timeout_add_seconds(2, self.update_all_networks)
+                self.update_timeout = GLib.timeout_add_seconds(1, self.update_all_networks)
         else:
             self.labels['networkinfo'] = Gtk.Label("")
             self.labels['networkinfo'].get_style_context().add_class('temperature_entry')
             box.pack_start(self.labels['networkinfo'], False, False, 0)
             self.update_single_network_info()
             if self.update_timeout is None:
-                self.update_timeout = GLib.timeout_add_seconds(2, self.update_single_network_info)
+                self.update_timeout = GLib.timeout_add_seconds(1, self.update_single_network_info)
         self.add(box)
         self.labels['main_box'] = box
         
@@ -168,6 +167,7 @@ class WiFiConnection(Gtk.Box):
             self.add_network(net, False)
         self.update_all_networks()
         self.show_all()
+        #return True
 
     def add_network(self, ssid, show=True):
         try:
@@ -459,7 +459,8 @@ class WiFiConnection(Gtk.Box):
         return True
 
     def update_network_info(self, ssid):
-
+        #self.wifi.rescan()
+        #logging.info("update network")
         info = freq = encr = chan = lvl = ipv4 = ipv6 = ""
 
         if ssid not in list(self.networks) or ssid not in self.labels['networks']:
@@ -499,15 +500,41 @@ class WiFiConnection(Gtk.Box):
         if "channel" in netinfo:
             chan = _("Channel") + f' {netinfo["channel"]}'
         if "signal_level_dBm" in netinfo:
-            lvl = f'{netinfo["signal_level_dBm"]} ' + _("dBm")
-
+            lvl = f"{netinfo['signal_level_dBm']}%" if self.use_network_manager else _("dBm")
+            icon = self.signal_strength(int(netinfo["signal_level_dBm"]))
+            if 'icon' not in self.labels['networks'][ssid]:
+                self.labels['networks'][ssid]['icon'] = icon
+                self.labels['networks'][ssid]['row'].add(icon)
+                self.labels['networks'][ssid]['row'].reorder_child(icon, 0)
+            self.labels['networks'][ssid]['row'].remove(self.labels['networks'][ssid]['icon'])
+            self.labels['networks'][ssid]['icon'] = icon
+            self.labels['networks'][ssid]['row'].add(icon)
+            self.labels['networks'][ssid]['row'].reorder_child(icon, 0)
+            
         self.labels['networks'][ssid]['info'].set_markup(f"{info} <small>{encr}  {freq}  {chan}  {lvl}</small>")
         buttons = ("connect", "disconnect", "delete")
         for button in buttons:
             if button in self.labels['networks'][ssid]:
                 self.labels['networks'][ssid][button].set_sensitive(not self.connecting)
         self.labels['networks'][ssid]['info'].show_all()
+        self.labels['networks'][ssid]['row'].show_all()
 
+    def signal_strength(self, signal_level):
+        # networkmanager uses percentage not dbm
+        # the bars of nmcli are aligned near this breakpoints
+        exc = 77 if self.use_network_manager else -50
+        good = 60 if self.use_network_manager else -60
+        fair = 35 if self.use_network_manager else -70
+        if signal_level > exc:
+            return self._screen.gtk.Image('wifi_excellent')
+        elif signal_level > good:
+            return self._screen.gtk.Image('wifi_good')
+        elif signal_level > fair:
+            return self._screen.gtk.Image('wifi_fair')
+        else:
+            return self._screen.gtk.Image('wifi_weak')
+    
+    
     def update_single_network_info(self):
 
         stream = os.popen('hostname -f')
@@ -531,6 +558,7 @@ class WiFiConnection(Gtk.Box):
 
         self.labels['networkinfo'].set_markup(connected)
         self.labels['networkinfo'].show_all()
+       # return True
 
     def reload_networks(self, widget=None):
         self.networks = {}
@@ -544,9 +572,9 @@ class WiFiConnection(Gtk.Box):
             self.reload_networks()
             if self.update_timeout is None:
                 if self.wifi is not None and self.wifi.initialized:
-                    self.update_timeout = GLib.timeout_add_seconds(5, self.update_all_networks)
+                    self.update_timeout = GLib.timeout_add_seconds(1, self.update_all_networks)
                 else:
-                    self.update_timeout = GLib.timeout_add_seconds(5, self.update_single_network_info)
+                    self.update_timeout = GLib.timeout_add_seconds(1, self.update_single_network_info)
 
     def deactivate(self):
         if self.update_timeout is not None:

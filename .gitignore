@@ -1,4 +1,5 @@
 .idea/
+NetworkController.py
 KlipperScreen.conf
 __pycache__/
 *.py[cod]

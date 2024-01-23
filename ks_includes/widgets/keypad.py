@@ -27,26 +27,27 @@ class Keypad(Gtk.Box):
             ['7', 'numpad_left'],
             ['8', 'numpad_button'],
             ['9', 'numpad_right'],
-            ['B', 'numpad_bleft'],
+            ['✔', 'numpad_bleft'],
             ['0', 'numpad_bottom'],
-            ['E', 'numpad_bright']
+            ['⌫', 'numpad_bright']
         ]
         for i in range(len(keys)):
             k_id = f'button_{str(keys[i][0])}'
-            if keys[i][0] == "B":
+            if keys[i][0] == "⌫":
                 self.labels[k_id] = self._gtk.Button("backspace", scale=1)
-            elif keys[i][0] == "E":
+            elif keys[i][0] == "✔":
                 self.labels[k_id] = self._gtk.Button("complete", scale=1)
             else:
                 self.labels[k_id] = Gtk.Button(label=keys[i][0])
             self.labels[k_id].connect('clicked', self.update_entry, keys[i][0])
+            self.labels[k_id].set_can_focus(False)
             self.labels[k_id].get_style_context().add_class(keys[i][1])
             numpad.attach(self.labels[k_id], i % 3, i / 3, 1, 1)
 
         self.labels["keypad"] = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.labels['entry'] = Gtk.Entry()
         self.labels['entry'].props.xalign = 0.5
-        self.labels['entry'].connect("activate", self.update_entry, "E")
+        self.labels['entry'].connect("activate", self.update_entry, "✔")
 
         b = self._gtk.Button('cancel', _('Close'), None, .66, Gtk.PositionType.LEFT, 1)
         b.connect("clicked", close_function)
@@ -62,11 +63,11 @@ class Keypad(Gtk.Box):
 
     def update_entry(self, widget, digit):
         text = self.labels['entry'].get_text()
-        if digit == 'B':
+        if digit == '⌫':
             if len(text) < 1:
                 return
             self.labels['entry'].set_text(text[:-1])
-        elif digit == 'E':
+        elif digit == '✔':
             try:
                 temp = int(text)
             except ValueError:

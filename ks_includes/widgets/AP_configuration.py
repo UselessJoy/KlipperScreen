@@ -28,6 +28,7 @@ class APConfiguration(Gtk.Box):
                     data = subprocess.check_output("nmcli -f 802-11-wireless-security.psk  connection show -s %s | awk '{print $2}'" % (connection.name), universal_newlines=True, shell=True)
                     self.ap_connection['802-11-wireless-security.psk'] = data[:-1]
         self.labels = {}
+        
         self.labels['AP'] = {
             'connection.autoconnect': Gtk.Switch(),
             '802-11-wireless.ssid' : TypedEntry(),
@@ -60,7 +61,6 @@ class APConfiguration(Gtk.Box):
         plugLeft.set_size_request(self._screen.gtk.content_width/7, 1)
         plugRight.set_size_request(self._screen.gtk.content_width/7, 1)
         
-        
         switchbox = Gtk.Box()
         switchbox.set_hexpand(True)
         switchbox.set_vexpand(False)
@@ -71,27 +71,35 @@ class APConfiguration(Gtk.Box):
         autobox.set_vexpand(False)
         autobox.set_valign(Gtk.Align.CENTER)
         
-        switchbox.pack_start(Gtk.Label(label=_("Access Point")), False, False, 5)
-        switchbox.pack_end(self.connect_switch, False, False, 5)
+        switchbox.pack_start(Gtk.Label(label=_("Access Point")), False, False, 0)
+        switchbox.pack_end(self.connect_switch, False, False, 0)
         
-        autobox.pack_start(Gtk.Label(label=_("Autoconnect")), False, False, 5)
-        autobox.pack_end(self.labels['AP']['connection.autoconnect'], False, False, 5)
+        autobox.pack_start(Gtk.Label(label=_("Autoconnect")), False, False, 0)
+        autobox.pack_end(self.labels['AP']['connection.autoconnect'], False, False, 0)
         
         self.scroll = self._screen.gtk.ScrolledWindow()
         self.scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL)
         grid.attach(plugRight, 0, 0, 2, 3)
         
-        grid.attach(Gtk.Label(label=_("SSID")), 2, 1, 1, 1)
-        grid.attach(self.labels['AP']['802-11-wireless.ssid'], 3, 1, 8, 1)
+        IP_address = TypedEntry()
+        IP_address.set_text(self.ap_connection['ipv4.addresses'].partition('/')[0]) 
+        IP_address.set_hexpand(True)
+        IP_address.get_style_context().add_class("unused_entry")
+        IP_address.set_sensitive(False)
+        grid.attach(Gtk.Label(label=_("IP-address")), 2, 1, 1, 1)
+        grid.attach(IP_address, 3, 1, 8, 1)
         
-        grid.attach(Gtk.Label(label=_("Password")), 2, 2, 1, 1)
-        grid.attach(self.labels['AP']['802-11-wireless-security.psk'], 3, 2, 8, 1)
+        grid.attach(Gtk.Label(label=_("SSID")), 2, 2, 1, 1)
+        grid.attach(self.labels['AP']['802-11-wireless.ssid'], 3, 2, 8, 1)
+        
+        grid.attach(Gtk.Label(label=_("Password")), 2, 3, 1, 1)
+        grid.attach(self.labels['AP']['802-11-wireless-security.psk'], 3, 3, 8, 1)
         
         #grid.attach(Gtk.Label(label=_("Access Point Address")), 2, 3, 1, 1)
         #grid.attach(self.labels['AP']['ipv4.addresses'], 3, 3, 8, 1)
         
         grid.attach(plugLeft, 12, 0, 3, 3)
-        grid.set_row_spacing(20)
+        grid.set_row_spacing(5)
         grid.set_vexpand(True)
         grid.set_valign(Gtk.Align.CENTER)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -102,7 +110,7 @@ class APConfiguration(Gtk.Box):
                        'change': self._screen.gtk.Button("complete", _("Change"), "color1"),
                        'disable': self._screen.gtk.Button("cancel", _("Cancel Change"), "color2")}
         for btn in self.button:
-            self.button[btn].set_size_request((self._screen.width - 30) / 3, self._screen.height / 5)
+            self.button[btn].set_size_request((self._screen.width - 30) / 4, self._screen.height / 5)
         #self.button['save_changes'].set_sensitive(False)
         self.button_box =  Gtk.Box()
         self.button_box =  Gtk.Box()
@@ -150,7 +158,13 @@ class APConfiguration(Gtk.Box):
     
     def save_changes(self, widget):
         ssid = self.labels['AP']['802-11-wireless.ssid'].get_text()
+        if not ssid:
+            self._screen.show_popup_message(_("SSID cannot be null"))
+            return
         psk = self.labels['AP']['802-11-wireless-security.psk'].get_text()
+        if len(psk) < 8:
+            self._screen.show_popup_message(_("Password must contains minimum 8 sumbols"))
+            return
         # addr = self.labels['AP']['ipv4.addresses'].get_text()
         # netmask = self.labels['AP']['netmask'].get_text()
         autoconnect = 'yes' if self.labels['AP']['connection.autoconnect'].get_active() else 'no'

@@ -4,23 +4,26 @@ import logging
 import os
 import subprocess
 import gi
-
+import nmcli
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk, Pango
 from jinja2 import Environment
 from datetime import datetime
 from math import log
-
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.timepicker import Timepicker
+import netifaces
+# from subprocess import run, STDOUT, PIPE
 
 class BasePanel(ScreenPanel):
     def __init__(self, screen, title):
         super().__init__(screen, title)
+        nmcli.disable_use_sudo()
         self.current_panel = None
         self.time_min = -1
         self.time_format = self._config.get_main_config().getboolean("24htime", True)
         self.time_update = None
+        self.autooff_dialog = None
         self.titlebar_items = []
         self.titlebar_name_type = None
         self.buttons_showing = {
@@ -37,9 +40,19 @@ class BasePanel(ScreenPanel):
         self.control['home'] = self._gtk.Button('main', scale=abscale)
         self.control['home'].connect("clicked", self._screen._menu_go_back, True)
         ####      NEW      ####
-        self.control['wifi'] = self._gtk.Button('access_point', scale=abscale)
-        self.control['wifi'].connect("clicked", self.change_wifi_mode)
         self.wifi_mode = None
+        self.network_interfaces = netifaces.interfaces()
+        self.wireless_interfaces = [iface for iface in self.network_interfaces if iface.startswith('w')]
+        self.use_network_manager = os.system('systemctl is-active --quiet NetworkManager.service') == 0
+        if len(self.wireless_interfaces) > 0:
+            logging.info(f"Found wireless interfaces: {self.wireless_interfaces}")
+            if self.use_network_manager:
+                logging.info("Using NetworkManager")
+                from ks_includes.wifi_nm import WifiManager
+            else:
+                logging.info("Using wpa_cli")
+                from ks_includes.wifi import WifiManager
+            self.wifi = WifiManager(self.wireless_interfaces[0])
         ####    END NEW    ####
 
         if len(self._config.get_printers()) > 1:
@@ -74,7 +87,6 @@ class BasePanel(ScreenPanel):
         self.action_bar.set_size_request(self._gtk.action_bar_width, self._gtk.action_bar_height)
         self.action_bar.add(self.control['back'])
         self.action_bar.add(self.control['home'])
-        self.action_bar.add(self.control['wifi'])
         self.show_back(False)
         if self.buttons_showing['printer_select']:
             self.action_bar.add(self.control['printer_select'])
@@ -87,8 +99,14 @@ class BasePanel(ScreenPanel):
 
         # This box will be populated by show_heaters
         self.control['temp_box'] = Gtk.Box(spacing=10)
-
-        self.titlelbl = Gtk.Label()
+        
+        self.control['network_box'] = Gtk.Box(spacing=15)
+        self.control['network_box'].set_margin_start(15)
+        img_size = self._gtk.img_scale * self.bts
+        self.network_status = self._gtk.Image('lan_status_none', img_size, img_size)
+        self.control['network_box'].add(self.network_status)
+        
+        self.titlelbl = Gtk.Label() 
         self.titlelbl.set_hexpand(True)
         self.titlelbl.set_halign(Gtk.Align.CENTER)
         self.titlelbl.set_ellipsize(Pango.EllipsizeMode.END)
@@ -103,6 +121,7 @@ class BasePanel(ScreenPanel):
         self.titlebar.get_style_context().add_class("title_bar")
         self.titlebar.set_valign(Gtk.Align.CENTER)
         self.titlebar.add(self.control['temp_box'])
+        self.titlebar.add(self.control['network_box'])
         self.titlebar.add(self.titlelbl)
         self.titlebar.add(self.control['time_box'])
 
@@ -119,8 +138,8 @@ class BasePanel(ScreenPanel):
             self.action_bar.set_orientation(orientation=Gtk.Orientation.VERTICAL)
             self.main_grid.attach(self.titlebar, 1, 0, 1, 1)
             self.main_grid.attach(self.content, 1, 1, 1, 1)
-
         self.update_time()
+        GLib.timeout_add_seconds(1, self.show_network_status)
 
     def create_time_modal(self, widget, event):
         
@@ -131,19 +150,33 @@ class BasePanel(ScreenPanel):
         now = datetime.now()
         self.hours = int(f'{now:%H}')
         self.minutes = int(f'{now:%M}')
-        timepicker = Timepicker(self._screen, self.on_change)
-        dialog = self._gtk.Dialog(self._screen, buttons, timepicker, self.close_time_modal, width=100, height=300)
+        stat = subprocess.call(["systemctl", "is-active", "--quiet", "systemd-timesyncd.service"])
+        self.is_timesync = True if stat == 0 else False
+        timepicker = Timepicker(self._screen, self.on_change_value, self.on_change_timesync)
+        dialog = self._gtk.Dialog(self._screen, buttons, timepicker, self.close_time_modal, width=1, height=1)
         dialog.set_title(_("Time"))
         dialog.show_all()
     
     def close_time_modal(self, dialog, response_id):
         self._gtk.remove_dialog(dialog)
         if response_id == Gtk.ResponseType.OK:
-            os.system(f"timedatectl set-time {self.hours}:{self.minutes}:00")
-            logging.info(f"set time to {self.hours}:{self.minutes}")
+            if not self.is_timesync:
+                subprocess.call(["systemctl", "stop", "systemd-timesyncd.service"])
+                subprocess.call(["systemctl", "disable", "systemd-timesyncd.service"])
+                os.system(f"timedatectl set-time {self.hours}:{self.minutes}:00")
+                logging.info(f"set time to {self.hours}:{self.minutes}")
+            else:
+                subprocess.call(["systemctl", "start", "systemd-timesyncd.service"])
+                subprocess.call(["systemctl", "enable", "systemd-timesyncd.service"])
+                logging.info("time synchromized")
+        self.update_time()
             
+    
+    def on_change_timesync(self, switch_status):
+        self.is_timesync = switch_status
+    
             
-    def on_change(self, name, value):
+    def on_change_value(self, name, value):
         logging.info(f'in on_change name is {name} value is {value}')
         if name == 'hours':
             self.hours = value
@@ -156,11 +189,6 @@ class BasePanel(ScreenPanel):
     
     def get_height_titlebar(self):
         return self.titlebar.get_allocation().height
-    
-    def change_wifi_mode(self, widget):
-        if self.wifi_mode == 'AP':
-            return self._screen._ws.klippy.change_wifi_mode('Default')
-        self._screen._ws.klippy.change_wifi_mode('AP')
         
     def show_power_dialog(self, widget):
         buttons = [
@@ -170,28 +198,54 @@ class BasePanel(ScreenPanel):
                 ]
         grid = self._gtk.HomogeneousGrid()
         grid.attach(Gtk.Label(label=_("Select action")), 0, 0, 1, 1)
-        dialog = self._gtk.Dialog(self._screen, buttons, grid, self.close_power_modal, width=500, height=300)
-        self.main_grid.set_opacity(0.2)
+        dialog = self._gtk.Dialog(self._screen, buttons, grid, self.close_power_modal, width = 1, height = 1)
+        # self.main_grid.set_opacity(0.2)
         dialog.set_title(_("Power Manager"))
     
     def close_power_modal(self, dialog, response_id):
-        self.main_grid.set_opacity(1)
+        # self.main_grid.set_opacity(1)
         if response_id == Gtk.ResponseType.OK:
             os.system("systemctl poweroff")
         elif response_id == Gtk.ResponseType.YES: 
             os.system("systemctl reboot")
         self._gtk.remove_dialog(dialog)
-    ####    END NEW    ####
-
-    def show_wifi_mode(self, show=True):
-        self.wifi_mode = self._printer.data["wifi_mode"]["wifiMode"]
-        if show:
-                if self.wifi_mode == 'Default':
-                    self.control['wifi'].set_image(self._gtk.Image("access_point"))
-                else:
-                    self.control['wifi'].set_image(self._gtk.Image("access_point_active"))
+    
+    def signal_strength(self, signal_level):
+        # networkmanager uses percentage not dbm
+        # the bars of nmcli are aligned near this breakpoints
+        exc = 77 if self.use_network_manager else -50
+        good = 60 if self.use_network_manager else -60
+        fair = 35 if self.use_network_manager else -70
+        img_size = self._gtk.img_scale * self.bts
+        if signal_level > exc:
+            return self._gtk.Image('wifi_excellent', img_size, img_size)
+        elif signal_level > good:
+            return self._gtk.Image('wifi_good', img_size, img_size)
+        elif signal_level > fair:
+            return self._gtk.Image('wifi_fair', img_size, img_size)
+        else:
+            return self._gtk.Image('wifi_weak', img_size, img_size)    
+    def show_network_status(self):
+        #self.wifi.rescan()
+        #logging.info("im in show_network_status")
+        try:
+            netinfo = self.wifi.get_network_info(self.wifi.get_connected_ssid())
+            #logging.info(netinfo)
+            if "signal_level_dBm" in netinfo:
+                self.network_status = self.signal_strength(int(netinfo["signal_level_dBm"]))
+            #self.network_status.show()
+        except:
+            data: bytes = subprocess.check_output(["nmcli", "networking", "connectivity"])
+            data = data.decode("utf-8").strip()
+            img_size = self._gtk.img_scale * self.bts
+            self.network_status = self._gtk.Image(f"lan_status_{data}", img_size, img_size)
+        finally:
+            for child in self.control['network_box']:
+                self.control['network_box'].remove(child)
+            self.control['network_box'].add(self.network_status)
+            self.control['network_box'].show_all()
         return True
-
+    
     def show_heaters(self, show=True):
         try:
             for child in self.control['temp_box'].get_children():
@@ -244,6 +298,7 @@ class BasePanel(ScreenPanel):
                     self.control['temp_box'].add(self.labels[f"{device}_box"])
                     n += 1
             self.control['temp_box'].show_all()
+            self.control['network_box'].show_all()
         except Exception as e:
             logging.debug(f"Couldn't create heaters box: {e}")
 
@@ -307,7 +362,7 @@ class BasePanel(ScreenPanel):
                             self._screen.updating = False
                             for dialog in self._screen.dialogs:
                                 self._gtk.remove_dialog(dialog)
-
+        #self.show_network_status()
         if action != "notify_status_update" or self._screen.printer is None:
             return
         devices = self._printer.get_temp_store_devices()
@@ -332,7 +387,45 @@ class BasePanel(ScreenPanel):
                 self.control['temp_box'].pack_start(self.labels[f"{self.current_extruder}_box"], True, True, 3)
                 self.control['temp_box'].reorder_child(self.labels[f"{self.current_extruder}_box"], 0)
                 self.control['temp_box'].show_all()
-
+                
+        if "autooff" in data:
+            if 'autoOff' in data['autooff']:
+                if self.autooff_dialog is not None and data['autooff']['autoOff'] == False:
+                    self._gtk.remove_dialog(self.autooff_dialog)
+                    self.autooff_dialog = None
+                elif data['autooff']['autoOff'] == True:
+                    self.create_autooff_modal()
+                    
+    def create_autooff_modal(self):
+        buttons = [
+                    {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color1"},
+                    {"name": _("Poweroff now"), "response": Gtk.ResponseType.OK, "style": "color2"}
+                ]
+        grid = self._gtk.HomogeneousGrid()
+        label = Gtk.Label(label=_("Printing is finished. The printer will be turned off after cooling the extruder"))
+        label.set_line_wrap(True)
+        label.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        label.set_max_width_chars(40)
+        label.set_hexpand(True)
+        label.set_vexpand(True)
+        label.set_valign(Gtk.Align.CENTER)
+        label.set_halign(Gtk.Align.CENTER)
+        # label.get_style_context().add_class("label-lines-2em")
+        label.set_justify(Gtk.Justification.CENTER)
+        grid.attach(label, 0, 0, 1, 1)
+        
+        self.autooff_dialog = self._gtk.Dialog(self._screen, buttons, grid, self.close_autooff_modal, width = 1, height= self._screen.height / 3)
+        self.autooff_dialog.set_title(_("Autooff after print"))
+        self.autooff_dialog.show_all()
+    
+    def close_autooff_modal(self, dialog, response_id):
+        self._gtk.remove_dialog(dialog)
+        self.autooff_dialog = None
+        if response_id == Gtk.ResponseType.OK:
+            self._screen._ws.send_method("machine.shutdown")
+        else:
+            self._screen._ws.klippy.cancel_autooff()
+    
     def remove(self, widget):
         self.content.remove(widget)
 

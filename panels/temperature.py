@@ -185,10 +185,13 @@ class TemperaturePanel(ScreenPanel):
             if visible:
                 count += 1
                 self.devices[device]['name'].get_style_context().add_class(self.devices[device]['class'])
+                if self._printer.device_has_target(device):
+                    self.devices[device]['temp'].get_style_context().add_class(f"{self.devices[device]['class']}_temp")
                 self.devices[device]['name'].get_style_context().remove_class("graph_label_hidden")
             else:
                 self.devices[device]['name'].get_style_context().add_class("graph_label_hidden")
                 self.devices[device]['name'].get_style_context().remove_class(self.devices[device]['class'])
+                self.devices[device]['temp'].get_style_context().remove_class(f"{self.devices[device]['class']}_temp")
         if count > 0:
             if self.labels['da'] not in self.left_panel:
                 self.left_panel.add(self.labels['da'])
@@ -215,12 +218,12 @@ class TemperaturePanel(ScreenPanel):
             if device in self.active_heaters:
                 self.active_heaters.pop(self.active_heaters.index(device))
                 self.devices[device]['name'].get_style_context().remove_class("button_active")
-                self.devices[device]['select'].set_label(_("Select"))
+                # self.devices[device]['select'].set_label(_("Select"))
                 logging.info(f"Deselecting {device}")
                 return
             self.active_heaters.append(device)
-            self.devices[device]['name'].get_style_context().add_class("button_active")
-            self.devices[device]['select'].set_label(_("Deselect"))
+            #self.devices[device]['name'].get_style_context().add_class("button_active")
+            # self.devices[device]['select'].set_label(_("Deselect"))
             logging.info(f"Seselecting {device}")
         return
 
@@ -322,14 +325,17 @@ class TemperaturePanel(ScreenPanel):
         else:
             self.h += sum("sensor" in d for d in self.devices)
             image = "heat-up"
+            if "locale" in self._printer.config[device]:
+                devname = self._printer.config[device]['locale']
             class_name = f"graph_label_sensor_{self.h}"
             dev_type = "sensor"
 
         rgb = self._gtk.get_temp_color(dev_type)
 
-        name = self._gtk.Button(image, _(devname).title().replace("_", " "), None, self.bts, Gtk.PositionType.LEFT, 1)
+        name = self._gtk.Button(image, _(devname), None, self.bts, Gtk.PositionType.LEFT, 1)
         name.set_alignment(0, .5)
         visible = self._config.get_config().getboolean(f"graph {self._screen.connected_printer}", device, fallback=True)
+        temp = self._gtk.Button(label="", lines=1)
         if visible:
             name.get_style_context().add_class(class_name)
         else:
@@ -345,9 +351,12 @@ class TemperaturePanel(ScreenPanel):
             name.connect("clicked", self.toggle_visibility, device)
         self.labels['da'].set_showing(device, visible)
 
-        temp = self._gtk.Button(label="", lines=1)
         if can_target:
             temp.connect("clicked", self.show_numpad, device)
+            temp.get_style_context().add_class(f"{class_name}_temp")
+        else:
+            temp.set_sensitive(False)
+            temp.get_style_context().add_class("unused_temp_button")
 
         self.devices[device] = {
             "class": class_name,
@@ -357,9 +366,9 @@ class TemperaturePanel(ScreenPanel):
             "visible": visible
         }
 
-        if self.devices[device]["can_target"]:
-            self.devices[device]['select'] = self._gtk.Button(label=_("Select"))
-            self.devices[device]['select'].connect('clicked', self.select_heater, device)
+        # if self.devices[device]["can_target"]:
+        #     self.devices[device]['select'] = self._gtk.Button(label=_("Select"))
+        #     self.devices[device]['select'].connect('clicked', self.select_heater, device)
 
         devices = sorted(self.devices)
         pos = devices.index(device) + 1
@@ -371,7 +380,7 @@ class TemperaturePanel(ScreenPanel):
         return True
 
     def name_pressed(self, widget, event, device):
-        self.popover_timeout = GLib.timeout_add_seconds(1, self.popover_popup, widget, device)
+        self.popover_timeout = GLib.timeout_add(0, self.popover_popup, widget, device)
 
     def name_released(self, widget, event, device):
         if self.popover_timeout is not None:
@@ -461,11 +470,8 @@ class TemperaturePanel(ScreenPanel):
         return self.left_panel
 
     def hide_numpad(self, widget=None):
-        self.devices[self.active_heater]['name'].get_style_context().remove_class("button_active")
+        self.devices[self.active_heater]['temp'].get_style_context().remove_class("button_active")
         self.active_heater = None
-
-        for d in self.active_heaters:
-            self.devices[d]['name'].get_style_context().add_class("button_active")
 
         if self._screen.vertical_mode:
             self.grid.remove_row(1)
@@ -496,7 +502,7 @@ class TemperaturePanel(ScreenPanel):
             pobox.pack_start(self.labels['graph_show'], True, True, 5)
         if self.devices[self.popover_device]["can_target"]:
             pobox.pack_start(self.labels['graph_settemp'], True, True, 5)
-            pobox.pack_end(self.devices[self.popover_device]['select'], True, True, 5)
+            #pobox.pack_end(self.devices[self.popover_device]['select'], True, True, 5)
 
     def process_update(self, action, data):
         if action != "notify_status_update":
@@ -511,9 +517,9 @@ class TemperaturePanel(ScreenPanel):
 
     def show_numpad(self, widget, device=None):
         for d in self.active_heaters:
-            self.devices[d]['name'].get_style_context().remove_class("button_active")
+            self.devices[d]['temp'].get_style_context().remove_class("button_active")
         self.active_heater = self.popover_device if device is None else device
-        self.devices[self.active_heater]['name'].get_style_context().add_class("button_active")
+        self.devices[self.active_heater]['temp'].get_style_context().add_class("button_active")
 
         if "keypad" not in self.labels:
             self.labels["keypad"] = Keypad(self._screen, self.change_target_temp, self.hide_numpad)

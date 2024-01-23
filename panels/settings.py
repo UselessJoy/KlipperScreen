@@ -52,15 +52,15 @@ class SettingsPanel(ScreenPanel):
         
         if "autooff" in data:
             logging.info(f"autooff changed to {data['autooff']}")
-            for child in self.options_data['autooff']['row']:
+            for child in self.options_data['autooff_enable']['row']:
                 if hasattr(child, "set_active"):
-                    child.set_active(data['autooff']['autooff_enable'])
+                    child.set_active(data['autooff']['autoOff_enable'])
                     
         if "safety_printing" in data:
             logging.info(f"safety_printing changed to {data['safety_printing']}")
             for child in self.options_data['safety_printing']['row']:
                 if hasattr(child, "set_active"):
-                    child.set_active(data['safety_printing']['safety'])
+                    child.set_active(data['safety_printing']['safety_enabled'])
             
             #self.options_data['safety_printing']['row'][1]
         

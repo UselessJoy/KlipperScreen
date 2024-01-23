@@ -27,12 +27,18 @@ class MovePanel(ScreenPanel):
         self.label_put = False
         self.image = self._gtk.Image("big_extruder", self._screen.width*2, self._screen.height*2)
         self.buffer_image = self._gtk.Image("big_extruder_opacity", self._screen.width*2, self._screen.height*2)
-        self.label_pop = Gtk.Label()
-        self.label_pop.set_text("Must home axis first")
+        self.label_XY = Gtk.Label(label=_("Must home XY"))
+        self.label_Z = Gtk.Label(label=_("Must home Z"))
+        self.label_Z.set_lines(2)
+        self.label_Z.set_justify(Gtk.Justification.CENTER)
+        self.label_XY.set_lines(2)
+        self.label_XY.set_justify(Gtk.Justification.CENTER)
+        #self.label_XY.set_text(_("Must home axis first"))
         self.movement_area = Gtk.Layout()
         self.movement_area.put(self.image, 0,0)
         self.movement_area.put(self.buffer_image, 0,0)
-        self.movement_area.put(self.label_pop, 0,0)
+        self.movement_area.put(self.label_XY, 0,0)
+        self.movement_area.put(self.label_Z, 0,0)
         self.movement_area.set_opacity(0)
         #self.movement_area.put(self.text_image, 0,0)
         self.movement_area.set_resize_mode(False)
@@ -213,7 +219,8 @@ class MovePanel(ScreenPanel):
         self.labels['move_menu'].attach(distgrid, 2, 0, 1, 1)
         self.labels['move_menu'].attach(self.event_field, 0,1,2,1)
         self.labels['move_menu'].attach(grid, 2, 1, 1, 1)
-        self.labels['move_menu'].attach(plug, 0, 2, 1, 1)
+        self.labels['move_menu'].get_style_context().add_class("move_menu")
+        #self.labels['move_menu'].attach(plug, 0, 2, 1, 1)
         self.labels['move_menu'].attach(positions_grid, 0, 0, 2, 1)
         self.content.add(self.labels['move_menu'])
         GLib.timeout_add(200, self.init_sizes)
@@ -243,7 +250,8 @@ class MovePanel(ScreenPanel):
                     self.old_x, self.old_y, image_to_pixel_w, image_to_pixel_h = self.mm_coordinates_to_pixel_coordinates(self._printer.data['gcode_move']['gcode_position'][0], self._printer.data['gcode_move']['gcode_position'][1], 0)
                     self.init = True         
         if self.init:
-            self.label_pop.set_opacity(0)
+            self.label_XY.set_opacity(0)
+            self.label_Z.set_opacity(0)
             self.movement_area.move(self.image, image_to_pixel_w, image_to_pixel_h)
             if not self.mode:
                 self.movement_area.move(self.buffer_image, image_to_pixel_w, image_to_pixel_h)
@@ -257,10 +265,20 @@ class MovePanel(ScreenPanel):
             self.movement_area.move(self.image, field_center[0], field_center[1])
             if self.mode:
                 self.movement_area.move(self.buffer_image, field_center[0], field_center[1])
+                self.label_XY.set_opacity(0)
+                self.label_Z.set_opacity(1)
+                label_width = self.label_Z.get_allocation().width
+                start_pixel_for_center = (self.area_w - label_width) if self.area_w > label_width else 0
+                start_pixel_for_center = start_pixel_for_center / 2 if start_pixel_for_center > 0 else start_pixel_for_center
+                self.movement_area.put(self.label_Z, start_pixel_for_center, self.area_h/5)
             else:
                 self.movement_area.move(self.buffer_image, field_center[0], field_center[1])
-            self.label_pop.set_opacity(1)
-            self.movement_area.put(self.label_pop, self.area_w/4, self.area_h/5)
+                self.label_Z.set_opacity(0)
+                self.label_XY.set_opacity(1)
+                label_width = self.label_XY.get_allocation().width
+                start_pixel_for_center = (self.area_w - label_width) if self.area_w > label_width else 0
+                start_pixel_for_center = start_pixel_for_center / 2 if start_pixel_for_center > 0 else start_pixel_for_center
+                self.movement_area.put(self.label_XY, start_pixel_for_center, self.area_h/5)
             self.event_field.set_sensitive(False)
         self.movement_area.set_opacity(1)
         return False

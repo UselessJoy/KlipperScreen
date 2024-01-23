@@ -11,76 +11,30 @@ class Keyboard(Gtk.Box):
     langs = ["de", "en", "fr", "es"]
     def __init__(self, screen, reject_cb, accept_cb, entry=None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
+        self.get_style_context().add_class("keyboard")
         self.reject_cb = reject_cb
         self.accept_cb = accept_cb
+        #self.keyboard = Gtk.Grid()
         self.keyboard = screen.gtk.HomogeneousGrid()
         self.keyboard.set_direction(Gtk.TextDirection.LTR)
         self.timeout = self.clear_timeout = None
         self.entry = entry
-        
+        self.lang = 'en'
         self.isLowerCase = True
         language = self.detect_language(screen._config.get_main_config().get("language", None))
         logging.info(f"Keyboard {language}")
-
-        if language == "de":
-            self.keys = [
-                [
-                    ["q", "w", "e", "r", "t", "z", "u", "i", "o", "p", "ü"],
-                    ["a", "s", "d", "f", "g", "h", "j", "k", "l", "ö", "ä"],
-                    ["ABC", "123", "y", "x", "c", "v", "b", "n", "m", "⌫"],
-                ],
-                [
-                    ["Q", "W", "E", "R", "T", "Z", "U", "I", "O", "P", "Ü"],
-                    ["A", "S", "D", "F", "G", "H", "J", "K", "L", "Ö", "Ä"],
-                    ["abc", "123","Y", "X", "C", "V", "B", "N", "M", "⌫"],
-                ],
-                [
-                    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "ß"],
-                    ["-", "/", ":", ";", "(", ")", "$", "&", "@", "\"", "ẞ"],
-                    ["ABC", "abc", "#+=", ".", ",", "?", "!", "'", "⌫"],
-                ],
-                [
-                    ["[", "]", "{", "}", "#", "%", "^", "*", "+", "="],
-                    ["_", "\\", "|", "~", "<", ">", "€", "£", "¥", "•"],
-                    ["ABC", "abc", "123", ".", ",", "?", "!", "'", "⌫"],
-                ]
-            ]
-        elif language == "fr":
-            self.keys = [
-                [
-                    ["a", "z", "e", "r", "t", "y", "u", "i", "o", "p"],
-                    ["q", "s", "d", "f", "g", "h", "j", "k", "l", "m"],
-                    ["ABC", "123", "#+=", "w", "x", "c", "v", "b", "n", "⌫"],
-                ],
-                [
-                    ["A", "Z", "E", "R", "T", "Y", "U", "I", "O", "P"],
-                    ["Q", "S", "D", "F", "G", "H", "J", "K", "L", "M"],
-                    ["abc", "123", "#+=", "W", "X", "C", "V", "B", "N", "⌫"],
-                ],
-                [
-                    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
-                    ["-", "/", ":", ";", "(", ")", "$", "&", "@", "\""],
-                    ["ABC", "abc", "#+=", ".", ",", "?", "!", "'", "⌫"],
-                ],
-                [
-                    ["[", "]", "{", "}", "#", "%", "^", "*", "+", "="],
-                    ["_", "\\", "|", "~", "<", ">", "€", "£", "¥", "•"],
-                    ["ABC", "abc", "123", ".", ",", "?", "!", "'", "⌫"],
-                ]
-            ]
-        else:
-            self.keys = [
+        self.keys = [
                 [
                     ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
                     ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
                     ["⇮", "a", "s", "d", "f", "g", "h", "j", "k", "l"],
-                    ["!#1", "z", "x", "c", "v", "b", "n", "m", "⌫"],
+                    ["!#1", "ru", "z", "x", "c", "v", "b", "n", "m", "⌫"],
                 ],
                 [
                     ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
                     ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
                     ["⇧","A", "S", "D", "F", "G", "H", "J", "K", "L"],
-                    ["!#1", "Z", "X", "C", "V", "B", "N", "M", "⌫"],
+                    ["!#1", "RU", "Z", "X", "C", "V", "B", "N", "M", "⌫"],
                 ],
                 [
                     ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
@@ -93,12 +47,20 @@ class Keyboard(Gtk.Box):
                     ["`", "~", "\\", "|", "<", ">", "€", "£", "¥", "฿"],
                     ["2/2", "÷", "×", "○", "●", "□", "■", "—", "≈", "√"],
                     ["ABC", "≤", "≥", "≪", "≫", "Ⅰ", "Ⅴ", "Ⅹ", "⌫"],
+                ],
+                [
+                    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+                    ["й", "ц", "у", "к", "е", "н", "г", "ш", "щ", "з", "х", "ъ"],
+                    ["⇮", "ф", "ы", "в", "а", "п", "р", "о", "л", "д", "ж", "э"],
+                    ["!#1", "en", "я", "ч", "с", "м", "и", "т", "ь", "б", "ю", "⌫"],
+                ],
+                [
+                    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+                    ["Й", "Ц", "У", "К", "Е", "Н", "Г", "Ш", "Щ", "З", "Х", "Ъ"],
+                    ["⇧", "Ф", "Ы", "В", "А", "П", "Р", "О", "Л", "Д", "Ж", "Э"],
+                    ["!#1", "EN", "Я", "Ч", "С", "М", "И", "Т", "Ь", "Б", "Ю", "⌫"],
                 ]
             ]
-
-            if language == "es":
-                self.keys[0][1].append("ñ")
-                self.keys[1][1].append("Ñ")
 
         for pallet in self.keys:
             pallet.append(["✕", " ", "✔"])
@@ -118,6 +80,7 @@ class Keyboard(Gtk.Box):
                         self.buttons[p][r][k] = screen.gtk.Button(label=key, lines=1)
                     self.buttons[p][r][k].set_hexpand(True)
                     self.buttons[p][r][k].set_vexpand(True)
+                    self.buttons[p][r][k].set_can_focus(False)
                     self.buttons[p][r][k].connect('button-press-event', self.repeat, key)
                     self.buttons[p][r][k].connect('button-release-event', self.release)
                     self.buttons[p][r][k].get_style_context().add_class("keyboard_pad")
@@ -142,12 +105,27 @@ class Keyboard(Gtk.Box):
         self.pallet_nr = p
         for r, row in enumerate(self.keys[p][:-1]):
             for k, key in enumerate(row):
-                x = k *2 + 1 if r == 3 else k * 2
+                if p == 4 or p == 5:
+                    x = k * 6 if r == 0 else k * 5
+                    if r == 0:
+                        self.keyboard.attach(self.buttons[p][r][k], x, r, 6, 1)
+                    else:
+                        self.keyboard.attach(self.buttons[p][r][k], x, r, 5, 1)
+                elif p == 2 or p == 3:
+                    x = k * 2 + 1 if r == 3 else k * 2
                 # x = k * 2 + 1 if r == 1 else k * 2
-                self.keyboard.attach(self.buttons[p][r][k], x, r, 2, 1)
-        self.keyboard.attach(self.buttons[p][4][0], 0, 4, 2, 1)  # ✕
-        self.keyboard.attach(self.buttons[p][4][1], 2, 4, 16, 1)  # Space
-        self.keyboard.attach(self.buttons[p][4][2], 18, 4, 2, 1)  # ✔
+                    self.keyboard.attach(self.buttons[p][r][k], x, r, 2, 1)
+                else:
+                    x = k * 2
+                    self.keyboard.attach(self.buttons[p][r][k], x, r, 2, 1)
+        if p == 4 or p == 5:
+            self.keyboard.attach(self.buttons[p][4][0], 0, 4, 10, 1)  # ✕
+            self.keyboard.attach(self.buttons[p][4][1], 10, 4, 40, 1)  # Space
+            self.keyboard.attach(self.buttons[p][4][2], 50, 4, 10, 1)  # ✔
+        else:
+            self.keyboard.attach(self.buttons[p][4][0], 0, 4, 4, 1)  # ✕
+            self.keyboard.attach(self.buttons[p][4][1], 4, 4, 12, 1)  # Space
+            self.keyboard.attach(self.buttons[p][4][2], 16, 4, 4, 1)  # ✔
         self.show_all()
 
     def repeat(self, widget, event, key):
@@ -155,10 +133,10 @@ class Keyboard(Gtk.Box):
         self.update_entry(widget, key)
         if self.timeout is None and key == "⌫":
             # Hold for repeat, hold longer to clear the field
-            self.clear_timeout = GLib.timeout_add_seconds(3, self.clear, widget)
+            #self.clear_timeout = GLib.timeout_add_seconds(3, self.clear, widget)
             # This can be used to repeat all the keys,
             # but I don't find it useful on the console
-            self.timeout = GLib.timeout_add(400, self.repeat, widget, None, key)
+            self.timeout = GLib.timeout_add(500, self.repeat, widget, None, key)
         return True
 
     def release(self, widget, event):
@@ -189,19 +167,43 @@ class Keyboard(Gtk.Box):
             return
         elif key == "⇧":
             self.isLowerCase = True
-            self.set_pallet(0)
-        elif key == "ABC":
-            if self.isLowerCase:
+            if self.lang == 'en':
                 self.set_pallet(0)
             else:
-                self.set_pallet(1)
+                self.set_pallet(4)
+        elif key == "ABC":
+            if self.lang == 'en':
+                if self.isLowerCase:
+                    self.set_pallet(0)
+                else:
+                    self.set_pallet(1)
+            else:
+                if self.isLowerCase:
+                    self.set_pallet(4)
+                else:
+                    self.set_pallet(5)
         elif key == "⇮":
             self.isLowerCase = False
-            self.set_pallet(1)
+            if self.lang == 'en':
+                self.set_pallet(1)
+            else:
+                self.set_pallet(5)
         elif key == "!#1" or key == "2/2":
             self.set_pallet(2)
         elif key == "1/2":
             self.set_pallet(3)
+        elif key == 'ru':
+            self.lang = 'ru'
+            self.set_pallet(4)
+        elif key == 'RU':
+            self.lang = 'ru'
+            self.set_pallet(5)
+        elif key == 'en':
+            self.lang = 'en'
+            self.set_pallet(0)
+        elif key == 'EN':
+            self.lang = 'en'
+            self.set_pallet(1)
         else:
             self.entry.update_entry(key)
             # result = self.change_cb(self.entry, key) if self.change_cb != None else True

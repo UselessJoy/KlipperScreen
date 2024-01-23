@@ -297,8 +297,9 @@ class Printer:
         if self.tempstore is not None:
             return list(self.tempstore)
 
-    def device_has_target(self, device):
-        return "target" in self.devices[device] or (device in self.tempstore and "targets" in self.tempstore[device])
+    def device_has_target(self, device: str):
+        return True if device.find("temperature_sensor") == -1 else False
+        # return "target" in self.devices[device] or (device in self.tempstore and "targets" in self.tempstore[device])
 
     def get_temp_store(self, device, section=False, results=0):
         if device not in self.tempstore:

@@ -5,16 +5,25 @@
 }
 
 window {
-    background-color: #002b36; 
+    background-color: #002b36;
+    padding: 30px;
+    margin: 30px; 
 }
 
+.content > * > * {
+    padding-right: 16px;
+}
+
+.title_bar {
+    padding-right: 32px;
+}
 .window-startup {
     background: linear-gradient(to bottom right, #7dc926 30%, #002b36 70%);
     -gtk-icon-shadow: none;
 }
 
 .window-interrupt {
-    background: linear-gradient(to bottom right, #e7e406 30%, #002b36 70%);
+    background: linear-gradient(to bottom right, #b69b00 30%, #002b36 70%);
     -gtk-icon-shadow: none;
 }
 .window-ready {
@@ -22,12 +31,12 @@ window {
     -gtk-icon-shadow: none;
 }
 .window-paused {
-    background: linear-gradient(to bottom right, #e7e406 30%, #002b36 70%);
+    background: linear-gradient(to bottom right, #8d8b04 30%, #002b36 70%);
     -gtk-icon-shadow: none;
 }
 
 .window-warning {
-    background: linear-gradient(to bottom right, #e79e16 30%, #002b36 70%);
+    background: linear-gradient(to bottom right, #ac7511 30%, #002b36 70%);
     -gtk-icon-shadow: none;
 }
 
@@ -60,16 +69,20 @@ window {
 button {
     background-color: inherit;/*#002b36; base03*/
 }
-
+.keyboard {
+    padding-right: 20px;
+    padding-bottom: 10px;
+}
 button:active {
     background-color: #cb4b16; /*solarized-orange*/
 }
 
 .button_active {
     border-color: #073642; /*base02*/
+    background-color: #cb4b16;
     border-style: solid;
     border-radius: 1em;
-    background-color: inherit;/*#073642;base02*/
+    /*background-color: inherit;#073642;base02*/
 }
 
 button.color1 {
@@ -113,10 +126,14 @@ button.color1:active, button.color2:active, button.color3:active, button.color4:
     margin-top: .5em;
 }
 
-button.active {
+button.active{
     background-color: #cb4b16; /*solarized-orange*/
 }
 
+
+button.overlay_close_button:active{
+    background-color: inherit;
+}
 button.update {
     background-color: inherit; /*base02*/
     border: 0;
@@ -157,24 +174,43 @@ switch:checked:disabled {
 
 entry {
     background-color: rgba(255, 255, 255, 0.3); /*base02*/
-    border-color: #002b36; /*base03*/
+    border-color: rgba(0, 43, 54, 0.0); /*base03*/
+}
+
+
+.unused_temp_button:disabled label{
+    color: #fdf6e3;
+}
+.unused_entry:disabled {
+    background-color: inherit;
+    color: #fdf6e3;
+    border-color: rgba(0, 43, 54, 0.0);
 }
 
 entry:disabled {
     background-color: white; /*base02*/
-    border-color: #002b36; /*base03*/
+    border-color: rgba(0, 43, 54, 0.0);
     color: grey;
     background-color: rgba(255, 255, 255, 0.3);
 }
 
-spinbutton button.up {
-    padding-top: 50px;
-    padding-bottom: 50px;
-    font-size: xx-large;
-    font-weight: 900;
-    text-decoration-line: underline;
+spinbutton button.active {
+    background-color: #cb4b16; /*solarized-orange*/
 }
 
+spinbutton:disabled {
+    color: grey;
+    /* background-color: rgba(255, 255, 255, 0.3); */
+}
+
+spinbutton button.up, spinbutton button.down {
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+.move_menu {
+    padding-bottom: 20px;
+}
 
 .dialog button {
     background-color: inherit; 
@@ -201,8 +237,8 @@ notebook tab {
     background-color: inherit; /*base03*/
     padding-left: 16px;
     padding-right: 16px;
-    padding-top: 30px;
-    padding-bottom: 30px;
+    padding-top: 10px;
+    padding-bottom: 10px;
 }
 
 notebook > header > tabs > tab:hover {
@@ -227,6 +263,7 @@ notebook > header > tabs > tab:checked {
 
 label {
     color: #fdf6e3; /*base3*/
+    
 }
 
 menu {
@@ -259,11 +296,25 @@ scale-mark {
 }
 
 scrollbar, scrollbar button, scrollbar trough {
+    background-color: inherit;
+}
+
+
+scrolledwindow button {
+    box-shadow: -8px 11px 10px 2px rgba(34, 60, 80, 0.2) inset;
+    border-radius: 1em;
     background-color: inherit; /*base03*/
 }
 
+
 scrollbar slider {
-    background-color: inherit; /*base02*/
+    min-width: 2em;
+    border-radius: .7em;
+    background-color: #404E57;
+}
+
+.scrolled_window_mesh_profiles {
+    background-color: rgba(0, 0, 0, 0.5); 
 }
 
 textview .time {

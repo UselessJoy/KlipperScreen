@@ -24,6 +24,7 @@ from ks_includes.files import KlippyFiles
 from ks_includes.KlippyGtk import KlippyGtk
 from ks_includes.printer import Printer
 from ks_includes.widgets.keyboard import Keyboard
+from ks_includes.widgets.numpad import Numpad
 from ks_includes.config import KlipperScreenConfig
 from panels.base_panel import BasePanel
 
@@ -82,6 +83,7 @@ class KlipperScreen(Gtk.Window):
     connected_printer = None
     files = None
     keyboard = None
+    numpad = None
     load_panel = {}
     panels = {}
     popup_message = None
@@ -108,6 +110,7 @@ class KlipperScreen(Gtk.Window):
         self.version = version
         self.dialogs = []
         self.confirm = None
+        self.last_window_class = ""
         configfile = os.path.normpath(os.path.expanduser(args.configfile))
 
         self._config = KlipperScreenConfig(configfile, self)
@@ -229,8 +232,8 @@ class KlipperScreen(Gtk.Window):
         requested_updates = {
             "objects": {
                 "autooff": ["autoOff_enable", "autoOff"],
-                "safety_printing": ["safety", "open"],
-                "bed_mesh": ["profile_name", "mesh_max", "mesh_min", "probed_matrix", "profiles"],
+                "safety_printing": ["safety_enabled", "is_doors_open", "is_hood_open"],
+                "bed_mesh": ["profile_name", "mesh_max", "mesh_min", "probed_matrix", "profiles", "unsaved_profiles"],
                 "configfile": ["config"],
                 "display_status": ["progress", "message"],
                 "fan": ["speed"],
@@ -319,39 +322,6 @@ class KlipperScreen(Gtk.Window):
         self.show_all()
         if hasattr(self.panels[panel_name], "init_sizes"):
             self.panels[panel_name].init_sizes()
-
-    def show_popup_autooff(self, message, just_popup=True):
-        self.base_panel.content.set_sensitive(False)
-        self.close_screensaver()
-        if self.popup_message is not None:
-            self.close_popup_message()
-        msg = Gtk.Label(label=f"{message}")
-        msg.set_hexpand(True)
-        msg.set_vexpand(True)
-        button_cancel = self.gtk.Button("refresh", _("Cancel"), "color1")
-        button_cancel.connect("clicked", self.stop_autooff)
-        button_power_off = self.gtk.Button("refresh", _("Poweroff now"), "color2")
-        button_power_off.connect("clicked", self.shutdown_now)
-        if not just_popup:
-            self.remove_window_classes(self.base_panel.main_grid.get_style_context())
-            self.base_panel.main_grid.get_style_context().add_class("window-warning")
-        
-        grid = Gtk.Grid()
-        grid.get_style_context().add_class("popup")
-        grid.get_style_context().add_class("message_popup_default")
-        grid.attach(msg, 0,2,3,1)
-        grid.attach(button_cancel, 1,4,1,1)
-        grid.attach(button_power_off, 0,4,1,1)
-        grid.show_all()
-        popup = Gtk.Popover.new(self.base_panel.titlebar)
-        popup.set_size_request(self.width * .7, self.height * .6)
-        popup.set_halign(Gtk.Align.CENTER)
-        popup.set_valign(Gtk.Align.CENTER)
-        popup.add(grid)       
-        self.popup_message = popup
-        self.popup_message.show_all()
-        
-        return False
     
     def show_popup_interrupt(self, message, just_popup=True):
         self.base_panel.content.set_sensitive(False)
@@ -396,13 +366,6 @@ class KlipperScreen(Gtk.Window):
 
     def refresh_print(self, widget):
         self._ws.klippy.print_rebuild()
-    
-    def shutdown_now(self, widget):
-        self._ws.send_method("machine.shutdown")
-    
-    def stop_autooff(self, widget):
-        self._ws.klippy.cancel_autooff()
-        self.close_popup_message()
     
     def show_popup_message(self, message, level=3, just_popup=False):
         self.close_screensaver()
@@ -455,7 +418,7 @@ class KlipperScreen(Gtk.Window):
         self.popup_message.popdown()
         self.popup_message = None
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
-        self.base_panel.main_grid.get_style_context().add_class("window-ready")
+        self.base_panel.main_grid.get_style_context().add_class(self.last_window_class)
 
     def show_error_modal(self, err, e=""):
         logging.error(f"Showing error modal: {err} {e}")
@@ -535,21 +498,45 @@ class KlipperScreen(Gtk.Window):
                 num,
                 style_options['graph_colors']['extruder']['colors'][i]
             )
+            css_data += "\n.graph_label_extruder%s_temp {border-right-color: #%s}" % (
+                num,
+                style_options['graph_colors']['extruder']['colors'][i]
+            )
+            
+            
         for i in range(len(style_options['graph_colors']['bed']['colors'])):
             css_data += "\n.graph_label_heater_bed%s {border-left-color: #%s}" % (
                 "" if i == 0 else i + 1,
                 style_options['graph_colors']['bed']['colors'][i]
             )
+            css_data += "\n.graph_label_heater_bed%s_temp {border-right-color: #%s}" % (
+                "" if i == 0 else i + 1,
+                style_options['graph_colors']['bed']['colors'][i]
+            )
+            
+            
         for i in range(len(style_options['graph_colors']['fan']['colors'])):
             css_data += "\n.graph_label_fan_%s {border-left-color: #%s}" % (
                 i + 1,
                 style_options['graph_colors']['fan']['colors'][i]
             )
+            css_data += "\n.graph_label_fan_%s_temp {border-right-color: #%s}" % (
+                i + 1,
+                style_options['graph_colors']['fan']['colors'][i]
+            )
+            
+            
         for i in range(len(style_options['graph_colors']['sensor']['colors'])):
             css_data += "\n.graph_label_sensor_%s {border-left-color: #%s}" % (
                 i + 1,
                 style_options['graph_colors']['sensor']['colors'][i]
             )
+            css_data += "\n.graph_label_sensor_%s_temp {border-right-color: #%s}" % (
+                i + 1,
+                style_options['graph_colors']['sensor']['colors'][i]
+            )
+            
+            
 
         css_data = css_data.replace("KS_FONT_SIZE", f"{self.gtk.font_size}")
 
@@ -608,6 +595,7 @@ class KlipperScreen(Gtk.Window):
     def _menu_go_back(self, widget=None, home=False):
         logging.info(f"#### Menu go {'home' if home else 'back'}")
         self.remove_keyboard()
+        self.remove_numpad()
         if self._config.get_main_config().getboolean('autoclose_popups', True):
             self.close_popup_message()
         while len(self._cur_panels) > 1:
@@ -629,6 +617,7 @@ class KlipperScreen(Gtk.Window):
         if self.screensaver is not None:
             self.close_screensaver()
         self.remove_keyboard()
+        self.remove_numpad()
         for dialog in self.dialogs:
             logging.debug("Hiding dialog")
             dialog.hide()
@@ -765,6 +754,7 @@ class KlipperScreen(Gtk.Window):
 
     def state_disconnected(self):
         ####      NEW      ####
+        self.last_window_class = self.base_panel.main_grid.get_style_context().list_classes()[0]
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-disconnected")
@@ -777,6 +767,7 @@ class KlipperScreen(Gtk.Window):
 
     def state_error(self):
         ####      NEW      ####
+        self.last_window_class = self.base_panel.main_grid.get_style_context().list_classes()[0]
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-error")
@@ -791,6 +782,7 @@ class KlipperScreen(Gtk.Window):
 
     def state_paused(self):
         ####      NEW      ####
+        self.last_window_class = self.base_panel.main_grid.get_style_context().list_classes()[0]
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-paused")
@@ -799,6 +791,7 @@ class KlipperScreen(Gtk.Window):
 
     def state_printing(self):
         ####      NEW      ####
+        self.last_window_class = self.base_panel.main_grid.get_style_context().list_classes()[0]
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-printing")
@@ -810,6 +803,7 @@ class KlipperScreen(Gtk.Window):
     def state_ready(self):
         # Do not return to main menu if completing a job, timeouts/user input will return
         ####      NEW      ####
+        self.last_window_class = self.base_panel.main_grid.get_style_context().list_classes()[0]
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-ready")
@@ -819,6 +813,7 @@ class KlipperScreen(Gtk.Window):
 
     def state_startup(self):
         ####      NEW      ####
+        self.last_window_class = self.base_panel.main_grid.get_style_context().list_classes()[0]
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-startup")
@@ -826,6 +821,7 @@ class KlipperScreen(Gtk.Window):
 
     def state_shutdown(self):
         ####      NEW      ####
+        self.last_window_class = self.base_panel.main_grid.get_style_context().list_classes()[0]
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-shutdown")
@@ -1052,9 +1048,7 @@ class KlipperScreen(Gtk.Window):
 
     def base_panel_show_all(self):
         self.base_panel.show_macro_shortcut(self._config.get_main_config().getboolean('side_macro_shortcut', True))
-        ####      NEW      ####
-        GLib.timeout_add_seconds(1, self.base_panel.show_wifi_mode)
-        ####    END NEW    ####
+        #GLib.timeout_add_seconds(1, self.base_panel.show_network_status)
         self.base_panel.show_heaters(True)
         self.base_panel.show_estop(True)
 
@@ -1084,12 +1078,30 @@ class KlipperScreen(Gtk.Window):
             return
         
         self.keyboard = Keyboard(self, self.remove_keyboard, accept_function, entry=entry)
-        self.keyboard.set_size_request(self.gtk.content_width, self.gtk.keyboard_height)
+        #self.keyboard.set_size_request(self.gtk.content_width, self.gtk.keyboard_height)
+        # self.keyboard.set_vexpand(True)
+        # self.keyboard.set_valign(Gtk.Align.START)
         # box.get_style_context().add_class("keyboard_box")
         # box.add(Keyboard(self, self.remove_keyboard, entry=entry))
         # self.keyboard = {"box": box}
-        self.base_panel.content.pack_end(self.keyboard, True, True, 0)
+        self.base_panel.content.add(self.keyboard)
         self.base_panel.content.show_all()
+    
+    def show_numpad(self, entry=None, event=None, accept_function=None): 
+        if self.numpad is not None:
+                return
+        if entry is None:
+            logging.debug("Error: no entry provided for keyboard")
+            return
+        self.numpad = Numpad(self, accept_function, entry=entry)
+        self.base_panel.content.pack_end(self.numpad, True, True, 5)
+        self.base_panel.content.show_all()
+        
+    def remove_numpad(self, widget=None, event=None):
+        if self.numpad is None:
+            return
+        self.base_panel.content.remove(self.numpad)
+        self.numpad = None   
     
     def _show_matchbox_keyboard(self, box):
         env = os.environ.copy()

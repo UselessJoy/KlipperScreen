@@ -1,8 +1,11 @@
+import logging
+from venv import logger
 import gi
 
 from jinja2 import Environment, Template
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
+import cairo
 
 class BedMap(Gtk.DrawingArea):
     def __init__(self, font_size, bm):
@@ -17,47 +20,46 @@ class BedMap(Gtk.DrawingArea):
     def update_bm(self, bm):
         self.bm = list(reversed(bm)) if bm is not None else None
 
-    def draw_graph(self, da, ctx):
-        width = da.get_allocated_width()
-        height = da.get_allocated_height()
+    def draw_graph(self, drawing_area, cairo_type):
+        width = drawing_area.get_allocated_width()
+        height = drawing_area.get_allocated_height()
         # Styling
-        ctx.set_line_width(1)
-        ctx.set_font_size(self.font_size)
+        cairo_type.set_line_width(1)
+        cairo_type.set_font_size(self.font_size)
 
         if self.bm is None:
-            ctx.move_to(self.font_spacing, height / 2)
-            ctx.set_source_rgb(0.5, 0.5, 0.5)
-            #ctx.show_text("No mesh has been loaded")
-            ctx.stroke()
+            cairo_type.move_to(self.font_spacing, height / 2)
+            cairo_type.set_source_rgb(0.5, 0.5, 0.5)
+            cairo_type.stroke()
             return
 
         rows = len(self.bm)
         columns = len(self.bm[0])
         for i, row in enumerate(self.bm):
-            ty = height / rows * i
-            by = ty + height / rows
+            topY = height / rows * i
+            bottomY = topY + height / rows
             for j, column in enumerate(row):
-                lx = width / columns * j
-                rx = lx + width / columns
+                leftX = width / columns * j
+                rightX = leftX + width / columns
                 # Colors
-                ctx.set_source_rgb(*self.colorbar(column))
-                ctx.move_to(lx, ty)
-                ctx.line_to(lx, by)
-                ctx.line_to(rx, by)
-                ctx.line_to(rx, ty)
-                ctx.close_path()
-                ctx.fill()
-                ctx.stroke()
+                cairo_type.set_source_rgb(*self.colorbar(column))
+                cairo_type.move_to(leftX, topY)
+                cairo_type.line_to(leftX, bottomY - 2)
+                cairo_type.line_to(rightX - 2, bottomY - 2)
+                cairo_type.line_to(rightX - 2, topY)
+                cairo_type.close_path()
+                cairo_type.fill()
+                cairo_type.stroke()
                 if rows > 16 or columns > 8:
                     continue
                 # Numbers
-                ctx.set_source_rgb(0, 0, 0)
+                cairo_type.set_source_rgb(0, 0, 0)
                 if column > 0:
-                    ctx.move_to((lx + rx) / 2 - self.font_size, (ty + by + self.font_size) / 2)
+                    cairo_type.move_to((leftX + rightX) / 2 - self.font_size, (topY + bottomY + self.font_size) / 2)
                 else:
-                    ctx.move_to((lx + rx) / 2 - self.font_size * 1.2, (ty + by + self.font_size) / 2)
-                ctx.show_text(f"{column:.2f}")
-                ctx.stroke()
+                    cairo_type.move_to((leftX + rightX) / 2 - self.font_size * 1.2, (topY + bottomY + self.font_size) / 2)
+                cairo_type.show_text(f"{column:.2f}")
+                cairo_type.stroke()
 
     @staticmethod
     def colorbar(value):

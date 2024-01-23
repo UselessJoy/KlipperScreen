@@ -6,7 +6,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib, Pango
 
 from ks_includes.screen_panel import ScreenPanel
-
+from ks_includes.widgets.typed_entry import TypedEntry
 
 def create_panel(*args):
     return MacroPanel(*args)
@@ -21,6 +21,7 @@ class MacroPanel(ScreenPanel):
         self.sort_btn.set_hexpand(True)
         self.options = {}
         self.macros = {}
+        self.locale_params = {}
         self.menu = ['macros_menu']
 
         adjust = self._gtk.Button("settings", " " + _("Settings"), "color2", self.bts, Gtk.PositionType.LEFT, 1)
@@ -51,13 +52,13 @@ class MacroPanel(ScreenPanel):
             self.unload_menu()
         self.reload_macros()
 
-    def add_gcode_macro(self, macro, macro_locale):
+    def add_gcode_macro(self, macro, macro_locale, param_locale_dict):
         # Support for hiding macros by name
         if macro.startswith("_"):
             return
 
         name = Gtk.Label()
-        name.set_markup(f"<big><b>{macro_locale}</b></big>")
+        name.set_markup(f"<big><b>{macro if macro_locale == None else macro_locale}</b></big>")
         name.set_hexpand(True)
         name.set_vexpand(True)
         name.set_halign(Gtk.Align.START)
@@ -91,16 +92,23 @@ class MacroPanel(ScreenPanel):
                 if result:
                     result = result.groupdict()
                     default = result["default"] if "default" in result else ""
-                    entry = Gtk.Entry()
+                    entry = TypedEntry()
                     entry.set_text(default)
                     self.macros[macro]["params"].update({result["param"]: entry})
 
         for param in self.macros[macro]["params"]:
-            labels.add(Gtk.Label(param))
-            self.macros[macro]["params"][param].connect("focus-in-event", self._screen.show_keyboard)
+            if param in param_locale_dict:
+                labels.add(Gtk.Label(param_locale_dict[param]))
+            else:
+                labels.add(Gtk.Label(param))
+            self.macros[macro]["params"][param].connect("focus-in-event", self.on_change_entry)
             self.macros[macro]["params"][param].connect("focus-out-event", self._screen.remove_keyboard)
             labels.add(self.macros[macro]["params"][param])
 
+    def on_change_entry(self, entry, event):
+        self._screen.show_keyboard(entry=entry)
+        self._screen.keyboard.change_entry(entry=entry)
+    
     def run_gcode_macro(self, widget, macro):
         params = ""
         for param in self.macros[macro]["params"]:
@@ -129,11 +137,16 @@ class MacroPanel(ScreenPanel):
     def load_gcode_macros(self):
         for macro in self._printer.get_gcode_macros():
             macro_locale = None
+            param_locale_dict: dict = {}
             if 'macro_locale' in self._printer.config[macro]:
-                logging.info(self._printer.config[macro]['macro_locale'])
                 macro_locale = self._printer.config[macro]['macro_locale']
+            if 'param_locale' in self._printer.config[macro]:
+                param_locale: str = self._printer.config[macro]['param_locale']
+                param_locale_list: list[str] = param_locale.split(',')
+                for pl in param_locale_list:
+                    partition_pl = pl.strip().partition('_')
+                    param_locale_dict[partition_pl[0]] = partition_pl[2]
             macro = macro[12:].strip()
-            macro_locale = macro if macro_locale == None else macro_locale
             if macro.startswith("_"):  # Support for hiding macros by name
                 continue
             self.options[macro] = {
@@ -142,10 +155,13 @@ class MacroPanel(ScreenPanel):
             }
             show = self._config.get_config().getboolean(self.options[macro]["section"], macro.lower(), fallback=True)
             if macro not in self.macros and show:
-                self.add_gcode_macro(macro, macro_locale)
+                self.add_gcode_macro(macro, macro_locale, param_locale_dict)
 
         for macro in list(self.options):
-            self.add_option('options', self.options, macro, self.options[macro])
+            if self.options[macro]["name"] in self.locale_params:
+                self.add_option('options', self.options, macro, self.options[macro])
+            else:
+                self.add_option('options', self.options, macro, self.options[macro])
         macros = sorted(self.macros, reverse=self.sort_reverse, key=str.casefold)
         for macro in macros:
             pos = macros.index(macro)

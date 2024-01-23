@@ -8,7 +8,7 @@ from gi.repository import Gtk
 
 from datetime import datetime
 from ks_includes.screen_panel import ScreenPanel
-
+from ks_includes.widgets.typed_entry import TypedEntry
 
 def create_panel(*args):
     return ConsolePanel(*args)
@@ -81,11 +81,11 @@ class ConsolePanel(ScreenPanel):
         ebox.set_hexpand(True)
         ebox.set_vexpand(False)
 
-        entry = Gtk.Entry()
+        entry = TypedEntry()
         entry.set_hexpand(True)
         entry.set_vexpand(False)
-        entry.connect("button-press-event", self._screen.show_keyboard)
-        entry.connect("focus-in-event", self._screen.show_keyboard)
+        entry.connect("button-press-event", self.on_change_entry)
+        entry.connect("focus-in-event", self.on_change_entry)
         entry.connect("activate", self._send_command)
         entry.grab_focus_without_selecting()
 
@@ -109,6 +109,12 @@ class ConsolePanel(ScreenPanel):
         content_box.pack_end(ebox, False, False, 0)
         self.content.add(content_box)
 
+    
+    def on_change_entry(self, entry, event):
+        self._screen.show_keyboard(entry=entry)
+        self._screen.keyboard.change_entry(entry=entry)
+        
+        
     def clear(self, widget=None):
         self.labels['tb'].set_text("")
 
