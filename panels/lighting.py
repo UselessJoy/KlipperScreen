@@ -96,9 +96,9 @@ class LightingPanel(ScreenPanel):
     def update_power_button(self, enabled):
         self.enabled = enabled
         if self.enabled:
-            self.labels['turn_off_led'].set_label(_("Turn on"))
-        else:
             self.labels['turn_off_led'].set_label(_("Turn off"))
+        else:
+            self.labels['turn_off_led'].set_label(_("Turn on"))
         self.labels['turn_off_led'].set_sensitive(True)
         self.labels['set_default'].set_sensitive(self.enabled)
         self.colorWheel.set_sensitive(self.enabled)
