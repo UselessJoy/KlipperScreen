@@ -353,6 +353,17 @@ class MoonrakerApi:
             callback,
             *args
         )
+        
+    def turn_on_led(self, callback=None, *args):
+        logging.debug(f"Sending turn_off_led: {KlippyGcodes.turn_on_led()}")
+        return self._ws.send_method(
+            "printer.gcode.script",
+            {
+                "script": KlippyGcodes.turn_on_led()
+            },
+            callback,
+            *args
+        )
     
     def get_neopixel_color(self, name, callback=None, *args):
         logging.debug(f"Sending get_neopixel_color")

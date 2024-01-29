@@ -284,6 +284,9 @@ class Printer:
     ####      NEW      ####
     def get_autooff(self):
         return self.data['autooff']['autoOff_enable']
+    
+    def get_led_enabled(self):
+        return self.data['led_control']['enabled']
     ####    END NEW    ####
     
     def get_pin_value(self, pin):

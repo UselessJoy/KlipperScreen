@@ -85,4 +85,8 @@ class KlippyGcodes:
     @staticmethod
     def turn_off_led():
         return f"DISABLE_LED_EFFECTS"
+
+    @staticmethod
+    def turn_on_led():
+        return f"ENABLE_LED_EFFECTS"
     ####    END NEW    ####
