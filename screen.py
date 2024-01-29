@@ -418,6 +418,7 @@ class KlipperScreen(Gtk.Window):
         self.popup_message.popdown()
         self.popup_message = None
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
+        logging.info(f"changed class to {self.last_window_class}")
         self.base_panel.main_grid.get_style_context().add_class(self.last_window_class)
 
     def show_error_modal(self, err, e=""):
@@ -754,7 +755,10 @@ class KlipperScreen(Gtk.Window):
 
     def state_disconnected(self):
         ####      NEW      ####
-        self.last_window_class = self.base_panel.main_grid.get_style_context().list_classes()[0]
+        for i in self.base_panel.main_grid.get_style_context().list_classes():
+            if i.startswith("window-"):
+                self.last_window_class = i
+                break
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-disconnected")
@@ -767,7 +771,10 @@ class KlipperScreen(Gtk.Window):
 
     def state_error(self):
         ####      NEW      ####
-        self.last_window_class = self.base_panel.main_grid.get_style_context().list_classes()[0]
+        for i in self.base_panel.main_grid.get_style_context().list_classes():
+            if i.startswith("window-"):
+                self.last_window_class = i
+                break
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-error")
@@ -782,7 +789,10 @@ class KlipperScreen(Gtk.Window):
 
     def state_paused(self):
         ####      NEW      ####
-        self.last_window_class = self.base_panel.main_grid.get_style_context().list_classes()[0]
+        for i in self.base_panel.main_grid.get_style_context().list_classes():
+            if i.startswith("window-"):
+                self.last_window_class = i
+                break
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-paused")
@@ -791,7 +801,10 @@ class KlipperScreen(Gtk.Window):
 
     def state_printing(self):
         ####      NEW      ####
-        self.last_window_class = self.base_panel.main_grid.get_style_context().list_classes()[0]
+        for i in self.base_panel.main_grid.get_style_context().list_classes():
+            if i.startswith("window-"):
+                self.last_window_class = i
+                break
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-printing")
@@ -803,7 +816,10 @@ class KlipperScreen(Gtk.Window):
     def state_ready(self):
         # Do not return to main menu if completing a job, timeouts/user input will return
         ####      NEW      ####
-        self.last_window_class = self.base_panel.main_grid.get_style_context().list_classes()[0]
+        for i in self.base_panel.main_grid.get_style_context().list_classes():
+            if i.startswith("window-"):
+                self.last_window_class = i
+                break
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-ready")
@@ -813,7 +829,10 @@ class KlipperScreen(Gtk.Window):
 
     def state_startup(self):
         ####      NEW      ####
-        self.last_window_class = self.base_panel.main_grid.get_style_context().list_classes()[0]
+        for i in self.base_panel.main_grid.get_style_context().list_classes():
+            if i.startswith("window-"):
+                self.last_window_class = i
+                break
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-startup")
@@ -821,7 +840,10 @@ class KlipperScreen(Gtk.Window):
 
     def state_shutdown(self):
         ####      NEW      ####
-        self.last_window_class = self.base_panel.main_grid.get_style_context().list_classes()[0]
+        for i in self.base_panel.main_grid.get_style_context().list_classes():
+            if i.startswith("window-"):
+                self.last_window_class = i
+                break
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-shutdown")
