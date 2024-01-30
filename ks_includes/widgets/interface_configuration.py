@@ -211,7 +211,7 @@ class InterfaceConfiguration(Gtk.Box):
     def switch_method(self, switch, gparam):
         self.in_dhcp_mode = switch.get_active()
         if self.in_dhcp_mode:
-            self._screen.show_popup_message(_("DHCP selected. Set parameters will be deleted after saving"), level=2)
+            self._screen.show_popup_message(_("DHCP selected. Set parameters will be deleted after saving"), level=2, just_popup = True)
         for property in self.labels['lan_static']:
                 self.labels['lan_static'][property].set_sensitive((not switch.get_active()))
     

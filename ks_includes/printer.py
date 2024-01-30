@@ -287,6 +287,9 @@ class Printer:
     
     def get_led_enabled(self):
         return self.data['led_control']['enabled']
+    
+    def get_safety_enabled(self):
+        return self.data['safety_printing']['safety_enabled']
     ####    END NEW    ####
     
     def get_pin_value(self, pin):

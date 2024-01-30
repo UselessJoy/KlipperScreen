@@ -498,6 +498,12 @@ class JobStatusPanel(ScreenPanel):
         self.state_check()
 
     def process_update(self, action, data):
+        with contextlib.suppress(KeyError):
+            if self._printer.get_safety_enabled():
+                if data['safety_printing']['is_doors_open'] or data['safety_printing']['is_hood_open']:
+                    self.disable_button("resume")
+                else:
+                    self.enable_button("resume")
         if action == "notify_gcode_response":
             if "action:cancel" in data:
                 self.set_state("cancelling")
@@ -508,7 +514,6 @@ class JobStatusPanel(ScreenPanel):
             return
         elif action != "notify_status_update":
             return
-        
         for x in self._printer.get_tools():
             if x in self.buttons['extruder']:
                 self.update_temp(
