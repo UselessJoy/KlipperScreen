@@ -429,13 +429,13 @@ class JobStatusPanel(ScreenPanel):
             self.new_print()
 
     def resume(self, widget):
-        self.disable_button("pause", "cancel")
-        self._screen._ws.klippy.print_resume(self._response_callback, "enable_button", "pause", "cancel")
+        self.disable_button("pause", "resume", "cancel")
+        self._screen._ws.klippy.print_resume(self._response_callback, "enable_button", "pause", "resume", "cancel")
         self._screen.show_all()
 
     def pause(self, widget):
-        self.disable_button("resume", "cancel")
-        self._screen._ws.klippy.print_pause(self._response_callback, "enable_button", "resume", "cancel")
+        self.disable_button("pause", "resume", "cancel")
+        self._screen._ws.klippy.print_pause(self._response_callback, "enable_button", "pause", "resume", "cancel")
         self._screen.show_all()
 
     def cancel(self, widget):
@@ -737,14 +737,14 @@ class JobStatusPanel(ScreenPanel):
             self.buttons['button_grid'].attach(self.buttons['cancel'], 1, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['fine_tune'], 2, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['control'], 3, 0, 1, 1)
-            self.enable_button("pause", "cancel")
+            self.enable_button("resume", "pause", "cancel")
             self.can_close = False
         elif self.state == "paused":
             self.buttons['button_grid'].attach(self.buttons['resume'], 0, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['cancel'], 1, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['fine_tune'], 2, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['control'], 3, 0, 1, 1)
-            self.enable_button("resume", "cancel")
+            self.enable_button("pause", "resume", "cancel")
             self.can_close = False
         else:
             offset = self._printer.get_stat("gcode_move", "homing_origin")
