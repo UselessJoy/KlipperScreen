@@ -770,7 +770,7 @@ class KlipperScreen(Gtk.Window):
     def state_error(self):
         ####      NEW      ####
         for i in self.base_panel.main_grid.get_style_context().list_classes():
-            if i.startswith("window-") and self.last_window_class != i:
+            if i.startswith("window-") and self.last_window_class != i and i != "window-error":
                 self.last_window_class = i
                 break
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
