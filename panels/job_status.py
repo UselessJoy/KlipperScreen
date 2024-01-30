@@ -429,12 +429,12 @@ class JobStatusPanel(ScreenPanel):
             self.new_print()
 
     def resume(self, widget):
-        self.disable_button("pause", "resume", "cancel")
+        self.disable_button("pause", "cancel")
         self._screen._ws.klippy.print_resume(self._response_callback, "enable_button", "pause", "cancel")
         self._screen.show_all()
 
     def pause(self, widget):
-        self.disable_button("pause", "resume", "cancel")
+        self.disable_button("resume", "cancel")
         self._screen._ws.klippy.print_pause(self._response_callback, "enable_button", "resume", "cancel")
         self._screen.show_all()
 
