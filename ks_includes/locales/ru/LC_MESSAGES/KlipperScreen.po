@@ -558,9 +558,6 @@ msgstr "Идет печать"
 msgid "Probe Offset"
 msgstr "Смещение пробы"
 
-msgid "Profile Name:"
-msgstr "Имя профиля:"
-
 msgid "Provide KlipperScreen.log when asking for help"
 msgstr "Откройте KlipperScreen.log для подробной информации"
 
@@ -820,8 +817,32 @@ msgstr "Пароль должен содержать минимум 8 симво
 msgid "Failed to connect to the requested network"
 msgstr "Не удалось подключиться к запрашиваемой сети"
 
-msgid "No mesh has been loaded"
-msgstr "Ни одна сетка не была загружена"
+msgid "No mesh profile has been loaded"
+msgstr "Ни один профиль не был загружен"
+
+msgid "Active profile"
+msgstr "Активный профиль"
+
+msgid "Profile manager"
+msgstr "Менеджер профилей"
+
+msgid "Load profile"
+msgstr "Загрузить профиль"
+
+msgid "Save profile"
+msgstr "Сохранить профиль"
+
+msgid "Delete profile"
+msgstr "Удалить профиль"
+
+msgid "Profile Name:"
+msgstr "Имя профиля:"
+
+msgid "Start calibrate"
+msgstr "Начать калибровку"
+
+msgid "active"
+msgstr "активен"
 
 msgid "Autooff after print"
 msgstr "Автовыключение после печати"

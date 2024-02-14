@@ -429,13 +429,13 @@ class JobStatusPanel(ScreenPanel):
             self.new_print()
 
     def resume(self, widget):
-        self.disable_button("pause", "resume", "cancel")
-        self._screen._ws.klippy.print_resume(self._response_callback, "enable_button", "pause", "resume", "cancel")
+        self.disable_button("resume")
+        self._screen._ws.klippy.print_resume(self._response_callback, "enable_button", "resume")
         self._screen.show_all()
 
     def pause(self, widget):
-        self.disable_button("pause", "resume", "cancel")
-        self._screen._ws.klippy.print_pause(self._response_callback, "enable_button", "pause", "resume", "cancel")
+        self.disable_button("pause")
+        self._screen._ws.klippy.print_pause(self._response_callback, "enable_button", "pause")
         self._screen.show_all()
 
     def cancel(self, widget):
@@ -496,14 +496,14 @@ class JobStatusPanel(ScreenPanel):
     def new_print(self):
         self._screen.close_screensaver()
         self.state_check()
-
+    
     def process_update(self, action, data):
-        with contextlib.suppress(KeyError):
-            if self._printer.get_safety_enabled():
-                if data['safety_printing']['is_doors_open'] or data['safety_printing']['is_hood_open']:
-                    self.disable_button("resume")
-                else:
-                    self.enable_button("resume")
+        safety_printing_data = self._printer.get_safety_printing()
+        if safety_printing_data['safefty_enabled']:
+            if safety_printing_data['luft_overload']:
+                self.disable_button("resume", "pause")
+            else:
+                self.enable_button("resume", "pause")
         if action == "notify_gcode_response":
             if "action:cancel" in data:
                 self.set_state("cancelling")
@@ -742,14 +742,16 @@ class JobStatusPanel(ScreenPanel):
             self.buttons['button_grid'].attach(self.buttons['cancel'], 1, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['fine_tune'], 2, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['control'], 3, 0, 1, 1)
-            self.enable_button("resume", "pause", "cancel")
+            self.disable_button("resume")
+            self.enable_button("pause")
             self.can_close = False
         elif self.state == "paused":
             self.buttons['button_grid'].attach(self.buttons['resume'], 0, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['cancel'], 1, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['fine_tune'], 2, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['control'], 3, 0, 1, 1)
-            self.enable_button("pause", "resume", "cancel")
+            self.disable_button("pause")
+            self.enable_button("resume")
             self.can_close = False
         else:
             offset = self._printer.get_stat("gcode_move", "homing_origin")

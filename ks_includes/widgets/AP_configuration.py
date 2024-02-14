@@ -169,9 +169,15 @@ class APConfiguration(Gtk.Box):
         # netmask = self.labels['AP']['netmask'].get_text()
         autoconnect = 'yes' if self.labels['AP']['connection.autoconnect'].get_active() else 'no'
         self._screen.remove_keyboard()
-        os.system(f"nmcli connection modify {self.ap_connection['connection.id']} "
-                  f"802-11-wireless.ssid {ssid} 802-11-wireless-security.psk {psk}"
-                  f"connection.autoconnect {autoconnect}")
+        try:
+            proc = subprocess.run([ "nmcli", "connection", "modify", self.ap_connection['connection.id'], 
+                                    "802-11-wireless.ssid", ssid,
+                                    "802-11-wireless-security.psk", psk, 
+                                    "connection.autoconnect", autoconnect], 
+                                    check=True, capture_output=True, text=True)
+        except Exception as e:
+            logging.error(e)
+            raise e
         
         for child in self.button_box:
             self.button_box.remove(child)

@@ -288,8 +288,14 @@ class Printer:
     def get_led_enabled(self):
         return self.data['led_control']['enabled']
     
-    def get_safety_enabled(self):
-        return self.data['safety_printing']['safety_enabled']
+    def get_safety_printing(self):
+        return self.data['safety_printing']
+    
+    def get_wifi_hotspot(self):
+        return self.data['wifi_mode']['hotspot']
+    
+    def get_message(self):
+        return self.data['messages']
     ####    END NEW    ####
     
     def get_pin_value(self, pin):

@@ -117,7 +117,15 @@ class KlippyWebsocket(threading.Thread):
         self._req_id += 1
         if callback is not None:
             self.callback_table[self._req_id] = [callback, method, params, [*args]]
-
+        if method == "printer.gcode.script":
+            if self._screen.printer.get_stat("heaters", "is_waiting"):
+                self.send_method(
+                    "printer.open_message",
+                    {   'message_type': "warning",
+                        'message': "on_wait_temperature"
+                    },
+                    None
+                )
         data = {
             "jsonrpc": "2.0",
             "method": method,

@@ -97,14 +97,14 @@ class BedMeshPanel(ScreenPanel):
             logging.info("Clearing active profile")
             if self.active_mesh and self.active_mesh in self.profiles and "load" not in self.profiles[self.active_mesh]:
                 self.profiles[self.active_mesh]["name"].set_markup("<b>%s</b>" % (self.active_mesh))
-                self.profiles[self.active_mesh]["load"] = self._gtk.Button("complete", _("Загрузить профиль"), "color4", self.bts)
+                self.profiles[self.active_mesh]["load"] = self._gtk.Button("complete", _("Load profile"), "color4", self.bts)
                 self.profiles[self.active_mesh]["load"].connect("clicked", self.send_load_mesh, self.active_mesh)
                 self.profiles[self.active_mesh]["button_grid"].insert_column(0)
                 self.profiles[self.active_mesh]["button_grid"].attach(self.profiles[self.active_mesh]["load"], 0, 0, 1, 1)   
                 self.profiles[self.active_mesh]["button_grid"].show_all()
                 self.active_mesh = None
             self.update_graph()
-            self.labels['active_profile_name'].set_markup(_("<big><b>No mesh profile has been loaded</b></big>"))
+            self.labels['active_profile_name'].set_markup("<big><b>%s</b></big>" % (_("No mesh profile has been loaded")))
             self.buttons['clear'].hide()
             return
         
@@ -119,14 +119,14 @@ class BedMeshPanel(ScreenPanel):
             self.active_mesh = profile
             for pr in self.profiles:
                 if self.active_mesh == pr:
-                    self.profiles[pr]["name"].set_markup(_("<b>%s (active)</b>" % (pr)))
+                    self.profiles[pr]["name"].set_markup(_("<b>%s (%s)</b>" % (pr, _("active"))))
                     if "load" in self.profiles[pr]:
                         self.profiles[pr]["button_grid"].remove_column(0)
                         del self.profiles[pr]["load"]
                 else:
                     if "load" not in self.profiles[pr]:
                         self.profiles[pr]["name"].set_markup("<b>%s</b>" % (pr))
-                        self.profiles[pr]["load"] = self._gtk.Button("complete", _("Загрузить профиль"), "color4", self.bts)
+                        self.profiles[pr]["load"] = self._gtk.Button("complete", _("Load profile"), "color4", self.bts)
                         self.profiles[pr]["load"].connect("clicked", self.send_load_mesh, pr)
                         self.profiles[pr]["button_grid"].insert_column(0)
                         self.profiles[pr]["button_grid"].attach(self.profiles[pr]["load"], 0, 0, 1, 1)
@@ -134,7 +134,7 @@ class BedMeshPanel(ScreenPanel):
                                   
                 if pr in unsaved_profiles:
                     if "save" not in self.profiles[pr]:
-                        self.profiles[pr]["save"] = self._gtk.Button("increase", _("Сохранить профиль"), "color3", self.bts)
+                        self.profiles[pr]["save"] = self._gtk.Button("increase", _("Save profile"), "color3", self.bts)
                         self.profiles[pr]["save"].connect("clicked", self.send_save_mesh, profile)
                         self.profiles[pr]["button_grid"].insert_column(1)
                         self.profiles[pr]["button_grid"].attach(self.profiles[pr]["save"], 1, 0, 1, 1)
@@ -146,7 +146,7 @@ class BedMeshPanel(ScreenPanel):
                 self.profiles[pr]["button_grid"].show_all()
                 self.profiles[pr]["name"].show_all()
         self.update_graph(profile=profile)
-        self.labels['active_profile_name'].set_markup(_("<big><b>Active profile: %s</b></big>" % (profile)))
+        self.labels['active_profile_name'].set_markup("<big><b>%s: %s</b></big>" % (_("Active profile"), profile))
         self.buttons['clear'].show()
         if self.overlayBox and self.scroll:
                 self.scroll.show_all()
@@ -170,13 +170,13 @@ class BedMeshPanel(ScreenPanel):
 
         buttons = {} 
         if self.active_mesh != profile:
-            buttons["load"] = self._gtk.Button("complete", _("Загрузить профиль"), "color4", self.bts)
+            buttons["load"] = self._gtk.Button("complete", _("Load profile"), "color4", self.bts)
             buttons["load"].connect("clicked", self.send_load_mesh, profile)
                 
         if profile in unsaved_profiles:
-            buttons["save"] = self._gtk.Button("increase", _("Сохранить профиль"), "color3", self.bts)
+            buttons["save"] = self._gtk.Button("increase", _("Save profile"), "color3", self.bts)
             buttons["save"].connect("clicked", self.send_save_mesh, profile)
-        buttons["delete"] = self._gtk.Button("cancel", _("Удалить профиль"), "color2", self.bts)
+        buttons["delete"] = self._gtk.Button("cancel", _("Delete profile"), "color2", self.bts)
         buttons["delete"].connect("clicked", self.send_remove_mesh, profile)
         button_grid = Gtk.Grid()
         button_grid.set_hexpand(True)
@@ -337,7 +337,7 @@ class BedMeshPanel(ScreenPanel):
             #self.labels['profile_name'].connect("activate", self.create_profile)
             self.labels['profile_name'].connect("focus-in-event", self.on_change_entry)
 
-            save = self._gtk.Button(None, _("Начать калибровку"), "color3", self.bts)
+            save = self._gtk.Button(None, _("Start calibrate"), "color3", self.bts)
             save.set_hexpand(False)
             save.connect("clicked", self.create_profile)
 

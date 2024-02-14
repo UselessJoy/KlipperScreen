@@ -257,7 +257,7 @@ class WifiManager:
                     "ssid": ssid,
                     "connected": self._get_connected_ap() == ap,
                     "encryption": self._get_encryption(ap.RsnFlags),
-                    "signal_level_dBm": str(ap.Strength)
+                    "signal_level_dBm": str(ap.Strength),
                 })
         return netinfo
 

@@ -48,10 +48,12 @@ PRINTER_BASE_STATUS_OBJECTS = [
     'wifi_mode',
     'webhooks',
     'motion_report',
+    'messages',
     'firmware_retraction',
     'exclude_object',
     'neopixel my_neopixel',
-    'led_control'
+    'led_control',
+    'heaters'
 ]
 
 klipperscreendir = pathlib.Path(__file__).parent.resolve()
@@ -233,7 +235,7 @@ class KlipperScreen(Gtk.Window):
         requested_updates = {
             "objects": {
                 "autooff": ["autoOff_enable", "autoOff"],
-                "safety_printing": ["safety_enabled", "is_doors_open", "is_hood_open"],
+                "safety_printing": ["safety_enabled", "is_doors_open", "is_hood_open", "luft_timeout", "luft_overload"],
                 "bed_mesh": ["profile_name", "mesh_max", "mesh_min", "probed_matrix", "profiles", "unsaved_profiles"],
                 "configfile": ["config"],
                 "display_status": ["progress", "message"],
@@ -246,13 +248,15 @@ class KlipperScreen(Gtk.Window):
                 "toolhead": ["homed_axes", "estimated_print_time", "print_time", "position", "extruder",
                              "max_accel", "max_accel_to_decel", "max_velocity", "square_corner_velocity"],
                 "virtual_sdcard": ["file_position", "is_active", "progress"],
-                "wifi_mode": ["wifiMode"],
+                "wifi_mode": ["wifiMode", "hotspot"],
                 "webhooks": ["state", "state_message"],
                 "firmware_retraction": ["retract_length", "retract_speed", "unretract_extra_length", "unretract_speed"],
                 "motion_report": ["live_position", "live_velocity", "live_extruder_velocity"],
+                "messages": ["last_message_eventtime", "message", "message_type"],
                 "exclude_object": ["current_object", "objects", "excluded_objects"],
                 "neopixel my_neopixel": ["color_data"],
-                "led_control": ["led_status", "enabled"]
+                "led_control": ["led_status", "enabled"],
+                "heaters": ["is_waiting"]
             }
         }
         for extruder in self.printer.get_tools():
@@ -311,6 +315,7 @@ class KlipperScreen(Gtk.Window):
         except Exception as e:
             logging.exception(f"Error attaching panel:\n{e}")
 
+    
     def attach_panel(self, panel_name):
         self.base_panel.add_content(self.panels[panel_name])
         logging.debug(f"Current panel hierarchy: {' > '.join(self._cur_panels)}")
@@ -692,6 +697,13 @@ class KlipperScreen(Gtk.Window):
     
     def get_safety(self):
         return self.printer.get_safety_printing()
+    
+    # def get_stat(self, stat, substat=None):
+    #     if self.data is None or stat not in self.data:
+    #         return {}
+    #     if substat is not None:
+    #         return self.data[stat][substat] if substat in self.data[stat] else {}
+    #     return self.data[stat]
     ####    END NEW    ####
     
     def set_dpms(self, use_dpms):
@@ -769,10 +781,6 @@ class KlipperScreen(Gtk.Window):
 
     def state_error(self):
         ####      NEW      ####
-        for i in self.base_panel.main_grid.get_style_context().list_classes():
-            if i.startswith("window-") and self.last_window_class != i and i != "window-error":
-                self.last_window_class = i
-                break
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-error")
@@ -787,10 +795,7 @@ class KlipperScreen(Gtk.Window):
 
     def state_paused(self):
         ####      NEW      ####
-        for i in self.base_panel.main_grid.get_style_context().list_classes():
-            if i.startswith("window-") and self.last_window_class != i and i != "window-error":
-                self.last_window_class = i
-                break
+        self.last_window_class = "window-paused"
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-paused")
@@ -799,10 +804,7 @@ class KlipperScreen(Gtk.Window):
 
     def state_printing(self):
         ####      NEW      ####
-        for i in self.base_panel.main_grid.get_style_context().list_classes():
-            if i.startswith("window-") and self.last_window_class != i and i != "window-error":
-                self.last_window_class = i
-                break
+        self.last_window_class = "window-printing"
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-printing")
@@ -814,10 +816,7 @@ class KlipperScreen(Gtk.Window):
     def state_ready(self):
         # Do not return to main menu if completing a job, timeouts/user input will return
         ####      NEW      ####
-        for i in self.base_panel.main_grid.get_style_context().list_classes():
-            if i.startswith("window-") and self.last_window_class != i and i != "window-error":
-                self.last_window_class = i
-                break
+        self.last_window_class = "window-ready"
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-ready")

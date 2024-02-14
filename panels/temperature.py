@@ -216,14 +216,15 @@ class TemperaturePanel(ScreenPanel):
     def select_heater(self, widget, device):
         if self.active_heater is None and device in self.devices and self.devices[device]["can_target"]:
             if device in self.active_heaters:
-                self.active_heaters.pop(self.active_heaters.index(device))
+                self.active_heaters.remove(device)
                 self.devices[device]['name'].get_style_context().remove_class("button_active")
-                # self.devices[device]['select'].set_label(_("Select"))
+                self.devices[device]['select'].set_label(_("Select"))
                 logging.info(f"Deselecting {device}")
                 return
-            self.active_heaters.append(device)
-            #self.devices[device]['name'].get_style_context().add_class("button_active")
-            # self.devices[device]['select'].set_label(_("Deselect"))
+            else:
+                self.active_heaters.append(device)
+            self.devices[device]['name'].get_style_context().add_class("button_active")
+            self.devices[device]['select'].set_label(_("Deselect"))
             logging.info(f"Seselecting {device}")
         return
 
@@ -366,9 +367,9 @@ class TemperaturePanel(ScreenPanel):
             "visible": visible
         }
 
-        # if self.devices[device]["can_target"]:
-        #     self.devices[device]['select'] = self._gtk.Button(label=_("Select"))
-        #     self.devices[device]['select'].connect('clicked', self.select_heater, device)
+        if self.devices[device]["can_target"]:
+            self.devices[device]['select'] = self._gtk.Button(label=_("Select"))
+            self.devices[device]['select'].connect('clicked', self.select_heater, device)
 
         devices = sorted(self.devices)
         pos = devices.index(device) + 1
@@ -380,7 +381,7 @@ class TemperaturePanel(ScreenPanel):
         return True
 
     def name_pressed(self, widget, event, device):
-        self.popover_timeout = GLib.timeout_add(0, self.popover_popup, widget, device)
+        self.popover_timeout = GLib.timeout_add(100, self.popover_popup, widget, device)
 
     def name_released(self, widget, event, device):
         if self.popover_timeout is not None:
@@ -470,6 +471,8 @@ class TemperaturePanel(ScreenPanel):
         return self.left_panel
 
     def hide_numpad(self, widget=None):
+        for d in self.active_heaters:
+            self.devices[d]['name'].get_style_context().add_class("button_active")
         self.devices[self.active_heater]['temp'].get_style_context().remove_class("button_active")
         self.active_heater = None
 
@@ -502,7 +505,7 @@ class TemperaturePanel(ScreenPanel):
             pobox.pack_start(self.labels['graph_show'], True, True, 5)
         if self.devices[self.popover_device]["can_target"]:
             pobox.pack_start(self.labels['graph_settemp'], True, True, 5)
-            #pobox.pack_end(self.devices[self.popover_device]['select'], True, True, 5)
+            pobox.pack_end(self.devices[self.popover_device]['select'], True, True, 5)
 
     def process_update(self, action, data):
         if action != "notify_status_update":
@@ -518,6 +521,7 @@ class TemperaturePanel(ScreenPanel):
     def show_numpad(self, widget, device=None):
         for d in self.active_heaters:
             self.devices[d]['temp'].get_style_context().remove_class("button_active")
+            self.devices[d]['name'].get_style_context().remove_class("button_active")
         self.active_heater = self.popover_device if device is None else device
         self.devices[self.active_heater]['temp'].get_style_context().add_class("button_active")
 

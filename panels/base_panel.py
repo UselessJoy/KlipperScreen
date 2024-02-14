@@ -26,6 +26,7 @@ class BasePanel(ScreenPanel):
         self.autooff_dialog = None
         self.titlebar_items = []
         self.titlebar_name_type = None
+        self.last_time_message = None
         self.buttons_showing = {
             'macros_shortcut': False,
             'printer_select': len(self._config.get_printers()) > 1,
@@ -40,7 +41,6 @@ class BasePanel(ScreenPanel):
         self.control['home'] = self._gtk.Button('main', scale=abscale)
         self.control['home'].connect("clicked", self._screen._menu_go_back, True)
         ####      NEW      ####
-        self.wifi_mode = None
         self.network_interfaces = netifaces.interfaces()
         self.wireless_interfaces = [iface for iface in self.network_interfaces if iface.startswith('w')]
         self.use_network_manager = os.system('systemctl is-active --quiet NetworkManager.service') == 0
@@ -210,13 +210,12 @@ class BasePanel(ScreenPanel):
             os.system("systemctl reboot")
         self._gtk.remove_dialog(dialog)
     
-    def signal_strength(self, signal_level):
+    def signal_strength(self, signal_level, img_size):
         # networkmanager uses percentage not dbm
         # the bars of nmcli are aligned near this breakpoints
         exc = 77 if self.use_network_manager else -50
         good = 60 if self.use_network_manager else -60
         fair = 35 if self.use_network_manager else -70
-        img_size = self._gtk.img_scale * self.bts
         if signal_level > exc:
             return self._gtk.Image('wifi_excellent', img_size, img_size)
         elif signal_level > good:
@@ -228,17 +227,20 @@ class BasePanel(ScreenPanel):
     def show_network_status(self):
         #self.wifi.rescan()
         #logging.info("im in show_network_status")
+        img_size = self._gtk.img_scale * self.bts
         try:
             netinfo = self.wifi.get_network_info(self.wifi.get_connected_ssid())
             #logging.info(netinfo)
-            if "signal_level_dBm" in netinfo:
-                self.network_status = self.signal_strength(int(netinfo["signal_level_dBm"]))
+            if self._printer.get_wifi_hotspot() == self.wifi.get_connected_ssid():
+                self.network_status = self._gtk.Image(f"access_point", img_size, img_size)
+            elif "signal_level_dBm" in netinfo:
+                self.network_status = self.signal_strength(int(netinfo["signal_level_dBm"]), img_size)
             #self.network_status.show()
-        except:
+        except Exception as e:
+            #logging.exception(e)
             data: bytes = subprocess.check_output(["nmcli", "networking", "connectivity"])
             data = data.decode("utf-8").strip()
-            img_size = self._gtk.img_scale * self.bts
-            self.network_status = self._gtk.Image(f"lan_status_{data}", img_size, img_size)
+            self.network_status = self._gtk.Image(f"lan_status_{data}", img_size, img_size) if data != 'none' else self._gtk.Image()
         finally:
             for child in self.control['network_box']:
                 self.control['network_box'].remove(child)
@@ -362,7 +364,6 @@ class BasePanel(ScreenPanel):
                             self._screen.updating = False
                             for dialog in self._screen.dialogs:
                                 self._gtk.remove_dialog(dialog)
-        #self.show_network_status()
         if action != "notify_status_update" or self._screen.printer is None:
             return
         devices = self._printer.get_temp_store_devices()
@@ -395,6 +396,14 @@ class BasePanel(ScreenPanel):
                     self.autooff_dialog = None
                 elif data['autooff']['autoOff'] == True:
                     self.create_autooff_modal()
+        with contextlib.suppress(Exception):
+            if self.last_time_message is None:
+                self.last_time_message = data["messages"]["last_message_eventtime"]
+            elif self.last_time_message != data["messages"]["last_message_eventtime"]:
+                self.last_time_message = data["messages"]["last_message_eventtime"]
+                msg = self._printer.get_message()
+                lvl = 1 if msg['message_type'] == 'success' else 2 if msg['message_type'] != 'error' else 3
+                self._screen.show_popup_message(msg['message'], level=lvl, just_popup=True)
                     
     def create_autooff_modal(self):
         buttons = [
