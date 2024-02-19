@@ -11,14 +11,16 @@ from gi.repository import Gtk, Gdk, GLib, Pango
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.typed_entry import TypedEntry
 import sys
-import nmcli
 from ipaddress import IPv4Network
 
-
+### Сделать: 
+### - панель ошибки при отсутствии беспроводных интерфейсов
+### - список подключений для нескольких сетевых интерфейсов
+### - (необязательно) возможность создания нового сетевого интерфейса
+### - os.system заменить на subprocess
 class WiFiConnection(Gtk.Box):
     def __init__(self, screen):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        nmcli.disable_use_sudo()
         self.show_add = False
         self._screen = screen
         self.wifi_mode = None
@@ -167,7 +169,7 @@ class WiFiConnection(Gtk.Box):
             self.add_network(net, False)
         self.update_all_networks()
         self.show_all()
-        #return True
+        #return False
 
     def add_network(self, ssid, show=True):
         try:

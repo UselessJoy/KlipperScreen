@@ -15,6 +15,7 @@ from ks_includes.widgets.timepicker import Timepicker
 import netifaces
 # from subprocess import run, STDOUT, PIPE
 
+# Брать информацию о соединении из коллбэка NetworkManager, а не по таймеру
 class BasePanel(ScreenPanel):
     def __init__(self, screen, title):
         super().__init__(screen, title)
@@ -224,20 +225,17 @@ class BasePanel(ScreenPanel):
             return self._gtk.Image('wifi_fair', img_size, img_size)
         else:
             return self._gtk.Image('wifi_weak', img_size, img_size)    
+        
     def show_network_status(self):
         #self.wifi.rescan()
-        #logging.info("im in show_network_status")
         img_size = self._gtk.img_scale * self.bts
         try:
             netinfo = self.wifi.get_network_info(self.wifi.get_connected_ssid())
-            #logging.info(netinfo)
             if self._printer.get_wifi_hotspot() == self.wifi.get_connected_ssid():
                 self.network_status = self._gtk.Image(f"access_point", img_size, img_size)
             elif "signal_level_dBm" in netinfo:
                 self.network_status = self.signal_strength(int(netinfo["signal_level_dBm"]), img_size)
-            #self.network_status.show()
         except Exception as e:
-            #logging.exception(e)
             data: bytes = subprocess.check_output(["nmcli", "networking", "connectivity"])
             data = data.decode("utf-8").strip()
             self.network_status = self._gtk.Image(f"lan_status_{data}", img_size, img_size) if data != 'none' else self._gtk.Image()

@@ -15,7 +15,7 @@ from gi.repository import GLib
 
 from ks_includes.wifi import WifiChannels
 
-
+### Перенести WifiManager в klipper
 class WifiManager:
     networks_in_supplicant = []
 
@@ -232,7 +232,7 @@ class WifiManager:
         return ret
 
     def get_network_info(self, ssid):
-        self.rescan()
+        #self.rescan()
         netinfo = {}
         if ssid in self.visible_networks:
             con = self.visible_networks[ssid]

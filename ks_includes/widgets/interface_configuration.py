@@ -8,7 +8,7 @@ from ks_includes.widgets.typed_entry import TypedEntry
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-
+### os.system заменить на subprocess
 class InterfaceConfiguration(Gtk.Box):
     def __init__(self, screen, interface):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
