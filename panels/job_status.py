@@ -498,12 +498,13 @@ class JobStatusPanel(ScreenPanel):
         self.state_check()
     
     def process_update(self, action, data):
-        safety_printing_data = self._printer.get_safety_printing()
-        if safety_printing_data['safefty_enabled']:
-            if safety_printing_data['luft_overload']:
-                self.disable_button("resume", "pause")
-            else:
-                self.enable_button("resume", "pause")
+        with contextlib.suppress(KeyError):
+            safety_printing_data = self._printer.get_safety_printing()
+            if safety_printing_data['safety_enabled']:
+                if safety_printing_data['luft_overload']:
+                    self.disable_button("resume", "pause")
+                else:
+                    self.enable_button("resume", "pause")
         if action == "notify_gcode_response":
             if "action:cancel" in data:
                 self.set_state("cancelling")

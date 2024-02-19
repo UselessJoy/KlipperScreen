@@ -16,6 +16,7 @@ import netifaces
 # from subprocess import run, STDOUT, PIPE
 
 # Брать информацию о соединении из коллбэка NetworkManager, а не по таймеру
+# По клику на значок интерфейса видеть его название
 class BasePanel(ScreenPanel):
     def __init__(self, screen, title):
         super().__init__(screen, title)
