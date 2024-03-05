@@ -87,6 +87,7 @@ class SplashScreenPanel(ScreenPanel):
         self.labels['actions'].add(self.labels['menu'])
         if self._screen._ws and not self._screen._ws.connecting or self._screen.reinit_count > self._screen.max_retries:
             self.labels['actions'].add(self.labels['retry'])
+        self.labels['actions'].set_sensitive(True)
         self.labels['actions'].show_all()
 
     def add_power_button(self, powerdevs):

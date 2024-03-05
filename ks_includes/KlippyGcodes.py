@@ -89,4 +89,8 @@ class KlippyGcodes:
     @staticmethod
     def turn_on_led():
         return f"ENABLE_LED_EFFECTS"
+    
+    @staticmethod
+    def pass_interrupt():
+        return f"SDCARD_PASS_FILE"
     ####    END NEW    ####

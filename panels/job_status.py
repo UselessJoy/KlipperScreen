@@ -463,11 +463,11 @@ class JobStatusPanel(ScreenPanel):
             self.menu_item_clicked(None, "exclude", {"panel": "exclude", "name": _("Exclude Object")})
             return
         if response_id == Gtk.ResponseType.CANCEL:
-            self.enable_button("pause", "cancel")
+            self.enable_button("pause")
             return
         logging.debug("Canceling print")
         self.set_state("cancelling")
-        self.disable_button("pause", "resume", "cancel")
+        self.disable_button("pause", "resume")
         self._screen._ws.klippy.print_cancel(self._response_callback)
 
     def _response_callback(self, response, method, params, func=None, *args):
@@ -502,9 +502,11 @@ class JobStatusPanel(ScreenPanel):
             safety_printing_data = self._printer.get_safety_printing()
             if safety_printing_data['safety_enabled']:
                 if safety_printing_data['luft_overload']:
-                    self.disable_button("resume", "pause")
+                    self.disable_button("resume")
                 else:
-                    self.enable_button("resume", "pause")
+                    self.enable_button("resume")
+            else:
+                self.enable_button("resume")
         if action == "notify_gcode_response":
             if "action:cancel" in data:
                 self.set_state("cancelling")

@@ -1,5 +1,4 @@
 import logging
-
 import gi
 
 import json
@@ -104,7 +103,7 @@ class MenuPanel(ScreenPanel):
             else:
                 b.connect("clicked", self._screen._go_to_submenu, key)
             self.labels[key] = b
-
+        
     def evaluate_enable(self, enable):
         if enable == "{{ moonraker_connected }}":
             logging.info(f"moonraker connected {self._screen._ws.connected}")

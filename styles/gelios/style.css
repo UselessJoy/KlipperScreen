@@ -7,7 +7,7 @@
 window {
     background-color: #002b36;
     padding: 30px;
-    margin: 30px; 
+    margin: 30px;
 }
 
 .content > * > * {
@@ -16,14 +16,20 @@ window {
 
 .title_bar {
     padding-right: 32px;
+    padding-left: 32px;
 }
+
+.action_bar {
+    padding-top: 32px;
+}
+
 .window-startup {
-    background: linear-gradient(to bottom right, #7dc926 30%, #002b36 70%);
+    background: linear-gradient(to bottom, #7dc926 10%, #002b36 30%);
     -gtk-icon-shadow: none;
 }
 
 .window-interrupt {
-    background: linear-gradient(to bottom right, #b69b00 30%, #002b36 70%);
+    background: linear-gradient(to bottom, #b69b00 10%, #002b36 30%);
     -gtk-icon-shadow: none;
 }
 .window-ready {
@@ -31,39 +37,35 @@ window {
     -gtk-icon-shadow: none;
 }
 .window-paused {
-    background: linear-gradient(to bottom right, #8d8b04 30%, #002b36 70%);
+    background: linear-gradient(to bottom, #8d8b04 10%, #002b36 30%);
     -gtk-icon-shadow: none;
 }
 
 .window-warning {
-    background: linear-gradient(to bottom right, #ac7511 30%, #002b36 70%);
+    background: linear-gradient(to bottom, #ac7511 10%, #002b36 30%);
     -gtk-icon-shadow: none;
 }
 
 .window-complete {
-    background: linear-gradient(to bottom right, #58e716 30%, #002b36 70%);
+    background: linear-gradient(to bottom, #58e716 10%, #002b36 30%);
     -gtk-icon-shadow: none;
 }
 .window-printing {
-    background: linear-gradient(to bottom right, #222dc7 30%, #002b36 70%);
+    background: linear-gradient(to bottom, #222dc7 10%, #002b36 30%);
     -gtk-icon-shadow: none;
 }
 
 .window-disconnected {
-    background: linear-gradient(to bottom right, #c72222 30%, #002b36 70%);
+    background: linear-gradient(to bottom, #c72222 10%, #002b36 30%);
     -gtk-icon-shadow: none;
 }
 .window-shutdown {
-    background: linear-gradient(to bottom right, #c72222 30%, #002b36 70%);
+    background: linear-gradient(to bottom, #c72222 10%, #002b36 30%);
     -gtk-icon-shadow: none;
 }
 .window-error {
-    background: linear-gradient(to bottom right, #c72222 30%, #002b36 70%);
+    background: linear-gradient(to bottom, #c72222 10%, #002b36 30%);
     -gtk-icon-shadow: none;
-}
-
-.dialog-error {
-        background: linear-gradient(to bottom right, #c72222 30%, #13181C 70%);
 }
 
 button {
@@ -121,7 +123,7 @@ button.extruder {
 }
 
 
-button.color1:active, button.color2:active, button.color3:active, button.color4:active, button.update:active, button.invalid:active, .dialog button:active {
+button.color1:active, button.color2:active, button.color3:active, button.color4:active, button.update:active, button.invalid:active {
     border-style: none;
     margin-top: .5em;
 }
@@ -212,14 +214,13 @@ spinbutton button.up, spinbutton button.down {
     padding-bottom: 20px;
 }
 
-.dialog button {
-    background-color: inherit; 
-    border-bottom-color: #268bd2; 
-    border-radius: .75em;
-}
 dialog {
-    border: #002129;
     background-color: #002b36; 
+}
+
+.autoclose_dialog * {
+    border-radius: 1em;
+    background-color: #002129;
 }
 
 notebook {
@@ -248,9 +249,6 @@ notebook > header > tabs > tab:hover {
 notebook > header > tabs > tab:checked {
     background-color: rgba(255, 255, 255, 0.6);
 }
-/* dialog > button {
-    border-style: none;
-} */
 
 .listbox {
     border: #002b36; /*base03*/
@@ -325,26 +323,6 @@ textview .time {
     background-color: #002b36; /*solarized-cyan*/
 }
 
-.dialog {
-    border: #002b36; /*base03*/
-    background-color: #002b36; /*base03*/
-}
-
-.dialog button {
-    background-color: inherit; /*base02*/
-    border-bottom-color: #268bd2; /*solarized-cyan*/
-    border-radius: .75em;
-}
-
-.dialog button:nth-child(1) {
-    border-bottom-color: #859900; /*solarized-green*/
-    box-shadow: -8px 11px 10px 2px rgba(34, 60, 80, 0.2) inset;
-}
-
-.dialog button:nth-child(2) {
-    border-bottom-color: #dc322f; /*solarazed-red*/
-    box-shadow: -8px 11px 10px 2px rgba(34, 60, 80, 0.2) inset;
-}
 .tempbutton_top, .tempbutton, .tempbutton_bottom, .distbutton_top, .distbutton, .distbutton_bottom  {
     border-color: #002b36; /*base03*/
     background-color: inherit; /*base02*/

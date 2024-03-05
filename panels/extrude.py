@@ -64,7 +64,7 @@ class ExtrudePanel(ScreenPanel):
             else:
                 self.labels[extruder] = self._gtk.Button("extruder", "")
             self.labels[extruder].connect("clicked", self.change_extruder, extruder)
-            if extruder == self.current_extruder:
+            if extruder == self.current_extruder and self._printer.extrudercount > 1:
                 self.labels[extruder].get_style_context().add_class("button_active")
             if i < limit:
                 extgrid.attach(self.labels[extruder], i, 0, 1, 1)

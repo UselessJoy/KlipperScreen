@@ -216,6 +216,15 @@ msgstr "Очень большой"
 msgid "Extrude"
 msgstr "Заправить"
 
+msgid "Later"
+msgstr "Позже"
+
+msgid "Print (Interrupt)"
+msgstr "Печать (Прервана)"
+
+msgid "Printing was interrupted\nDid you want to continue print?"
+msgstr "Печать была прервана\nВы хотите продолжить печать?"
+
 msgid "Extrusion +"
 msgstr "Экструзия +"
 

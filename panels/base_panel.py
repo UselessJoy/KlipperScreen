@@ -4,7 +4,6 @@ import logging
 import os
 import subprocess
 import gi
-import nmcli
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk, Pango
 from jinja2 import Environment
@@ -13,6 +12,7 @@ from math import log
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.timepicker import Timepicker
 import netifaces
+from ks_includes.KlippyGcodes import KlippyGcodes
 # from subprocess import run, STDOUT, PIPE
 
 # Брать информацию о соединении из коллбэка NetworkManager, а не по таймеру
@@ -20,7 +20,6 @@ import netifaces
 class BasePanel(ScreenPanel):
     def __init__(self, screen, title):
         super().__init__(screen, title)
-        nmcli.disable_use_sudo()
         self.current_panel = None
         self.time_min = -1
         self.time_format = self._config.get_main_config().getboolean("24htime", True)
@@ -45,6 +44,7 @@ class BasePanel(ScreenPanel):
         ####      NEW      ####
         self.network_interfaces = netifaces.interfaces()
         self.wireless_interfaces = [iface for iface in self.network_interfaces if iface.startswith('w')]
+        self.is_connecting_to_network = False
         self.use_network_manager = os.system('systemctl is-active --quiet NetworkManager.service') == 0
         if len(self.wireless_interfaces) > 0:
             logging.info(f"Found wireless interfaces: {self.wireless_interfaces}")
@@ -55,6 +55,10 @@ class BasePanel(ScreenPanel):
                 logging.info("Using wpa_cli")
                 from ks_includes.wifi import WifiManager
             self.wifi = WifiManager(self.wireless_interfaces[0])
+            #self.wifi.add_callback("strength_changed", self.on_properties_changed_callback)
+            self.wifi.add_callback("connecting", self.connecting_callback)
+            self.wifi.add_callback("connected", self.connected_callback)
+            self.wifi.add_callback("popup", self.popup_callback)
         ####    END NEW    ####
 
         if len(self._config.get_printers()) > 1:
@@ -104,9 +108,9 @@ class BasePanel(ScreenPanel):
         
         self.control['network_box'] = Gtk.Box(spacing=15)
         self.control['network_box'].set_margin_start(15)
-        img_size = self._gtk.img_scale * self.bts
-        self.network_status = self._gtk.Image('lan_status_none', img_size, img_size)
-        self.control['network_box'].add(self.network_status)
+        #img_size = self._gtk.img_scale * self.bts
+        self.network_status_image = self._gtk.Image()#self._gtk.Image('lan_status_none', img_size, img_size)
+        self.control['network_box'].add(self.network_status_image)
         
         self.titlelbl = Gtk.Label() 
         self.titlelbl.set_hexpand(True)
@@ -129,7 +133,6 @@ class BasePanel(ScreenPanel):
 
         # Main layout
         self.main_grid = Gtk.Grid()
-
         if self._screen.vertical_mode:
             self.main_grid.attach(self.titlebar, 0, 0, 1, 1)
             self.main_grid.attach(self.content, 0, 1, 1, 1)
@@ -137,11 +140,12 @@ class BasePanel(ScreenPanel):
             self.action_bar.set_orientation(orientation=Gtk.Orientation.HORIZONTAL)
         else:
             self.main_grid.attach(self.action_bar, 0, 0, 1, 2)
-            self.action_bar.set_orientation(orientation=Gtk.Orientation.VERTICAL)
-            self.main_grid.attach(self.titlebar, 1, 0, 1, 1)
+            self.main_grid.attach(self.titlebar, 0, 0, 2, 1)
             self.main_grid.attach(self.content, 1, 1, 1, 1)
+            self.action_bar.set_orientation(orientation=Gtk.Orientation.VERTICAL)
         self.update_time()
-        GLib.timeout_add_seconds(1, self.show_network_status)
+        GLib.timeout_add_seconds(1, self.update_connected_network_status)
+        
 
     def create_time_modal(self, widget, event):
         
@@ -201,16 +205,71 @@ class BasePanel(ScreenPanel):
         grid = self._gtk.HomogeneousGrid()
         grid.attach(Gtk.Label(label=_("Select action")), 0, 0, 1, 1)
         dialog = self._gtk.Dialog(self._screen, buttons, grid, self.close_power_modal, width = 1, height = 1)
-        # self.main_grid.set_opacity(0.2)
         dialog.set_title(_("Power Manager"))
     
     def close_power_modal(self, dialog, response_id):
-        # self.main_grid.set_opacity(1)
         if response_id == Gtk.ResponseType.OK:
             os.system("systemctl poweroff")
         elif response_id == Gtk.ResponseType.YES: 
             os.system("systemctl reboot")
         self._gtk.remove_dialog(dialog)
+    
+    
+    # def on_properties_changed_callback(self, ap_status):
+    #     # Update status only for connected ssid
+    #     if ap_status['ssid'] == self.wifi.get_connected_ssid():
+    #         if 'Strength' in ap_status['properties']: 
+    #             self.update_connected_network_status()
+                
+    # Callback only from wireless interface
+    def connecting_callback(self, msg):
+        logging.info("connecting...")
+        self.is_connecting_to_network = True
+        self.update_connected_network_status()
+    
+    def connected_callback(self, ssid, prev_ssid):
+        logging.info("connected!")
+        self.is_connecting_to_network = False
+    
+    def popup_callback(self, msg):
+        logging.info("exception connect!")
+        self.is_connecting_to_network = False
+    
+    def update_connected_network_status(self):
+        img_size = self._gtk.img_scale * self.bts
+        if not self.is_connecting_to_network:
+            try:
+                connected_ssid = self.wifi.get_connected_ssid()
+                if not connected_ssid:
+                    raise Exception("Connected ssid not found")
+                netinfo = self.wifi.get_network_info(connected_ssid)
+                # get_wifi_hotspot not needed, may add "mode" prop in get_connected_ssid (like "mode": ap.Mode)
+                if self._printer.get_wifi_hotspot() == connected_ssid:
+                    self.network_status_image = self._gtk.Image(f"access_point", img_size, img_size)
+                elif "signal_level_dBm" in netinfo:
+                    self.network_status_image = self.signal_strength(int(netinfo["signal_level_dBm"]), img_size)
+            except Exception as e:
+                data: bytes = subprocess.check_output(["nmcli", "networking", "connectivity"])
+                data = data.decode("utf-8").strip()
+                self.network_status_image = self._gtk.Image(f"lan_status_{data}", img_size, img_size) if data != 'none' else self._gtk.Image()
+            finally:
+                for child in self.control['network_box']:
+                    self.control['network_box'].remove(child)
+                self.control['network_box'].add(self.network_status_image)
+                self.control['network_box'].show_all() 
+                return True
+        else:
+            # pass if already spinner
+            if isinstance(self.network_status_image, Gtk.Spinner):
+                return True
+            self.network_status_image = Gtk.Spinner()
+            self.network_status_image.set_size_request(img_size, img_size)
+            self.network_status_image.start()
+        for child in self.control['network_box']:
+                self.control['network_box'].remove(child)
+        self.control['network_box'].add(self.network_status_image)
+        self.control['network_box'].show_all() 
+        return True
     
     def signal_strength(self, signal_level, img_size):
         # networkmanager uses percentage not dbm
@@ -227,26 +286,7 @@ class BasePanel(ScreenPanel):
         else:
             return self._gtk.Image('wifi_weak', img_size, img_size)    
         
-    def show_network_status(self):
-        #self.wifi.rescan()
-        img_size = self._gtk.img_scale * self.bts
-        try:
-            netinfo = self.wifi.get_network_info(self.wifi.get_connected_ssid())
-            if self._printer.get_wifi_hotspot() == self.wifi.get_connected_ssid():
-                self.network_status = self._gtk.Image(f"access_point", img_size, img_size)
-            elif "signal_level_dBm" in netinfo:
-                self.network_status = self.signal_strength(int(netinfo["signal_level_dBm"]), img_size)
-        except Exception as e:
-            data: bytes = subprocess.check_output(["nmcli", "networking", "connectivity"])
-            data = data.decode("utf-8").strip()
-            self.network_status = self._gtk.Image(f"lan_status_{data}", img_size, img_size) if data != 'none' else self._gtk.Image()
-        finally:
-            for child in self.control['network_box']:
-                self.control['network_box'].remove(child)
-            self.control['network_box'].add(self.network_status)
-            self.control['network_box'].show_all()
-        return True
-    
+        
     def show_heaters(self, show=True):
         try:
             for child in self.control['temp_box'].get_children():
@@ -388,27 +428,37 @@ class BasePanel(ScreenPanel):
                 self.control['temp_box'].reorder_child(self.labels[f"{self.current_extruder}_box"], 0)
                 self.control['temp_box'].show_all()
                 
-        if "autooff" in data:
-            if 'autoOff' in data['autooff']:
+        with contextlib.suppress(Exception):
                 if self.autooff_dialog is not None and data['autooff']['autoOff'] == False:
                     self._gtk.remove_dialog(self.autooff_dialog)
                     self.autooff_dialog = None
                 elif data['autooff']['autoOff'] == True:
-                    self.create_autooff_modal()
+                    self.show_autooff_dialog()
         with contextlib.suppress(Exception):
-            if self.last_time_message is None:
-                self.last_time_message = data["messages"]["last_message_eventtime"]
-            elif self.last_time_message != data["messages"]["last_message_eventtime"]:
-                self.last_time_message = data["messages"]["last_message_eventtime"]
+            if self.interrupt_dialog is not None and data['virtual_sdcard']['show_interrupt'] == False:
+                self._gtk.remove_dialog(self.interrupt_dialog)
+                self.interrupt_dialog = None
+            # Interrput dialog showing from screen.py
+            # elif data['virtual_sdcard']['show_interrupt'] == True:
+            #     self.show_interrupt_dialog()
+        with contextlib.suppress(Exception):
+            if "is_open" in data["messages"]:
+                if data["messages"]["is_open"]:
+                    msg = self._printer.get_message()
+                    if msg["message"] != "":
+                        lvl = 1 if msg['message_type'] == 'success' else 2 if msg['message_type'] != 'error' else 3
+                        self._screen.show_popup_message(msg['message'], level=lvl, just_popup=True)
+            elif "last_message_eventtime" in data["messages"]:
                 msg = self._printer.get_message()
-                lvl = 1 if msg['message_type'] == 'success' else 2 if msg['message_type'] != 'error' else 3
-                self._screen.show_popup_message(msg['message'], level=lvl, just_popup=True)
+                if msg["is_open"] and  msg["message"] != "":
+                    lvl = 1 if msg['message_type'] == 'success' else 2 if msg['message_type'] != 'error' else 3
+                    self._screen.show_popup_message(msg['message'], level=lvl, just_popup=True)
                     
-    def create_autooff_modal(self):
+    def show_autooff_dialog(self):
         buttons = [
-                    {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color1"},
-                    {"name": _("Poweroff now"), "response": Gtk.ResponseType.OK, "style": "color2"}
-                ]
+            {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color1"},
+            {"name": _("Poweroff now"), "response": Gtk.ResponseType.OK, "style": "color2"}
+        ]
         grid = self._gtk.HomogeneousGrid()
         label = Gtk.Label(label=_("Printing is finished. The printer will be turned off after cooling the extruder"))
         label.set_line_wrap(True)
@@ -418,21 +468,53 @@ class BasePanel(ScreenPanel):
         label.set_vexpand(True)
         label.set_valign(Gtk.Align.CENTER)
         label.set_halign(Gtk.Align.CENTER)
-        # label.get_style_context().add_class("label-lines-2em")
         label.set_justify(Gtk.Justification.CENTER)
         grid.attach(label, 0, 0, 1, 1)
         
-        self.autooff_dialog = self._gtk.Dialog(self._screen, buttons, grid, self.close_autooff_modal, width = 1, height= self._screen.height / 3)
+        self.autooff_dialog = self._gtk.Dialog(self._screen, buttons, grid, self.close_autooff_dialog, width = 1, height= self._screen.height / 3)
+        self.autooff_dialog.get_style_context().add_class("autoclose_dialog")
         self.autooff_dialog.set_title(_("Autooff after print"))
         self.autooff_dialog.show_all()
+        return False
     
-    def close_autooff_modal(self, dialog, response_id):
+    def close_autooff_dialog(self, dialog, response_id):
         self._gtk.remove_dialog(dialog)
         self.autooff_dialog = None
         if response_id == Gtk.ResponseType.OK:
             self._screen._ws.send_method("machine.shutdown")
         else:
             self._screen._ws.klippy.cancel_autooff()
+    
+    def show_interrupt_dialog(self, widget=None):
+        buttons = [
+            {"name": _("Continue Print"), "response": Gtk.ResponseType.OK, "style": "color1"},
+            {"name": _("Later"), "response": Gtk.ResponseType.APPLY, "style": "color2"},
+            {"name": _("Delete Print"), "response": Gtk.ResponseType.CANCEL, "style": "color3"}
+        ]
+        grid = self._gtk.HomogeneousGrid()
+        label = Gtk.Label(label=_("Printing was interrupted\nDid you want to continue print?"))
+        label.set_hexpand(True)
+        label.set_vexpand(True)
+        label.set_valign(Gtk.Align.CENTER)
+        label.set_halign(Gtk.Align.CENTER)
+        label.set_justify(Gtk.Justification.CENTER)
+        grid.attach(label, 0, 0, 1, 1)
+        
+        self.interrupt_dialog = self._gtk.Dialog(self._screen, buttons, grid, self.close_interrupt_dialog, width = 1, height = self._screen.height / 3)
+        self.interrupt_dialog.get_style_context().add_class("autoclose_dialog")
+        self.interrupt_dialog.set_title(_("Interrupted printing"))
+        self.interrupt_dialog.show_all()
+        return False
+        
+    def close_interrupt_dialog(self, dialog, response_id):
+        self._gtk.remove_dialog(dialog)
+        self.autooff_dialog = None
+        if response_id == Gtk.ResponseType.OK:
+            self._screen._ws.klippy.print_rebuild()
+        elif response_id == Gtk.ResponseType.APPLY:
+            self._screen._ws.klippy.gcode_script(KlippyGcodes.pass_interrupt())
+        else:
+            self._screen._ws.klippy.print_remove()
     
     def remove(self, widget):
         self.content.remove(widget)

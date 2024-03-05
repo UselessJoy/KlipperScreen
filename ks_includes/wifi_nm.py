@@ -15,11 +15,78 @@ from gi.repository import GLib
 
 from ks_includes.wifi import WifiChannels
 
-### Перенести WifiManager в klipper
+NM_STATE = {
+    NetworkManager.NM_DEVICE_STATE_UNKNOWN : {
+            'msg': "State is unknown",
+            'callback': "connecting_status"
+        },
+    NetworkManager.NM_DEVICE_STATE_REASON_UNKNOWN : {
+            'msg': "State is unknown",
+            'callback': "connecting_status"
+        },
+    NetworkManager.NM_DEVICE_STATE_UNMANAGED : {
+            'msg': "Error: Not managed by NetworkManager",
+            'callback': ""
+        },
+    NetworkManager.NM_DEVICE_STATE_UNAVAILABLE : {
+            'msg': "Error: Not available for use:\nReasons may include the wireless switched off, missing firmware, etc.",
+            'callback': "connecting_status"
+        },
+    NetworkManager.NM_DEVICE_STATE_DISCONNECTED : {
+            'msg': "Currently disconnected",
+            'callback': "disconnected"
+        },
+    NetworkManager.NM_DEVICE_STATE_PREPARE : {
+            'msg': "Preparing the connection to the network",
+            'callback': "connecting"
+        },
+    NetworkManager.NM_DEVICE_STATE_CONFIG : {
+            'msg': "Connecting to the requested network...",
+            'callback': "connecting_status"
+        },
+    NetworkManager.NM_DEVICE_STATE_NEED_AUTH : {
+            'msg': "Authorizing",
+            'callback': "connecting_status"
+        },
+    NetworkManager.NM_DEVICE_STATE_IP_CONFIG : {
+            'msg': "Requesting IP addresses and routing information",
+            'callback': "connecting_status"
+        },
+    NetworkManager.NM_DEVICE_STATE_IP_CHECK : {
+            'msg': "Checking whether further action is required for the requested network connection",
+            'callback': "connecting_status"
+        },
+    NetworkManager.NM_DEVICE_STATE_SECONDARIES : {
+            'msg': "Waiting for a secondary connection (like a VPN)",
+            'callback': "connecting_status"
+        },
+    NetworkManager.NM_DEVICE_STATE_ACTIVATED : {
+            'msg': "Connected",
+            'callback': "connecting_status"
+        },
+    NetworkManager.NM_DEVICE_STATE_DEACTIVATING : {
+            'msg': "A disconnection from the current network connection was requested",
+            'callback': "connecting_status"
+        },
+    NetworkManager.NM_DEVICE_STATE_FAILED : {
+            'msg': _("Failed to connect to the requested network"),
+            'callback': "popup"
+        },
+    NetworkManager.NM_DEVICE_STATE_REASON_DEPENDENCY_FAILED : {
+            'msg': "A dependency of the connection failed",
+            'callback': "connecting_status"
+        },
+    NetworkManager.NM_DEVICE_STATE_REASON_CARRIER : {
+            'msg': "",
+            'callback': ""
+        }
+    
+}
+
 class WifiManager:
     networks_in_supplicant = []
 
-    def __init__(self, interface_name, *args, **kwargs):
+    def __init__(self, wireless_interface, *args, **kwargs):
         super().__init__(*args, **kwargs)
         DBusGMainLoop(set_as_default=True)
         self._callbacks = {
@@ -29,10 +96,10 @@ class WifiManager:
             "popup": [],
             "disconnected": [],
             "connecting": [],
+            #"properties_changed": []
         }
         self.connected = False
         self.connected_ssid = None
-        self.interface_name = interface_name
         self.known_networks = {}  # List of known connections
         self.visible_networks = {}  # List of visible access points
         self.ssid_by_path = {}
@@ -42,16 +109,25 @@ class WifiManager:
             self.last_connected_ssid = self.get_connected_ssid()
         except:
             self.last_connected_ssid = None
-        self.wifi_dev = NetworkManager.NetworkManager.GetDeviceByIpIface(interface_name)
-        self.wifi_dev.OnAccessPointAdded(self._ap_added)
-        self.wifi_dev.OnAccessPointRemoved(self._ap_removed)
-        self.wifi_dev.OnStateChanged(self._ap_state_changed)
+        # NetworkManager.NetworkManager.OnPropertiesChanged(self.nm_prop_changed)
+        self.wireless_device = NetworkManager.NetworkManager.GetDeviceByIpIface(wireless_interface)
+        self.wireless_device.OnAccessPointAdded(self._ap_added)
+        self.wireless_device.OnAccessPointRemoved(self._ap_removed)
+        self.wireless_device.OnStateChanged(self._ap_state_changed)
+        # self.wireless_device.OnPropertiesChanged(self.nm_prop_changed)
+        self.wired_device = None
 
-        for ap in self.wifi_dev.GetAccessPoints():
+        for ap in self.wireless_device.GetAccessPoints():
             self._add_ap(ap)
         self._update_known_connections()
         self.initialized = True
+        GLib.timeout_add_seconds(5, self.rescan)
 
+    # NetworkingConnectivity bug (show 4(limited) but nmcli show 5(full)) "Full"singal from both interfaces  
+    # def nm_prop_changed(self, ap, interface, signal, properties):
+    #     logging.info( NetworkManager.NetworkManager.CheckConnectivity())
+    #     logging.info(properties)
+        
     def _update_known_connections(self):
         self.known_networks = {}
         for con in NetworkManager.Settings.ListConnections():
@@ -84,45 +160,10 @@ class WifiManager:
             logging.error("Error in _ap_removed")
 
     def _ap_state_changed(self, nm, interface, signal, old_state, new_state, reason):
-        msg = ""
-        if new_state in (NetworkManager.NM_DEVICE_STATE_UNKNOWN, NetworkManager.NM_DEVICE_STATE_REASON_UNKNOWN):
-            msg = "State is unknown"
-        elif new_state == NetworkManager.NM_DEVICE_STATE_UNMANAGED:
-            msg = "Error: Not managed by NetworkManager"
-        elif new_state == NetworkManager.NM_DEVICE_STATE_UNAVAILABLE:
-            msg = "Error: Not available for use:\nReasons may include the wireless switched off, missing firmware, etc."
-        elif new_state == NetworkManager.NM_DEVICE_STATE_DISCONNECTED:
-            msg = "Currently disconnected"
-            if self.last_connected_ssid:
-                self.callback("disconnected", self.last_connected_ssid)
-        elif new_state == NetworkManager.NM_DEVICE_STATE_PREPARE:
-            msg = "Preparing the connection to the network"
-            self.callback("connecting", msg)
-        elif new_state == NetworkManager.NM_DEVICE_STATE_CONFIG:
-            msg = "Connecting to the requested network..."
-        elif new_state == NetworkManager.NM_DEVICE_STATE_NEED_AUTH:
-            msg = "Authorizing"
-        elif new_state == NetworkManager.NM_DEVICE_STATE_IP_CONFIG:
-            msg = "Requesting IP addresses and routing information"
-        elif new_state == NetworkManager.NM_DEVICE_STATE_IP_CHECK:
-            msg = "Checking whether further action is required for the requested network connection"
-        elif new_state == NetworkManager.NM_DEVICE_STATE_SECONDARIES:
-            msg = "Waiting for a secondary connection (like a VPN)"
-        elif new_state == NetworkManager.NM_DEVICE_STATE_ACTIVATED:
-            msg = "Connected"
-        elif new_state == NetworkManager.NM_DEVICE_STATE_DEACTIVATING:
-            msg = "A disconnection from the current network connection was requested"
-        elif new_state == NetworkManager.NM_DEVICE_STATE_FAILED:
-            msg = _("Failed to connect to the requested network")
-            self.callback("popup", msg)
-        elif new_state == NetworkManager.NM_DEVICE_STATE_REASON_DEPENDENCY_FAILED:
-            msg = "A dependency of the connection failed"
-        elif new_state == NetworkManager.NM_DEVICE_STATE_REASON_CARRIER:
-            msg = ""
+        if new_state in NM_STATE:
+            self.callback(NM_STATE[new_state]['callback'], NM_STATE[new_state]['msg'])
         else:
             logging.info(f"State {new_state}")
-        if msg != "":
-            self.callback("connecting_status", msg)
 
         if new_state == NetworkManager.NM_DEVICE_STATE_ACTIVATED:
             self.connected = True
@@ -134,8 +175,13 @@ class WifiManager:
             self.connected = False
 
     def _ap_prop_changed(self, ap, interface, signal, properties):
-        logging.info(properties)
+        # Doesnt't make sense
         pass
+        # logging.info(ap.Ssid)
+        # logging.info(properties)
+        # ap_status = {'ssid': ap.Ssid}
+        # ap_status['properties'] = properties
+        # self.callback("properties_changed", ap_status)
 
     def _add_ap(self, ap):
         ssid = ap.Ssid
@@ -204,11 +250,11 @@ class WifiManager:
                 msg = f"Connecting to: {ssid}"
                 logging.info(msg)
                 self.callback("connecting_status", msg)
-                NetworkManager.NetworkManager.ActivateConnection(conn, self.wifi_dev, "/")
+                NetworkManager.NetworkManager.ActivateConnection(conn, self.wireless_device, "/")
 
     def disconnect_network(self, ssid):
         self.last_connected_ssid = ssid
-        self.wifi_dev.SpecificDevice().Disconnect()
+        self.wireless_device.SpecificDevice().Disconnect()
         
     def delete_network(self, ssid):
         con = self.known_networks[ssid]
@@ -216,15 +262,15 @@ class WifiManager:
         self._update_known_connections()
 
     def get_connected_ssid(self):
-        if self.wifi_dev.SpecificDevice().ActiveAccessPoint:
-            return self.wifi_dev.SpecificDevice().ActiveAccessPoint.Ssid
+        if self.wireless_device.SpecificDevice().ActiveAccessPoint:
+            return self.wireless_device.SpecificDevice().ActiveAccessPoint.Ssid
         return None
 
     def _get_connected_ap(self):
-        return self.wifi_dev.SpecificDevice().ActiveAccessPoint
+        return self.wireless_device.SpecificDevice().ActiveAccessPoint
 
     def _visible_networks_by_ssid(self):
-        aps = self.wifi_dev.GetAccessPoints()
+        aps = self.wireless_device.GetAccessPoints()
         ret = {}
         for ap in aps:
             with contextlib.suppress(NetworkManager.ObjectVanished):
@@ -232,7 +278,6 @@ class WifiManager:
         return ret
 
     def get_network_info(self, ssid):
-        #self.rescan()
         netinfo = {}
         if ssid in self.visible_networks:
             con = self.visible_networks[ssid]
@@ -257,7 +302,7 @@ class WifiManager:
                     "ssid": ssid,
                     "connected": self._get_connected_ap() == ap,
                     "encryption": self._get_encryption(ap.RsnFlags),
-                    "signal_level_dBm": str(ap.Strength),
+                    "signal_level_dBm": ap.Strength,
                 })
         return netinfo
 
@@ -289,6 +334,8 @@ class WifiManager:
 
     def rescan(self):
         try:
-            self.wifi_dev.RequestScan({})
+            self.wireless_device.RequestScan({})
         except dbus.exceptions.DBusException as e:
             logging.error(f"Error during rescan {e}")
+        finally:
+            return True

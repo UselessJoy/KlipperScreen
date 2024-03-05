@@ -144,7 +144,7 @@ class MacroPanel(ScreenPanel):
                 param_locale: str = self._printer.config[macro]['param_locale']
                 param_locale_list: list[str] = param_locale.split(',')
                 for pl in param_locale_list:
-                    partition_pl = pl.strip().partition('_')
+                    partition_pl = pl.strip().partition('.')
                     param_locale_dict[partition_pl[0]] = partition_pl[2]
             macro = macro[12:].strip()
             if macro.startswith("_"):  # Support for hiding macros by name

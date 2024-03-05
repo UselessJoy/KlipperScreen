@@ -290,6 +290,64 @@ class MoonrakerApi:
             callback,
             *args
         )
+        
+    def set_bed_temp(self, target, callback=None, *args):
+        logging.debug(f"Sending set_bed_temp: {KlippyGcodes.set_bed_temp(target)}")
+        return self._ws.send_method(
+            "printer.gcode.script",
+            {
+                "script": KlippyGcodes.set_bed_temp(target)
+            },
+            callback,
+            *args
+        )
+
+    def set_heater_temp(self, heater, target, callback=None, *args):
+        logging.debug(f"Sending heater {heater} to temp: {target}")
+        return self._ws.send_method(
+            "printer.gcode.script",
+            {
+                "script": KlippyGcodes.set_heater_temp(heater, target)
+            },
+            callback,
+            *args
+        )
+
+    def set_temp_fan_temp(self, temp_fan, target, callback=None, *args):
+        logging.debug(f"Sending temperature fan {temp_fan} to temp: {target}")
+        return self._ws.send_method(
+            "printer.gcode.script",
+            {
+                "script": KlippyGcodes.set_temp_fan_temp(temp_fan, target)
+            },
+            callback,
+            *args
+        )
+
+    def set_tool_temp(self, tool, target, callback=None, *args):
+        logging.debug(f"Sending set_tool_temp: {KlippyGcodes.set_ext_temp(target, tool)}")
+        return self._ws.send_method(
+            "printer.gcode.script",
+            {
+                "script": KlippyGcodes.set_ext_temp(target, tool)
+            },
+            callback,
+            *args
+        )
+
+    def restart(self):
+        logging.debug("Sending printer.restart")
+        return self._ws.send_method(
+            "printer.restart"
+        )
+
+    def restart_firmware(self):
+        logging.debug("Sending printer.firmware_restart")
+        return self._ws.send_method(
+            "printer.firmware_restart"
+        )
+        
+    
     ####      NEW      ####
     def print_rebuild(self, callback=None, *args):
         logging.debug("Sending printer.print.rebuild")
@@ -299,6 +357,7 @@ class MoonrakerApi:
             callback,
             *args
         )
+    
     def print_remove(self, callback=None, *args):
         logging.debug("Sending printer.print.rebuild")
         return self._ws.send_method(
@@ -403,59 +462,3 @@ class MoonrakerApi:
             callback,
             *args
     )
-        
-    def set_bed_temp(self, target, callback=None, *args):
-        logging.debug(f"Sending set_bed_temp: {KlippyGcodes.set_bed_temp(target)}")
-        return self._ws.send_method(
-            "printer.gcode.script",
-            {
-                "script": KlippyGcodes.set_bed_temp(target)
-            },
-            callback,
-            *args
-        )
-
-    def set_heater_temp(self, heater, target, callback=None, *args):
-        logging.debug(f"Sending heater {heater} to temp: {target}")
-        return self._ws.send_method(
-            "printer.gcode.script",
-            {
-                "script": KlippyGcodes.set_heater_temp(heater, target)
-            },
-            callback,
-            *args
-        )
-
-    def set_temp_fan_temp(self, temp_fan, target, callback=None, *args):
-        logging.debug(f"Sending temperature fan {temp_fan} to temp: {target}")
-        return self._ws.send_method(
-            "printer.gcode.script",
-            {
-                "script": KlippyGcodes.set_temp_fan_temp(temp_fan, target)
-            },
-            callback,
-            *args
-        )
-
-    def set_tool_temp(self, tool, target, callback=None, *args):
-        logging.debug(f"Sending set_tool_temp: {KlippyGcodes.set_ext_temp(target, tool)}")
-        return self._ws.send_method(
-            "printer.gcode.script",
-            {
-                "script": KlippyGcodes.set_ext_temp(target, tool)
-            },
-            callback,
-            *args
-        )
-
-    def restart(self):
-        logging.debug("Sending printer.restart")
-        return self._ws.send_method(
-            "printer.restart"
-        )
-
-    def restart_firmware(self):
-        logging.debug("Sending printer.firmware_restart")
-        return self._ws.send_method(
-            "printer.firmware_restart"
-        )

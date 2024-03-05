@@ -285,6 +285,9 @@ class Printer:
     def get_autooff(self):
         return self.data['autooff']['autoOff_enable']
     
+    def get_has_interrupted_file(self):
+        return self.data['virtual_sdcard']['has_interrupted_file']
+    
     def get_led_enabled(self):
         return self.data['led_control']['enabled']
     

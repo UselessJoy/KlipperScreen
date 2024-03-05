@@ -19,20 +19,22 @@ class PrintPanel(ScreenPanel):
     cur_directory = "gcodes"
     dir_panels = {}
     filelist = {'gcodes': {'directories': [], 'files': []}}
-
+    
     def __init__(self, screen, title):
         super().__init__(screen, title)
         sortdir = self._config.get_main_config().get("print_sort_dir", "name_asc")
         sortdir = sortdir.split('_')
-        if sortdir[0] not in ["name", "date"] or sortdir[1] not in ["asc", "desc"]:
+        if sortdir[0] not in ["name", "date", "print_start_time"] or sortdir[1] not in ["asc", "desc"]:
             sortdir = ["name", "asc"]
         self.sort_current = [sortdir[0], 0 if sortdir[1] == "asc" else 1]  # 0 for asc, 1 for desc
         self.sort_items = {
             "name": _("Name"),
-            "date": _("Date")
+            "date": _("Date"),
+            "print_start_time": _("Last Print Time")
         }
         self.sort_icon = ["arrow-up", "arrow-down"]
         self.scroll = self._gtk.ScrolledWindow()
+        self.scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.files = {}
         self.directories = {}
         self.labels['directories'] = {}
@@ -43,8 +45,8 @@ class PrintPanel(ScreenPanel):
 
         sbox = Gtk.Box(spacing=0)
         sbox.set_vexpand(False)
-        for i, (name, val) in enumerate(self.sort_items.items(), start=1):
-            s = self._gtk.Button(None, val, f"color{i % 4}", .5, Gtk.PositionType.RIGHT, 1)
+        for i, (name, val) in enumerate(self.sort_items.items()):
+            s = self._gtk.Button(None, val, f"color{(i + 1) % 4}", .5, Gtk.PositionType.RIGHT, 1)
             if name == self.sort_current[0]:
                 s.set_image(self._gtk.Image(self.sort_icon[self.sort_current[1]], self._gtk.img_scale * self.bts))
             s.connect("clicked", self.change_sort, name)
@@ -138,11 +140,24 @@ class PrintPanel(ScreenPanel):
         if filepath not in self.files:
             self._create_row(filepath, filename)
         reverse = self.sort_current[1] != 0
-        files = sorted(
-            self.filelist[directory]['files'],
-            reverse=reverse,
-            key=lambda item: self._screen.files.get_file_info(f"{directory}/{item}"[7:])['modified']
-        ) if self.sort_current[0] == "date" else sorted(self.filelist[directory]['files'], reverse=reverse)
+        if self.sort_current[0] == "date":
+            files = sorted(
+                self.filelist[directory]['files'],
+                reverse = reverse,
+                key = lambda item: self._screen.files.get_file_info(item)['modified']
+            )
+        elif self.sort_current[0] == "name":
+            files = sorted(
+                self.filelist[directory]['files'], 
+                reverse=(not reverse), 
+                key = lambda item: item.lower()
+            )
+        else:   
+            files = sorted(
+                self.filelist[directory]['files'], 
+                reverse = reverse,
+                key = lambda item: self._screen.files.get_file_info(item)['print_start_time'] or .0
+            )
 
         pos = files.index(filename)
         pos += len(self.filelist[directory]['directories'])
@@ -151,7 +166,7 @@ class PrintPanel(ScreenPanel):
         self.dir_panels[directory].attach(self.files[filepath], 0, pos, 1, 1)
         if show is True:
             self.dir_panels[directory].show_all()
-
+    
     def _create_row(self, fullpath, filename=None):
         name = Gtk.Label()
         name.get_style_context().add_class("print-filename")
@@ -167,6 +182,8 @@ class PrintPanel(ScreenPanel):
         info = Gtk.Label()
         info.set_hexpand(True)
         info.set_halign(Gtk.Align.START)
+        info.set_line_wrap(True)
+        info.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
         info.get_style_context().add_class("print-info")
 
         delete = self._gtk.Button("delete", style="color1", scale=self.bts)
@@ -278,10 +295,10 @@ class PrintPanel(ScreenPanel):
             self.sort_current[1] = (self.sort_current[1] + 1) % 2
         else:
             oldkey = self.sort_current[0]
-            logging.info(f"Changing sort_{oldkey} to {self.sort_items[self.sort_current[0]]}")
+            logging.info(f"Changing sorting {oldkey} to sorting {key}")
             self.labels[f'sort_{oldkey}'].set_image(None)
             self.labels[f'sort_{oldkey}'].show_all()
-            self.sort_current = [key, 0]
+            self.sort_current = [key, 1]
         self.labels[f'sort_{key}'].set_image(self._gtk.Image(self.sort_icon[self.sort_current[1]],
                                                              self._gtk.img_scale * self.bts))
         self.labels[f'sort_{key}'].show()
@@ -370,7 +387,10 @@ class PrintPanel(ScreenPanel):
         if "size" in fileinfo:
             info += _("Size") + f':  <b>{self.format_size(fileinfo["size"])}</b>\n'
         if "estimated_time" in fileinfo:
-            info += _("Print Time") + f':  <b>{self.format_time(fileinfo["estimated_time"])}</b>'
+            info += _("Print Time") + f':  <b>{self.format_time(fileinfo["estimated_time"])}</b>\n'
+        if "print_start_time" in fileinfo:
+            if fileinfo["print_start_time"] is not None:
+                info += _("Last Print Time") + f':  <b>{datetime.fromtimestamp(int(fileinfo["print_start_time"]))}</b>\n'
         return info
 
     def reload_files(self, widget=None):
@@ -378,7 +398,7 @@ class PrintPanel(ScreenPanel):
         for dirpan in self.dir_panels:
             for child in self.dir_panels[dirpan].get_children():
                 self.dir_panels[dirpan].remove(child)
-
+        #Directory first mb
         flist = sorted(self._screen.files.get_file_list(), key=lambda item: '/' in item)
         for file in flist:
             GLib.idle_add(self.add_file, file)
@@ -389,10 +409,12 @@ class PrintPanel(ScreenPanel):
             return
 
         logging.info(f"Updating file {filename}")
-        self.labels['files'][filename]['info'].set_markup(self.get_file_info_str(filename))
-
+        
         # Update icon
         GLib.idle_add(self.image_load, filename)
+        
+        self.labels['files'][filename]['info'].set_markup(self.get_file_info_str(filename))
+        
 
     def _callback(self, newfiles, deletedfiles, updatedfiles=None):
         logging.debug(f"newfiles: {newfiles}")

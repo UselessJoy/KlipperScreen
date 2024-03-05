@@ -1,5 +1,5 @@
 import logging
-
+import contextlib
 import gi
 
 gi.require_version("Gtk", "3.0")
@@ -8,7 +8,6 @@ from panels.menu import MenuPanel
 
 from ks_includes.widgets.heatergraph import HeaterGraph
 from ks_includes.widgets.keypad import Keypad
-
 
 def create_panel(*args):
     return MainPanel(*args)
@@ -19,6 +18,7 @@ class MainPanel(MenuPanel):
         super().__init__(screen, title)
         self.left_panel = None
         self.items = None
+        self.menu_labels = None
         self.devices = {}
         self.graph_update = None
         self.active_heater = None
@@ -26,6 +26,8 @@ class MainPanel(MenuPanel):
         self.grid = self._gtk.HomogeneousGrid()
         self.grid.set_hexpand(True)
         self.grid.set_vexpand(True)
+        self.labels['print_interrupt'] = None
+        
 
     def initialize(self, items):
         logging.info("### Making MainMenu")
@@ -39,11 +41,13 @@ class MainPanel(MenuPanel):
             grid.attach(self.create_left_panel(), 0, 0, 1, 1)
         else:
             self.graph_update = False
+        self.columns = 2
         if self._screen.vertical_mode:
-            self.labels['menu'] = self.arrangeMenuItems(items, 3, True)
+            self.columns = 3
+            self.labels['menu'] = self.arrangeMenuItems(items, self.columns, True)
             grid.attach(self.labels['menu'], 0, 1, 1, 1)
         else:
-            self.labels['menu'] = self.arrangeMenuItems(items, 2, True)
+            self.labels['menu'] = self.arrangeMenuItems(items, self.columns, True)
             grid.attach(self.labels['menu'], 1, 0, 1, 1)
         self.grid = grid
         self.content.add(self.grid)
@@ -258,6 +262,41 @@ class MainPanel(MenuPanel):
                 self._printer.get_dev_stat(x, "target"),
                 self._printer.get_dev_stat(x, "power"),
             )
+        with contextlib.suppress(Exception):
+            if data['virtual_sdcard']['has_interrupted_file'] == True:
+                if 'print' in self.labels:
+                    logging.info("Has interrupt")
+                    if not self.labels['print_interrupt']:
+                        print_item = {'icon': None, 'style': None}
+                        print_position = 0
+                        for i in range(len(self.items)):
+                            if list(self.items[i])[0] == 'print':
+                                print_item = self.items[i]['print']
+                                print_position = i
+                                break
+                        self.labels['print_interrupt'] = self._gtk.Button(print_item['icon'], _("Print (Interrupt)"), (print_item['style'] if print_item['style'] else f"color{(print_position % 4) + 1}"))
+                        self.labels['print_interrupt'].connect("clicked", self._screen.base_panel.show_interrupt_dialog)
+                        col = print_position % self.columns
+                        row = int(print_position / self.columns)
+                        self.labels['menu'].remove(self.labels['print'])
+                    self.labels['menu'].attach(self.labels['print_interrupt'], col, row, 2, 1)
+            else:
+                if 'print' in self.labels:
+                    logging.info("Not interrupt")
+                    if self.labels['print_interrupt']:
+                        self.labels['menu'].remove(self.labels['print_interrupt'])
+                        self.labels['print_interrupt'] = None
+                    print_item = {'icon': None, 'style': None}
+                    print_position = 0
+                    for i in range(len(self.items)):
+                        if list(self.items[i])[0] == 'print':
+                            print_item = self.items[i]['print']
+                            print_position = i
+                            break
+                    col = print_position % self.columns
+                    row = int(print_position / self.columns)
+                    self.labels['menu'].attach(self.labels['print'], col, row, 2, 1)
+            self.labels['menu'].show_all()
 
     def show_numpad(self, widget, device):
 
