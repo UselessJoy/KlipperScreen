@@ -327,8 +327,6 @@ class BedMeshPanel(ScreenPanel):
                     reserved.append[prof]
             i = len(reserved)
             while not name:
-                if i > 100:
-                    raise
                 name = f"profile_{i}" if f"profile_{i}" not in reserved else None
                 logging.info(name)
                 i = i+1
