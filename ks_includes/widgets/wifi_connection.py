@@ -2,16 +2,10 @@ import logging
 import os
 
 import gi
-from ks_includes.widgets.keyboard import Keyboard
 import netifaces
-import subprocess
-import re
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, GLib, Pango
-from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.typed_entry import TypedEntry
-import sys
-from ipaddress import IPv4Network
 
 ### Сделать: 
 ### - панель ошибки при отсутствии беспроводных интерфейсов

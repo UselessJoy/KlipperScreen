@@ -377,6 +377,17 @@ class MoonrakerApi:
             *args
         )
         
+    def set_hotspot(self, hotspot, callback=None, *args):
+        logging.debug("Sending printer.set_hotspot")
+        return self._ws.send_method(
+            "printer.set_hotspot",
+            {
+                "hotspot": hotspot
+            },
+            callback,
+            *args
+        )
+        
     def set_safety(self, safety, callback=None, *args):
         logging.debug("Sending printer.setSafetyPrinting")
         return self._ws.send_method(

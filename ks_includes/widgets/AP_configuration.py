@@ -1,11 +1,9 @@
 import gi
 import logging
 import subprocess
-import os
 import nmcli
-from ks_includes.widgets.keyboard import Keyboard
+import os
 from ks_includes.widgets.typed_entry import TypedEntry
-from datetime import datetime
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
@@ -170,14 +168,18 @@ class APConfiguration(Gtk.Box):
         autoconnect = 'yes' if self.labels['AP']['connection.autoconnect'].get_active() else 'no'
         self._screen.remove_keyboard()
         try:
+            # if self.wifi_mode == 'AP':
+            #     os.system(f"nmcli connection down {self.ap_connection['connection.id']}")
             proc = subprocess.run([ "nmcli", "connection", "modify", self.ap_connection['connection.id'], 
+                                    "connection.id", ssid,
                                     "802-11-wireless.ssid", ssid,
                                     "802-11-wireless-security.psk", psk, 
                                     "connection.autoconnect", autoconnect], 
-                                    check=True, capture_output=True, text=True)
-        except Exception as e:
-            logging.error(e)
-            raise e
+                                    check=True, capture_output=True, text=True, stderr=subprocess.STDOUT)
+            self._screen._ws.klippy.set_hotspot(ssid)
+        except subprocess.CalledProcessError as e:
+            logging.error(e.stderr)
+            raise e.stderr
         
         for child in self.button_box:
             self.button_box.remove(child)

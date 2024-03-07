@@ -300,6 +300,7 @@ class WifiManager:
                     "frequency": str(ap.Frequency),
                     "flags": ap.Flags,
                     "ssid": ssid,
+                    "mode": ap.Mode,
                     "connected": self._get_connected_ap() == ap,
                     "encryption": self._get_encryption(ap.RsnFlags),
                     "signal_level_dBm": ap.Strength,

@@ -44,12 +44,16 @@ class MovePanel(ScreenPanel):
         self.movement_area.set_resize_mode(False)
         self.border_corner = "inside" #value that indicates which boundary or corner we are at
         self.X_GCODE = self.Y_GCODE = self.Z_GCODE = 0
-        self.last = {
-                        "X": 0,
-                        "Y": 0,
-                        "Z": 0
+        self.prev_coord = {
+                        "X": None,
+                        "Y": None,
+                        "Z": None
         }
-        self.last_coord = [None, None, None]
+        self.last_coord = {
+                            "X": None,
+                            "Y": None,
+                            "Z": None
+        }
         self.max =  {    
                         "X": float(self._printer.get_config_section("stepper_x")['position_max']),
                         "Y": float(self._printer.get_config_section("stepper_y")['position_max']),
@@ -570,9 +574,9 @@ class MovePanel(ScreenPanel):
             if "gcode_move" in data and "gcode_position" in data["gcode_move"]:
                 self.labels['pos_x'].set_text(f"X: {data['gcode_move']['gcode_position'][0]:.2f}")
                 self.sensitive_axes("x", True)
-                if self.last_coord[0] != data['gcode_move']['gcode_position'][0]:
-                    self.last["X"] = self.last_coord[0]
-                    self.last_coord[0] = data['gcode_move']['gcode_position'][0]
+                if self.last_coord["X"] != data['gcode_move']['gcode_position'][0]:
+                    self.prev_coord["X"] = self.last_coord["X"]
+                    self.last_coord["X"] = data['gcode_move']['gcode_position'][0]
                     change_coord[0] = True
         else:
             self.labels['pos_x'].set_text("X: ?")
@@ -585,9 +589,9 @@ class MovePanel(ScreenPanel):
             if "gcode_move" in data and "gcode_position" in data["gcode_move"]:
                 self.labels['pos_y'].set_text(f"Y: {data['gcode_move']['gcode_position'][1]:.2f}")
                 self.sensitive_axes("y", True)
-                if self.last_coord[1] != data['gcode_move']['gcode_position'][1]:
-                    self.last["Y"] = self.last_coord[1]
-                    self.last_coord[1] = data['gcode_move']['gcode_position'][1]
+                if self.last_coord["Y"] != data['gcode_move']['gcode_position'][1]:
+                    self.prev_coord["Y"] = self.last_coord["Y"]
+                    self.last_coord["Y"] = data['gcode_move']['gcode_position'][1]
                     change_coord[1] = True
         else:
             self.labels['pos_y'].set_text("Y: ?")
@@ -600,9 +604,9 @@ class MovePanel(ScreenPanel):
             if "gcode_move" in data and "gcode_position" in data["gcode_move"]:
                 self.labels['pos_z'].set_text(f"Z: {data['gcode_move']['gcode_position'][2]:.2f}")
                 self.sensitive_axes("z", True)
-                if self.last_coord[2] != data['gcode_move']['gcode_position'][2]:
-                    self.last["Z"] = self.last_coord[2]
-                    self.last_coord[2] = data['gcode_move']['gcode_position'][2]
+                if self.last_coord["Z"] != data['gcode_move']['gcode_position'][2]:
+                    self.prev_coord["Z"] = self.last_coord["Z"]
+                    self.last_coord["Z"] = data['gcode_move']['gcode_position'][2]
                     change_coord[2] = True
         else:
             self.labels['pos_z'].set_text("Z: ?")
@@ -619,19 +623,19 @@ class MovePanel(ScreenPanel):
                                                          data['gcode_move']['gcode_position'][2])
                 if not self.mode:
                     if change_coord[0] and change_coord[1]:
-                        cathet_x = data['gcode_move']['gcode_position'][0] - self.last["X"]
-                        cathet_y = data['gcode_move']['gcode_position'][1] - self.last["Y"]
+                        cathet_x = data['gcode_move']['gcode_position'][0] - self.prev_coord["X"]
+                        cathet_y = data['gcode_move']['gcode_position'][1] - self.prev_coord["Y"]
                     elif change_coord[0]:
-                        cathet_x = data['gcode_move']['gcode_position'][0] - self.last["X"]
+                        cathet_x = data['gcode_move']['gcode_position'][0] - self.prev_coord["X"]
                         cathet_y = 0
                     else:
                         cathet_x = 0
-                        cathet_y = data['gcode_move']['gcode_position'][1] - self.last["Y"]
+                        cathet_y = data['gcode_move']['gcode_position'][1] - self.prev_coord["Y"]
                     point_tuple = {"to_x" : new_x, "to_y" : new_y, 
                                     "speed" : self._printer.data['gcode_move']['speed'], "Gy": cathet_y, "Gx": cathet_x}
                 else:
                     speed = self._printer.data['gcode_move']['speed']
-                    if data['gcode_move']['gcode_position'][2] - self.last["Z"] < 0:
+                    if change_coord[2] and data['gcode_move']['gcode_position'][2] - self.prev_coord["Z"] < 0:
                         speed = speed * -1
                     point_tuple = {"to_x" : new_x, "to_y" : new_y, 
                                     "speed" : speed}
@@ -672,12 +676,12 @@ class MovePanel(ScreenPanel):
         #! Need For rework (uncorrectly work)
         flt_dist = float(dist)
         if flt_dist < 0:
-            if self.min[axis] > self.last[axis] + flt_dist:
+            if self.min[axis] > self.last_coord[axis] + flt_dist:
                 self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_ABSOLUTE}\n{KlippyGcodes.MOVE} {axis}{self.min[axis]} F{speed}")
             else:
                self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_RELATIVE}\n{KlippyGcodes.MOVE} {axis}{dist} F{speed}") 
         else:
-            if self.max[axis] < self.last[axis] + float(dist):
+            if self.max[axis] < self.last_coord[axis] + flt_dist:
                 self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_ABSOLUTE}\n{KlippyGcodes.MOVE} {axis}{self.max[axis]} F{speed}")
             else:
                self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_RELATIVE}\n{KlippyGcodes.MOVE} {axis}{dist} F{speed}")  
@@ -687,16 +691,16 @@ class MovePanel(ScreenPanel):
 
     def last_mm_to_pixels(self, axis, dist):
         if axis == "X":
-            cursor_position_w = ((self.last_coord[0] + int(dist))*(self.area_w - self.cursor_button_width))/self.max["X"] + self.cursor_button_width/2
-            cursor_position_h = self.area_h - (self.last_coord[1]*(self.area_h - self.cursor_button_height))/self.max["Y"] - self.cursor_button_height/2
+            cursor_position_w = ((self.last_coord["X"] + int(dist))*(self.area_w - self.cursor_button_width))/self.max["X"] + self.cursor_button_width/2
+            cursor_position_h = self.area_h - (self.last_coord["Y"]*(self.area_h - self.cursor_button_height))/self.max["Y"] - self.cursor_button_height/2
             return cursor_position_w, cursor_position_h
         elif axis == "Y":
-            cursor_position_w = (self.last["X"]*(self.area_w - self.cursor_button_width))/self.max["X"] + self.cursor_button_width/2
-            cursor_position_h = self.area_h - ((self.last_coord[1] + int(dist))*(self.area_h - self.cursor_button_height))/self.max["Y"] - self.cursor_button_height/2
+            cursor_position_w = (self.prev_coord["X"]*(self.area_w - self.cursor_button_width))/self.max["X"] + self.cursor_button_width/2
+            cursor_position_h = self.area_h - ((self.last_coord["Y"] + int(dist))*(self.area_h - self.cursor_button_height))/self.max["Y"] - self.cursor_button_height/2
             return cursor_position_w, cursor_position_h
         elif axis == "Z":
             cursor_position_w = self.area_w/2
-            cursor_position_h = ((self.last_coord[2] + int(dist))*(self.area_h - self.cursor_button_height))/self.max["Z"]
+            cursor_position_h = ((self.last_coord["Z"] + int(dist))*(self.area_h - self.cursor_button_height))/self.max["Z"]
             return cursor_position_w, cursor_position_h
 
     def add_option(self, boxname, opt_array, opt_name, option):
