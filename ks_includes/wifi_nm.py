@@ -5,10 +5,12 @@ import contextlib
 import logging
 import uuid
 import os
-import NetworkManager
+from ks_includes import NetworkManager
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 import gi
+from subprocess import Popen
+from threading import Thread
 
 gi.require_version('Gdk', '3.0')
 from gi.repository import GLib
@@ -18,19 +20,19 @@ from ks_includes.wifi import WifiChannels
 NM_STATE = {
     NetworkManager.NM_DEVICE_STATE_UNKNOWN : {
             'msg': "State is unknown",
-            'callback': "connecting_status"
+            'callback': "disconnected"
         },
     NetworkManager.NM_DEVICE_STATE_REASON_UNKNOWN : {
             'msg': "State is unknown",
-            'callback': "connecting_status"
+            'callback': "disconnected"
         },
     NetworkManager.NM_DEVICE_STATE_UNMANAGED : {
             'msg': "Error: Not managed by NetworkManager",
-            'callback': ""
+            'callback': "disconnected"
         },
     NetworkManager.NM_DEVICE_STATE_UNAVAILABLE : {
             'msg': "Error: Not available for use:\nReasons may include the wireless switched off, missing firmware, etc.",
-            'callback': "connecting_status"
+            'callback': "disconnected"
         },
     NetworkManager.NM_DEVICE_STATE_DISCONNECTED : {
             'msg': "Currently disconnected",
@@ -42,23 +44,23 @@ NM_STATE = {
         },
     NetworkManager.NM_DEVICE_STATE_CONFIG : {
             'msg': "Connecting to the requested network...",
-            'callback': "connecting_status"
+            'callback': "connecting"
         },
     NetworkManager.NM_DEVICE_STATE_NEED_AUTH : {
             'msg': "Authorizing",
-            'callback': "connecting_status"
+            'callback': "connecting"
         },
     NetworkManager.NM_DEVICE_STATE_IP_CONFIG : {
             'msg': "Requesting IP addresses and routing information",
-            'callback': "connecting_status"
+            'callback': "connecting"
         },
     NetworkManager.NM_DEVICE_STATE_IP_CHECK : {
             'msg': "Checking whether further action is required for the requested network connection",
-            'callback': "connecting_status"
+            'callback': "connecting"
         },
     NetworkManager.NM_DEVICE_STATE_SECONDARIES : {
             'msg': "Waiting for a secondary connection (like a VPN)",
-            'callback': "connecting_status"
+            'callback': "connecting"
         },
     NetworkManager.NM_DEVICE_STATE_ACTIVATED : {
             'msg': "Connected",
@@ -66,7 +68,7 @@ NM_STATE = {
         },
     NetworkManager.NM_DEVICE_STATE_DEACTIVATING : {
             'msg': "A disconnection from the current network connection was requested",
-            'callback': "connecting_status"
+            'callback': "connecting"
         },
     NetworkManager.NM_DEVICE_STATE_FAILED : {
             'msg': _("Failed to connect to the requested network"),
@@ -74,7 +76,7 @@ NM_STATE = {
         },
     NetworkManager.NM_DEVICE_STATE_REASON_DEPENDENCY_FAILED : {
             'msg': "A dependency of the connection failed",
-            'callback': "connecting_status"
+            'callback': "connecting"
         },
     NetworkManager.NM_DEVICE_STATE_REASON_CARRIER : {
             'msg': "",
@@ -96,6 +98,7 @@ class WifiManager:
             "popup": [],
             "disconnected": [],
             "connecting": [],
+            "rescan_finish": []
             #"properties_changed": []
         }
         self.connected = False
@@ -114,17 +117,22 @@ class WifiManager:
         self.wireless_device.OnAccessPointAdded(self._ap_added)
         self.wireless_device.OnAccessPointRemoved(self._ap_removed)
         self.wireless_device.OnStateChanged(self._ap_state_changed)
-        # self.wireless_device.OnPropertiesChanged(self.nm_prop_changed)
-        self.wired_device = None
+        # Коллбэк на очередное состояние NetworkManager
+        #self.wireless_device.OnPropertiesChanged(self.nm_prop_changed)
 
         for ap in self.wireless_device.GetAccessPoints():
             self._add_ap(ap)
         self._update_known_connections()
         self.initialized = True
-        GLib.timeout_add_seconds(5, self.rescan)
+        
+        self.rescan_thread = None
+        self.rescan_thread = self.thread_rescan_popen_callback(self._on_rescan)
+        self.rescan_timer = GLib.timeout_add_seconds(30, self.rescan)
 
     # NetworkingConnectivity bug (show 4(limited) but nmcli show 5(full)) "Full"singal from both interfaces  
+    # Обработка коллбэка на очередное состояние NetworkManager
     # def nm_prop_changed(self, ap, interface, signal, properties):
+    #     logging.info(f"Callback nm_prop_changed:")
     #     logging.info( NetworkManager.NetworkManager.CheckConnectivity())
     #     logging.info(properties)
         
@@ -135,15 +143,15 @@ class WifiManager:
             if "802-11-wireless" in settings:
                 ssid = settings["802-11-wireless"]['ssid']
                 self.known_networks[ssid] = con
-
+                
     def _ap_added(self, nm, interface, signal, access_point):
         try:
-            with contextlib.suppress(NetworkManager.ObjectVanished):
-                access_point.OnPropertiesChanged(self._ap_prop_changed)
-                ssid = self._add_ap(access_point)
-                for cb in self._callbacks['scan_results']:
-                    args = (cb, [ssid], [])
-                    GLib.idle_add(*args)
+            # Привязка коллбэка на изменение поля для очередного соединения 
+            #access_point.OnPropertiesChanged(self._ap_prop_changed)
+            ssid = self._add_ap(access_point)
+            for cb in self._callbacks['scan_results']:
+                args = (cb, [ssid], [])
+                GLib.idle_add(*args)
         except:
             logging.error("Error in _ap_added")
 
@@ -162,8 +170,7 @@ class WifiManager:
     def _ap_state_changed(self, nm, interface, signal, old_state, new_state, reason):
         if new_state in NM_STATE:
             self.callback(NM_STATE[new_state]['callback'], NM_STATE[new_state]['msg'])
-        else:
-            logging.info(f"State {new_state}")
+            #logging.info(f"State {NM_STATE[new_state]['callback']} msg {NM_STATE[new_state]['msg']}")
 
         if new_state == NetworkManager.NM_DEVICE_STATE_ACTIVATED:
             self.connected = True
@@ -173,12 +180,14 @@ class WifiManager:
                 GLib.idle_add(*args)
         else:
             self.connected = False
-
-    def _ap_prop_changed(self, ap, interface, signal, properties):
-        # Doesnt't make sense
-        pass
-        # logging.info(ap.Ssid)
-        # logging.info(properties)
+            
+    # Обработка коллбэка на изменение поля для очередного соединения        
+    # Пропсы очень плохо регистрируются (на активном соеднении вообще не регистрируются) 
+    # def _ap_prop_changed(self, ap, interface, signal, properties):
+    #     logging.info(f"Callback _ap_prop_changed:")
+    #     logging.info(ap.Ssid)
+    #     logging.info(ap.Strength)
+        #logging.info(properties)
         # ap_status = {'ssid': ap.Ssid}
         # ap_status['properties'] = properties
         # self.callback("properties_changed", ap_status)
@@ -300,10 +309,10 @@ class WifiManager:
                     "frequency": str(ap.Frequency),
                     "flags": ap.Flags,
                     "ssid": ssid,
-                    "mode": ap.Mode,
+                    "is_hotspot": ap.Mode == NetworkManager.NM_802_11_MODE_AP,
                     "connected": self._get_connected_ap() == ap,
                     "encryption": self._get_encryption(ap.RsnFlags),
-                    "signal_level_dBm": ap.Strength,
+                    "signal_level_dBm": int(ap.Strength),
                 })
         return netinfo
 
@@ -334,9 +343,20 @@ class WifiManager:
         return {ssid: {"ssid": ssid} for ssid in self.known_networks.keys()}
 
     def rescan(self):
-        try:
-            self.wireless_device.RequestScan({})
-        except dbus.exceptions.DBusException as e:
-            logging.error(f"Error during rescan {e}")
-        finally:
-            return True
+        if not self.rescan_thread.is_alive():
+            self.rescan_thread = self.thread_rescan_popen_callback(self._on_rescan)
+        return True
+    
+    def _on_rescan(self):
+        self.callback("rescan_finish", "")
+        
+    def thread_rescan_popen_callback(self, callback) -> Thread:
+        def run_in_thread(callback):
+            proc = Popen(["nmcli","device", "wifi", "list", "--rescan", "yes"])
+            proc.wait()
+            callback()
+            return
+        thread = Thread(target=run_in_thread, args=(callback,))
+        thread.start()
+        return thread
+

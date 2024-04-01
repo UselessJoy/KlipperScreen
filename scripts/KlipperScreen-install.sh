@@ -112,7 +112,7 @@ create_virtualenv()
 
     source ${KSENV}/bin/activate
     pip --disable-pip-version-check install -r ${KSPATH}/scripts/KlipperScreen-requirements.txt
-    pip --disable-pip-version-check install python-networkmanager --use-deprecated=legacy-resolver
+    #pip --disable-pip-version-check install python-networkmanager --use-deprecated=legacy-resolver
     if [ $? -gt 0 ]; then
         echo_error "Error: pip install exited with status code $?"
         echo_text "Trying again with new tools..."

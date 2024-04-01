@@ -1,3 +1,4 @@
+import contextlib
 import logging
 
 import gi
@@ -109,7 +110,8 @@ class Printer:
                     self.set_dev_stat(x, i, data[x][i])
         for x in data:
             if x == "configfile":
-                continue
+                if not 'save_config_pending' in data[x]:
+                    continue
             if x not in self.data:
                 self.data[x] = {}
             self.data[x].update(data[x])
@@ -120,9 +122,9 @@ class Printer:
         # webhooks states: startup, ready, shutdown, error
         # print_stats: standby, printing, paused, error, complete
         # idle_timeout: Idle, Printing, Ready
-        if self.data['webhooks']['state'] == "interrupt" or self.data['print_stats']['state'] == 'interrupt':
-            return "interrupt"
         if self.data['webhooks']['state'] == "ready" and self.data['print_stats']:
+            if self.data['print_stats']['state'] == 'interrupt':
+                return "interrupt"
             if self.data['print_stats']['state'] == 'paused':
                 return "paused"
             if self.data['print_stats']['state'] == 'printing':
@@ -282,6 +284,8 @@ class Printer:
         return speed
     
     ####      NEW      ####
+    # Любой вызов функции, которая возвращает self.data[field]..., будет вызывать Exception до события "notify_klippy_ready"
+    # Можно всегда повесить условия, а при невыполнении возвращать None
     def get_autooff(self):
         return self.data['autooff']['autoOff_enable']
     
@@ -299,6 +303,9 @@ class Printer:
     
     def get_message(self):
         return self.data['messages']
+    
+    def get_screws_tilt_adjust(self):
+        return self.data['screws_tilt_adjust']
     ####    END NEW    ####
     
     def get_pin_value(self, pin):

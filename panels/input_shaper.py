@@ -26,9 +26,8 @@ class InputShaperPanel(ScreenPanel):
         super().__init__(screen, title)
         self.freq_xy_adj = {}
         self.freq_xy_combo = {}
-        self.calibrate_btn = self._gtk.Button("move", _('Auto-calibrate'), "color1", lines=1)
+        self.calibrate_btn = self._gtk.Button("move", _('Auto-calibrate'), "color1")
         self.calibrate_btn.connect("clicked", self.on_popover_clicked)
-        #self.calibrate_btn.set_hexpand(False)
         self.calibrate_btn.set_vexpand(False)
         self.calibrate_btn.set_sensitive(True)
         self.calibrating_axis = None
@@ -36,38 +35,23 @@ class InputShaperPanel(ScreenPanel):
 
         auto_calibration_label = Gtk.Label()
         auto_calibration_label.set_markup('<big><b>%s</b></big>' % _("Auto Calibration"))
-        auto_calibration_label.set_hexpand(True)
+        auto_calibration_label.set_line_wrap(True)
+        auto_calibration_label.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
         
         auto_grid = Gtk.Grid()
         auto_grid.attach(auto_calibration_label, 0, 0, 1, 1)
         auto_grid.attach(self.calibrate_btn, 1, 0, 1, 1)
-        manual_calibration_label = Gtk.Label()
-        manual_calibration_label.set_markup('<big><b>%s</b></big>' % _("Manual Calibration"))
-        #manual_calibration_label.set_vexpand(True)
-
-        disclaimer = Gtk.Label()
-        disclaimer.set_markup('<small>%s</small>' % _("NOTE: Edit your printer.cfg to save manual calibration changes."))
-        # disclaimer.set_line_wrap(True)
-        # disclaimer.set_halign(Gtk.Align.CENTER)
-
         input_grid = Gtk.Grid()
-        input_grid.attach(manual_calibration_label, 0, 0, 3, 1)
-        input_grid.attach(disclaimer, 0, 1, 3, 1)
 
         for i, dim_freq in enumerate(XY_FREQ):
             axis_lbl = Gtk.Label()
             axis_lbl.set_markup(f"<b>{dim_freq['name']}</b>")
             axis_lbl.set_hexpand(False)
-            #axis_lbl.set_vexpand(True)
-            #axis_lbl.set_halign(Gtk.Align.START)
-            #axis_lbl.set_valign(Gtk.Align.CENTER)
-            #axis_lbl.set_line_wrap(True)
 
             self.freq_xy_adj[dim_freq['config']] = Gtk.Adjustment(0, dim_freq['min'], dim_freq['max'], 0.1)
             scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=self.freq_xy_adj[dim_freq['config']])
             scale.set_digits(1)
             scale.set_hexpand(True)
-            #scale.set_valign(Gtk.Align.END)
             scale.set_has_origin(True)
             scale.get_style_context().add_class("option_slider")
             scale.connect("button-release-event", self.set_opt_value, dim_freq['config'])
@@ -84,7 +68,7 @@ class InputShaperPanel(ScreenPanel):
         
         scroll_grid = Gtk.Grid()
         self.sw = Gtk.ScrolledWindow()
-        self.sw.set_policy(Gtk.PolicyType.EXTERNAL, Gtk.PolicyType.EXTERNAL)
+        self.sw.set_policy(Gtk.PolicyType.EXTERNAL, Gtk.PolicyType.AUTOMATIC)
         self.sw.set_vexpand(True)
         self.sw.set_hexpand(True)
         self.tb = Gtk.TextBuffer()
@@ -96,10 +80,8 @@ class InputShaperPanel(ScreenPanel):
         tv.connect("size-allocate", self._autoscroll)
         self.sw.add(tv)
         scroll_grid.attach(self.sw, 0, 0, 1, 1)
-        #scroll_grid.attach(self.sw, 0, 0, 1, 1)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         box.add(auto_grid)
-        #box.add(self.calibrate_btn)
         box.add(input_grid)
         box.add(scroll_grid)
 
@@ -125,8 +107,6 @@ class InputShaperPanel(ScreenPanel):
 
     def start_calibration(self, widget, method):
         self.labels['popover'].popdown()
-        if self._printer.get_stat("toolhead", "homed_axes") != "xyz":
-            self._screen._ws.klippy.gcode_script(KlippyGcodes.HOME)
         self.calibrating_axis = method
         if method == "x":
             self._screen._ws.klippy.gcode_script('SHAPER_CALIBRATE AXIS=X')
@@ -152,16 +132,6 @@ class InputShaperPanel(ScreenPanel):
             f'SHAPER_TYPE_Y={shaper_type_y}'
         )
 
-    def save_config(self):
-
-        script = {"script": "SAVE_CONFIG"}
-        self._screen._confirm_send_action(
-            None,
-            _("Save configuration?") + "\n\n" + _("Klipper will reboot"),
-            "printer.gcode.script",
-            script
-        )
-
     def activate(self):
         # This will return the current values
         self._screen._ws.klippy.gcode_script('SET_INPUT_SHAPER')
@@ -180,7 +150,7 @@ class InputShaperPanel(ScreenPanel):
             return
         self.tb.insert_markup(
             self.tb.get_end_iter(),
-            f"\n<span >{data.replace('shaper_', '').replace('damping_', '')}</span>", -1)
+            f"\n<span >{data.replace('shaper_', '').replace('damping_', '').replace('// ', '')}</span>", -1)
         data = data.lower()
         if 'got 0' in data:
             self.calibrate_btn.set_label(_('Check ADXL Wiring'))
@@ -200,7 +170,6 @@ class InputShaperPanel(ScreenPanel):
             if self.calibrating_axis == results['axis'] or (self.calibrating_axis == "both" and results['axis'] == 'y'):
                 self.calibrate_btn.set_sensitive(True)
                 self.calibrate_btn.set_label(_('Calibrated'))
-                self.save_config()
         # shaper_type_y:ei shaper_freq_y:48.400 damping_ratio_y:0.100000
         if 'shaper_type_' in data:
             results = re.search(r'shaper_type_(?P<axis>[xy]):(?P<shaper_type>.*?) shaper_freq_.:('

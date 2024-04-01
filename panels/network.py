@@ -57,7 +57,6 @@ class NetworkPanel(ScreenPanel):
             return
         if action == "notify_status_update":
             if 'wifi_mode' in data and 'wifiMode' in data['wifi_mode']:
-                logging.info(f"wifi mode from process_update is {data['wifi_mode']['wifiMode']}")
                 self.wifi_mode = data['wifi_mode']['wifiMode']
                 if hasattr(self.cur_page, "show_according_wifi_mode"):
                     self.cur_page.show_according_wifi_mode(data['wifi_mode']['wifiMode'])

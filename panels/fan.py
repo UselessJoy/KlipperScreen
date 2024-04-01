@@ -35,10 +35,9 @@ class FanPanel(ScreenPanel):
     def process_update(self, action, data):
         if action != "notify_status_update":
             return
-
-        for fan in self.devices:
-            if fan in data and "speed" in data[fan]:
-                self.update_fan_speed(None, fan, self._printer.get_fan_speed(fan))
+        for obj_name in data:
+            if obj_name in self.devices and "speed" in data[obj_name]:
+                self.update_fan_speed(None, obj_name, data[obj_name]['speed'])
 
     def update_fan_speed(self, widget, fan, speed):
         if fan not in self.devices:
@@ -57,13 +56,12 @@ class FanPanel(ScreenPanel):
         if widget is not None:
             self.set_fan_speed(None, None, fan)
 
-    def add_fan(self, fan):
+    def add_fan(self, fan, locale_name):
 
         logging.info(f"Adding fan: {fan}")
         changeable = any(fan.startswith(x) or fan == x for x in CHANGEABLE_FANS)
         name = Gtk.Label()
-        fan_name = _("Part Fan") if fan == "fan" else fan.split()[1]
-        name.set_markup(f"\n<big><b>{fan_name}</b></big>\n")
+        name.set_markup(f"\n<big><b>{locale_name}</b></big>\n")
         name.set_hexpand(True)
         name.set_vexpand(True)
         name.set_halign(Gtk.Align.START)
@@ -124,12 +122,17 @@ class FanPanel(ScreenPanel):
 
     def load_fans(self):
         fans = self._printer.get_fans()
+        fans_dict = {}
         for fan in fans:
+            fans_dict[fan] = self._printer.get_config_section(fan)
+        for fan in fans_dict:
             # Support for hiding devices by name
-            name = fan.split()[1] if len(fan.split()) > 1 else fan
-            if name.startswith("_"):
+            locale_name = fan.split()[1] if len(fan.split()) > 1 else fan
+            if locale_name.startswith("_"):
                 continue
-            self.add_fan(fan)
+            if 'locale' in fans_dict[fan]:
+                locale_name = fans_dict[fan]['locale']
+            self.add_fan(fan, locale_name)
 
     def set_fan_speed(self, widget, event, fan):
         value = self.devices[fan]['scale'].get_value()
@@ -138,8 +141,6 @@ class FanPanel(ScreenPanel):
             self._screen._ws.klippy.gcode_script(KlippyGcodes.set_fan_speed(value))
         else:
             self._screen._ws.klippy.gcode_script(f"SET_FAN_SPEED FAN={fan.split()[1]} SPEED={float(value) / 100}")
-        # Check the speed in case it wasn't applied
-        GLib.timeout_add_seconds(1, self.check_fan_speed, fan)
 
     def check_fan_speed(self, fan):
         self.update_fan_speed(None, fan, self._printer.get_fan_speed(fan))

@@ -6,7 +6,6 @@ import netifaces
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, GLib, Pango
 from ks_includes.widgets.typed_entry import TypedEntry
-
 ### Сделать: 
 ### - панель ошибки при отсутствии беспроводных интерфейсов
 ### - список подключений для нескольких сетевых интерфейсов
@@ -26,17 +25,8 @@ class WiFiConnection(Gtk.Box):
         self.timer_points = None
         self.counter = 1
         self.connecting = False
-        self.use_network_manager = os.system('systemctl is-active --quiet NetworkManager.service') == 0
+        self.wifi = self._screen.base_panel.get_wifi_dev()
         self.connecting_ssid = None
-        if len(self.wireless_interfaces) > 0:
-            logging.info(f"Found wireless interfaces: {self.wireless_interfaces}")
-            if self.use_network_manager:
-                logging.info("Using NetworkManager")
-                from ks_includes.wifi_nm import WifiManager
-            else:
-                logging.info("Using wpa_cli")
-                from ks_includes.wifi import WifiManager
-            self.wifi = WifiManager(self.wireless_interfaces[0])  
     
         self.labels = {}
         self.labels['interface'] = Gtk.Label()
@@ -51,9 +41,9 @@ class WiFiConnection(Gtk.Box):
         else:
             ip = None
 
-        reload_networks = self._screen.gtk.Button("refresh", None, "color1", .66)
-        reload_networks.connect("clicked", self.reload_networks)
-        reload_networks.set_hexpand(False)
+        self.rescan_button = self._screen.gtk.Button("refresh", None, "color1", .66)
+        self.rescan_button.connect("clicked", self.reload_networks)
+        self.rescan_button.set_hexpand(False)
         sbox = Gtk.Box()
         sbox.set_hexpand(True)
         sbox.set_vexpand(False)
@@ -62,7 +52,7 @@ class WiFiConnection(Gtk.Box):
         if ip is not None:
             self.labels['ip'].set_text(f"IP: {ip}  ") 
         sbox.add(self.labels['ip'])
-        sbox.add(reload_networks)
+        sbox.add(self.rescan_button)
 
         scroll = self._screen.gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL)
@@ -81,16 +71,17 @@ class WiFiConnection(Gtk.Box):
             self.wifi.add_callback("popup", self.popup_callback)
             self.wifi.add_callback("disconnected", self.disconnected_callback)
             self.wifi.add_callback("connecting", self.connecting_callback)
+            self.wifi.add_callback("rescan_finish", self.rescan_finish_callback)
             #self.wifi.add_callback("properties_changed", self.on_properties_changed_callback)
             if self.update_timeout is None:
-                self.update_timeout = GLib.timeout_add_seconds(1, self.update_all_networks)
+                self.update_timeout = GLib.timeout_add_seconds(5, self.update_all_networks)
         else:
             self.labels['networkinfo'] = Gtk.Label("")
             self.labels['networkinfo'].get_style_context().add_class('temperature_entry')
             box.pack_start(self.labels['networkinfo'], False, False, 0)
             self.update_single_network_info()
             if self.update_timeout is None:
-                self.update_timeout = GLib.timeout_add_seconds(1, self.update_single_network_info)
+                self.update_timeout = GLib.timeout_add_seconds(5, self.update_single_network_info)
         self.add(box)
         self.labels['main_box'] = box
         
@@ -324,12 +315,20 @@ class WiFiConnection(Gtk.Box):
         self._screen.show_popup_message(msg)
     
     def disconnected_callback(self, msg):
+        self.connecting = False
+        if self.timer_points:
+            GLib.source_remove(self.timer_points)
+            self.timer_points = None
         self.check_missing_networks()
     
     def connecting_callback(self, msg):
         self.connecting = True
-        self.update_all_networks()
-                                     
+        #self.update_all_networks()
+    
+    def rescan_finish_callback(self, msg):
+        self._screen.gtk.Button_busy(self.rescan_button, False)
+        GLib.idle_add(self.load_networks)
+                                    
     def connected_callback(self, ssid, prev_ssid):
         logging.info("Now connected to a new network")
         self.connecting = False
@@ -501,16 +500,15 @@ class WiFiConnection(Gtk.Box):
         if "channel" in netinfo:
             chan = _("Channel") + f' {netinfo["channel"]}'
         if "signal_level_dBm" in netinfo:
-            lvl = f"{netinfo['signal_level_dBm']}%" if self.use_network_manager else _("dBm")
-            icon = self.signal_strength(int(netinfo["signal_level_dBm"]))
+            lvl = f"{netinfo['signal_level_dBm']}%"
+            icon_name = self._screen.base_panel.signal_strength(int(netinfo["signal_level_dBm"]))
             if 'icon' not in self.labels['networks'][ssid]:
+                icon = self._screen.gtk.Image(icon_name)
                 self.labels['networks'][ssid]['icon'] = icon
                 self.labels['networks'][ssid]['row'].add(icon)
                 self.labels['networks'][ssid]['row'].reorder_child(icon, 0)
-            self.labels['networks'][ssid]['row'].remove(self.labels['networks'][ssid]['icon'])
-            self.labels['networks'][ssid]['icon'] = icon
-            self.labels['networks'][ssid]['row'].add(icon)
-            self.labels['networks'][ssid]['row'].reorder_child(icon, 0)
+            else:
+                self._screen.gtk.update_image(self.labels['networks'][ssid]['icon'], icon_name)
         else:
             if not self.timer_points:
                 self.labels['networks'][ssid]['name'].set_markup(f"<big><b>{ssid}</b></big>")
@@ -521,21 +519,6 @@ class WiFiConnection(Gtk.Box):
                 self.labels['networks'][ssid][button].set_sensitive(not self.connecting)
         self.labels['networks'][ssid]['info'].show_all()
         self.labels['networks'][ssid]['row'].show_all()
-
-    def signal_strength(self, signal_level):
-        # networkmanager uses percentage not dbm
-        # the bars of nmcli are aligned near this breakpoints
-        exc = 77 if self.use_network_manager else -50
-        good = 60 if self.use_network_manager else -60
-        fair = 35 if self.use_network_manager else -70
-        if signal_level > exc:
-            return self._screen.gtk.Image('wifi_excellent')
-        elif signal_level > good:
-            return self._screen.gtk.Image('wifi_good')
-        elif signal_level > fair:
-            return self._screen.gtk.Image('wifi_fair')
-        else:
-            return self._screen.gtk.Image('wifi_weak')
     
     # def on_properties_changed_callback(self, ap_status):
     #     self.update_network_info(ap_status['ssid'])
@@ -563,22 +546,25 @@ class WiFiConnection(Gtk.Box):
 
         self.labels['networkinfo'].set_markup(connected)
         self.labels['networkinfo'].show_all()
+        return True
 
     def reload_networks(self, widget=None):
         self.networks = {}
         self.labels['networklist'].remove_column(0)
         if self.wifi is not None and self.wifi.initialized:
+            self._screen.gtk.Button_busy(self.rescan_button, True)
             self.wifi.rescan()
-            GLib.idle_add(self.load_networks)
-
+            
+    
+    
     def activate(self):
         if self.initialized:
             self.reload_networks()
             if self.update_timeout is None:
                 if self.wifi is not None and self.wifi.initialized:
-                    self.update_timeout = GLib.timeout_add_seconds(3, self.update_all_networks)
+                    self.update_timeout = GLib.timeout_add_seconds(5, self.update_all_networks)
                 else:
-                    self.update_timeout = GLib.timeout_add_seconds(1, self.update_single_network_info)
+                    self.update_timeout = GLib.timeout_add_seconds(5, self.update_single_network_info)
 
     def deactivate(self):
         if self.update_timeout is not None:

@@ -19,7 +19,7 @@ class KlippyGcodes:
     SET_FAN_SPEED = "M106"
     SET_SPD_FACTOR = "M220"
 
-    PROBE_CALIBRATE = "PROBE_CALIBRATE"
+    PROBE_CALIBRATE = "PROBE_CALIBRATE SAMPLES=3"
     Z_ENDSTOP_CALIBRATE = "Z_ENDSTOP_CALIBRATE"
     TESTZ = "TESTZ Z="
     ABORT = "ABORT"
@@ -93,4 +93,12 @@ class KlippyGcodes:
     @staticmethod
     def pass_interrupt():
         return f"SDCARD_PASS_FILE"
+    
+    @staticmethod
+    def get_magnet_probe():
+        return f"GET_MAGNET_PROBE"
+    
+    @staticmethod
+    def return_magnet_probe():
+        return f"RETURN_MAGNET_PROBE"
     ####    END NEW    ####

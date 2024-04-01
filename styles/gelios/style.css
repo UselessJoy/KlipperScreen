@@ -101,6 +101,19 @@ button.color2 {
     border-radius: 1em;
 }
 
+button.color5 {
+    background-color: inherit; 
+    box-shadow: 0px 0px 10px 5px rgba(10, 145, 178, 0.2), 0px 01px 10px 5px rgba(10, 145, 178, 0.2) inset;
+    /* box-shadow: -8px 11px 10px 2px rgba(34, 60, 80, 0.2) inset; */
+    border-width: .3em;
+    border-style: solid;
+    border-radius: 1em;
+    border-color: #0a91b3;
+}
+button.color5:active {
+    border-style: none;
+    box-shadow: none;
+}
 button.color3 {
     background-color: inherit; /*base02*/
     box-shadow: -8px 11px 10px 2px rgba(34, 60, 80, 0.2) inset;
@@ -312,7 +325,12 @@ scrollbar slider {
 }
 
 .scrolled_window_mesh_profiles {
-    background-color: rgba(0, 0, 0, 0.5); 
+    background-color: rgba(0, 0, 0, 0.4); 
+}
+
+.scrolled_window_bed_level {
+    background-color: #001d24; 
+    border-radius: 1em;
 }
 
 textview .time {

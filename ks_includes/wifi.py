@@ -56,7 +56,7 @@ class WifiManager:
         self.wpa_cli("ATTACH", False)
         self.wpa_cli("SCAN", False)
         GLib.idle_add(self.read_wpa_supplicant)
-        self.timeout = GLib.timeout_add_seconds(180, self.rescan)
+        #self.timeout = GLib.timeout_add_seconds(180, self.rescan)
 
     def add_callback(self, name, callback):
         if name in self._callbacks and callback not in self._callbacks[name]:

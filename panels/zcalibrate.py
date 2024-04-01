@@ -20,22 +20,25 @@ class ZCalibratePanel(ScreenPanel):
 
     def __init__(self, screen, title):
         super().__init__(screen, title)
-        self.z_offset = None
         self.probe = self._printer.get_probe()
-        if self.probe:
-            self.z_offset = float(self.probe['z_offset'])
+        self.z_offset = None
+        self.last_z_result = None
+        self.manual_active = False
         logging.info(f"Z offset: {self.z_offset}")
         self.widgets['zposition'] = Gtk.Label("Z: ?")
-
-        pos = self._gtk.HomogeneousGrid()
-        pos.attach(self.widgets['zposition'], 0, 1, 2, 1)
-        if self.z_offset is not None:
-            self.widgets['zoffset'] = Gtk.Label("?")
-            pos.attach(Gtk.Label(_("Probe Offset") + ": "), 0, 2, 2, 1)
-            pos.attach(Gtk.Label(_("Saved")), 0, 3, 1, 1)
-            pos.attach(Gtk.Label(_("New")), 1, 3, 1, 1)
-            pos.attach(Gtk.Label(f"{self.z_offset:.2f}"), 0, 4, 1, 1)
-            pos.attach(self.widgets['zoffset'], 1, 4, 1, 1)
+        self.widgets['whichoffset'] = Gtk.Label()
+        self.widgets['savedoffset'] = Gtk.Label("?")
+        self.widgets['zoffset'] = Gtk.Label("?")
+        self.widgets['probe_z_result'] = Gtk.Label()
+        self.z_pos_grid = self._gtk.HomogeneousGrid()
+        self.z_pos_grid.attach(self.widgets['zposition'], 0, 1, 2, 1)
+        self.z_pos_grid.attach(self.widgets['whichoffset'] , 0, 2, 2, 1)
+        self.z_pos_grid.attach(self.widgets['probe_z_result'], 0, 3, 2, 1)
+        self.z_pos_grid.attach(Gtk.Label(_("Saved")), 0, 4, 1, 1)
+        self.z_pos_grid.attach(Gtk.Label(_("New")), 1, 4, 1, 1)
+        self.z_pos_grid.attach(self.widgets['savedoffset'], 0, 5, 1, 1)
+        self.z_pos_grid.attach(self.widgets['zoffset'], 1, 5, 1, 1)
+        
         self.buttons = {
             'zpos': self._gtk.Button('z-farther', _("Raise Nozzle"), 'color4'),
             'zneg': self._gtk.Button('z-closer', _("Lower Nozzle"), 'color1'),
@@ -43,8 +46,8 @@ class ZCalibratePanel(ScreenPanel):
             'complete': self._gtk.Button('complete', _('Accept'), 'color3'),
             'cancel': self._gtk.Button('cancel', _('Abort'), 'color2'),
         }
-        self.buttons['zpos'].connect("clicked", self.move, "+")
-        self.buttons['zneg'].connect("clicked", self.move, "-")
+        self.buttons['zpos'].connect("clicked", self.move, "-")
+        self.buttons['zneg'].connect("clicked", self.move, "+")
         self.buttons['complete'].connect("clicked", self.accept)
         self.buttons['cancel'].connect("clicked", self.abort)
 
@@ -52,21 +55,21 @@ class ZCalibratePanel(ScreenPanel):
         pobox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         if self._printer.config_section_exists("stepper_z") \
                 and not self._printer.get_config_section("stepper_z")['endstop_pin'].startswith("probe"):
-            self._add_button("Endstop", "endstop", pobox)
+            self._add_button(_("Endstop"), "endstop", pobox)
             functions.append("endstop")
         if self.probe:
-            self._add_button("Probe", "probe", pobox)
+            self._add_button(_("Probe"), "probe", pobox)
             functions.append("probe")
         if self._printer.config_section_exists("bed_mesh") and "probe" not in functions:
             # This is used to do a manual bed mesh if there is no probe
-            self._add_button("Bed mesh", "mesh", pobox)
+            self._add_button(_("Bed mesh"), "mesh", pobox)
             functions.append("mesh")
         if "delta" in self._printer.get_config_section("printer")['kinematics']:
             if "probe" in functions:
-                self._add_button("Delta Automatic", "delta", pobox)
+                self._add_button(_("Delta Automatic"), "delta", pobox)
                 functions.append("delta")
             # Since probes may not be accturate enough for deltas, always show the manual method
-            self._add_button("Delta Manual", "delta_manual", pobox)
+            self._add_button(_("Delta Manual"), "delta_manual", pobox)
             functions.append("delta_manual")
 
         logging.info(f"Available functions for calibration: {functions}")
@@ -102,12 +105,12 @@ class ZCalibratePanel(ScreenPanel):
         distances.pack_start(distgrid, True, True, 0)
 
         grid = Gtk.Grid()
-        grid.set_column_homogeneous(True)
+        #grid.set_row_homogeneous(True)
         if self._screen.vertical_mode:
             grid.attach(self.buttons['zpos'], 0, 1, 1, 1)
             grid.attach(self.buttons['zneg'], 0, 2, 1, 1)
             grid.attach(self.buttons['start'], 0, 0, 1, 1)
-            grid.attach(pos, 1, 0, 1, 1)
+            grid.attach(self.z_pos_grid, 1, 0, 1, 1)
             grid.attach(self.buttons['complete'], 1, 1, 1, 1)
             grid.attach(self.buttons['cancel'], 1, 2, 1, 1)
             grid.attach(distances, 0, 3, 2, 1)
@@ -115,7 +118,7 @@ class ZCalibratePanel(ScreenPanel):
             grid.attach(self.buttons['zpos'], 0, 0, 1, 1)
             grid.attach(self.buttons['zneg'], 0, 1, 1, 1)
             grid.attach(self.buttons['start'], 1, 0, 1, 1)
-            grid.attach(pos, 1, 1, 1, 1)
+            grid.attach(self.z_pos_grid, 1, 1, 1, 1)
             grid.attach(self.buttons['complete'], 2, 0, 1, 1)
             grid.attach(self.buttons['cancel'], 2, 1, 1, 1)
             grid.attach(distances, 0, 2, 3, 1)
@@ -132,11 +135,13 @@ class ZCalibratePanel(ScreenPanel):
 
     def start_calibration(self, widget, method):
         self.labels['popover'].popdown()
-        if self._printer.get_stat("toolhead", "homed_axes") != "xyz":
-            self._screen._ws.klippy.gcode_script(KlippyGcodes.HOME)
-
+        
         if method == "probe":
-            self._move_to_position()
+            self.z_offset = float(self.probe['z_offset'])
+            self.widgets['whichoffset'].set_text(_("Probe Offset"))
+            self.widgets['savedoffset'].set_text(f"{self.z_offset:.2f}")
+            self.widgets['probe_z_result'].set_text("Проба сработала на Z = ?")
+            #self._move_to_position()
             self._screen._ws.klippy.gcode_script(KlippyGcodes.PROBE_CALIBRATE)
         elif method == "mesh":
             self._screen._ws.klippy.gcode_script("BED_MESH_CALIBRATE")
@@ -145,6 +150,9 @@ class ZCalibratePanel(ScreenPanel):
         elif method == "delta_manual":
             self._screen._ws.klippy.gcode_script("DELTA_CALIBRATE METHOD=manual")
         elif method == "endstop":
+            self.z_offset = float(self._printer.get_config_section("stepper_z")['position_endstop'])
+            self.widgets['whichoffset'].set_text(_("Endstop Offset"))
+            self.widgets['savedoffset'].set_text(f"{self.z_offset:.2f}")
             self._screen._ws.klippy.gcode_script(KlippyGcodes.Z_ENDSTOP_CALIBRATE)
 
     def _move_to_position(self):
@@ -237,7 +245,29 @@ class ZCalibratePanel(ScreenPanel):
                 self.widgets['zposition'].set_text("Z: ?")
             elif "gcode_move" in data and "gcode_position" in data['gcode_move']:
                 self.update_position(data['gcode_move']['gcode_position'])
-        elif action == "notify_gcode_response":
+            if 'manual_probe' in data:
+                if 'is_active' in data['manual_probe']:
+                    self.manual_active = data['manual_probe']['is_active']
+                if 'command' in data['manual_probe']:
+                    if data['manual_probe']['command'] == 'Z_ENDSTOP_CALIBRATE':
+                        self.z_offset = float(self._printer.get_config_section("stepper_z")['position_endstop'])
+                        self.widgets['whichoffset'].set_text(_("Endstop Offset"))
+                        self.widgets['savedoffset'].set_text(f"{self.z_offset:.2f}")
+                        self.widgets['probe_z_result'].set_text("")
+                    elif data['manual_probe']['command'] == 'PROBE_CALIBRATE':
+                        self.z_offset = float(self.probe['z_offset'])
+                        self.widgets['whichoffset'].set_text(_("Probe Offset"))
+                        self.widgets['savedoffset'].set_text(f"{self.z_offset:.2f}")
+                        self.widgets['probe_z_result'].set_text("Проба сработала на Z = ?")  
+            if 'probe' in data and 'last_z_result' in data['probe']:
+                if data['probe']['last_z_result']:
+                    self.last_z_result = data['probe']['last_z_result']
+            if self.widgets['probe_z_result'].get_text() != "" and self.manual_active:
+                self.widgets['probe_z_result'].show()
+                self.widgets['probe_z_result'].set_text("Проба сработала на Z = %.2f" % self.last_z_result)
+            else:
+                self.widgets['probe_z_result'].hide()
+        if action == "notify_gcode_response":
             data = data.lower()
             if "unknown" in data:
                 self.buttons_not_calibrating()
@@ -258,8 +288,12 @@ class ZCalibratePanel(ScreenPanel):
 
     def update_position(self, position):
         self.widgets['zposition'].set_text(f"Z: {position[2]:.2f}")
-        if self.z_offset is not None:
-            self.widgets['zoffset'].set_text(f"{position[2] - self.z_offset:.2f}")
+        if self.z_offset:
+            if self.widgets['probe_z_result'].get_text() == "": #Если концевик
+                self.widgets['zoffset'].set_text(f"{(self.z_offset - position[2]):.2f}")
+            # Если проба
+            elif self.last_z_result:
+                self.widgets['zoffset'].set_text(f"{(self.last_z_result - position[2]):.2f}")
 
     def change_distance(self, widget, distance):
         logging.info(f"### Distance {distance}")

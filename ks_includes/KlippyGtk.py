@@ -9,6 +9,15 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, GdkPixbuf, Gio, Gtk, Pango
 
+def find_widget(widget, wanted_type):
+    # Returns a widget of wanted_type or None
+    if isinstance(widget, wanted_type):
+        return widget
+    if isinstance(widget, (Gtk.Container, Gtk.Bin, Gtk.Button, Gtk.Alignment, Gtk.Box)):
+        for _ in widget.get_children():
+            result = find_widget(_, wanted_type)
+            if result is not None:
+                return result
 
 def format_label(widget, lines=2, is_ellipsize=True):
     if type(widget) == Gtk.Label:
@@ -130,6 +139,18 @@ class KlippyGtk:
         logging.error(f"Unable to find image {filename}.{ext}")
         return Gtk.Image()
 
+    def update_image(self, image_object, image_name, width=None, height=None):
+        filename = os.path.join(self.themedir, image_name)
+        width = width if width is not None else self.img_width
+        height = height if height is not None else self.img_height
+        for ext in ["svg", "png"]:
+            with contextlib.suppress(Exception):
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(f"{filename}.{ext}", int(width), int(height))
+                if pixbuf is not None:
+                    image_object.set_from_pixbuf(pixbuf)
+                else:
+                    logging.warning(f"Unable to find image {filename}.{ext}")
+
     @staticmethod
     def PixbufFromFile(filename, width=-1, height=-1):
         return GdkPixbuf.Pixbuf.new_from_file_at_size(filename, int(width), int(height))
@@ -146,12 +167,9 @@ class KlippyGtk:
     def Button(self, image_name=None, label=None, style=None, scale=None, position=Gtk.PositionType.TOP, lines=2, is_ellipsize=True):
         if self.font_size_type == "max" and label is not None and scale is None:
             image_name = None
-        b = Gtk.Button()
+        b = Gtk.Button(hexpand=True, vexpand=True, can_focus=False, image_position=position, always_show_image=True)
         if label is not None:
-            b.set_label(label.replace("\n", " "))
-        b.set_hexpand(True)
-        b.set_vexpand(True)
-        b.set_can_focus(False)
+            b.set_label(label)
         if image_name is not None:
             if scale is None:
                 scale = self.button_image_scale
@@ -159,8 +177,11 @@ class KlippyGtk:
                 scale = scale * 1.5
             width = height = self.img_scale * scale
             b.set_image(self.Image(image_name, width, height))
-        b.set_image_position(position)
-        b.set_always_show_image(True)
+            spinner = Gtk.Spinner(width_request=width, height_request=height, no_show_all=True)
+            spinner.hide()
+            box = find_widget(b, Gtk.Box)
+            if box:
+                box.add(spinner)
 
         if label is not None:
             format_label(b, lines, is_ellipsize)
@@ -168,6 +189,27 @@ class KlippyGtk:
             b.get_style_context().add_class(style)
         b.connect("clicked", self.screen.reset_screensaver_timeout)
         return b
+    
+    @staticmethod
+    def Button_busy(widget, busy):
+        spinner = find_widget(widget, Gtk.Spinner)
+        image = find_widget(widget, Gtk.Image)
+        if busy:
+            widget.set_sensitive(False)
+            if image:
+                widget.set_always_show_image(False)
+                image.hide()
+            if spinner:
+                spinner.show()
+                spinner.start()
+        else:
+            if image:
+                widget.set_always_show_image(True)
+                image.show()
+            if spinner:
+                spinner.hide()
+                spinner.stop()
+            widget.set_sensitive(True)
 
     def Dialog(self, screen, buttons, content, callback=None, *args, width=None, height=None, style=None):
         dialog = Gtk.Dialog()

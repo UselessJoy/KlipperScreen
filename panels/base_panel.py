@@ -5,7 +5,7 @@ import os
 import subprocess
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import GLib, Gtk, Pango
+from gi.repository import GLib, Gtk, Pango, Gdk, GdkPixbuf
 from jinja2 import Environment
 from datetime import datetime
 from math import log
@@ -58,6 +58,7 @@ class BasePanel(ScreenPanel):
             #self.wifi.add_callback("strength_changed", self.on_properties_changed_callback)
             self.wifi.add_callback("connecting", self.connecting_callback)
             self.wifi.add_callback("connected", self.connected_callback)
+            self.wifi.add_callback("disconnected", self.disconnected_callback)
             self.wifi.add_callback("popup", self.popup_callback)
         ####    END NEW    ####
 
@@ -106,11 +107,31 @@ class BasePanel(ScreenPanel):
         # This box will be populated by show_heaters
         self.control['temp_box'] = Gtk.Box(spacing=10)
         
-        self.control['network_box'] = Gtk.Box(spacing=15)
-        self.control['network_box'].set_margin_start(15)
-        #img_size = self._gtk.img_scale * self.bts
-        self.network_status_image = self._gtk.Image()#self._gtk.Image('lan_status_none', img_size, img_size)
-        self.control['network_box'].add(self.network_status_image)
+        self.network_status_image = self._gtk.Image()
+        self.network_status_image.set_margin_left(15)
+        self.network_status_image.hide()
+        self.img_network_size = self._gtk.img_scale * self.bts
+        self.on_connecting_spinner = Gtk.Spinner()
+        self.on_connecting_spinner.set_size_request(self.img_network_size, self.img_network_size)
+        self.on_connecting_spinner.hide()
+        
+        self.unsaved_config_box = Gtk.EventBox()
+        self.unsaved_config_box.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+        self.unsaved_config_box.add_events(Gdk.EventMask.TOUCH_MASK)
+        self.unsaved_config_box.connect("button_release_event", self.on_popover_clicked)
+        self.unsaved_config_box.connect('touch-event', self.on_popover_clicked)
+        
+        self.on_unsaved_config = Gtk.Image()
+        self.on_unsaved_config.set_margin_left(15)
+        self.unsaved_config_box.add(self.on_unsaved_config)
+        
+        self.unsaved_config_popover = Gtk.Popover()
+        self.unsaved_config_popover.get_style_context().add_class("message_popup")
+        self.unsaved_config_popover.set_halign(Gtk.Align.CENTER)
+        self.unsaved_config_popover.add(Gtk.Label(label=_("Have unsaved options")))
+        self.unsaved_config_popover.set_relative_to(self.unsaved_config_box)
+        self.unsaved_config_popover.set_position(Gtk.PositionType.BOTTOM)
+        
         
         self.titlelbl = Gtk.Label() 
         self.titlelbl.set_hexpand(True)
@@ -127,7 +148,9 @@ class BasePanel(ScreenPanel):
         self.titlebar.get_style_context().add_class("title_bar")
         self.titlebar.set_valign(Gtk.Align.CENTER)
         self.titlebar.add(self.control['temp_box'])
-        self.titlebar.add(self.control['network_box'])
+        self.titlebar.add(self.network_status_image)
+        self.titlebar.add(self.on_connecting_spinner)
+        self.titlebar.add(self.unsaved_config_box)
         self.titlebar.add(self.titlelbl)
         self.titlebar.add(self.control['time_box'])
 
@@ -145,8 +168,10 @@ class BasePanel(ScreenPanel):
             self.action_bar.set_orientation(orientation=Gtk.Orientation.VERTICAL)
         self.update_time()
         GLib.timeout_add_seconds(1, self.update_connected_network_status)
-        
 
+    def on_popover_clicked(self, widget, event):
+        self.unsaved_config_popover.show_all()
+    
     def create_time_modal(self, widget, event):
         
         buttons = [
@@ -190,11 +215,6 @@ class BasePanel(ScreenPanel):
             self.minutes = value
 
     ####      NEW      ####
-    def get_width_action_bar(self):
-        return self.action_bar.get_allocation().width
-    
-    def get_height_titlebar(self):
-        return self.titlebar.get_allocation().height
         
     def show_power_dialog(self, widget):
         buttons = [
@@ -220,7 +240,9 @@ class BasePanel(ScreenPanel):
     #     if ap_status['ssid'] == self.wifi.get_connected_ssid():
     #         if 'Strength' in ap_status['properties']: 
     #             self.update_connected_network_status()
-                
+    
+    def get_wifi_dev(self):
+        return self.wifi
     # Callback only from wireless interface
     def connecting_callback(self, msg):
         logging.info("connecting...")
@@ -230,61 +252,71 @@ class BasePanel(ScreenPanel):
     def connected_callback(self, ssid, prev_ssid):
         logging.info("connected!")
         self.is_connecting_to_network = False
-    
-    def popup_callback(self, msg):
-        logging.info("exception connect!")
+        self.update_connected_network_status()
+        
+    def disconnected_callback(self, msg):
+        logging.info("disconnected!")
         self.is_connecting_to_network = False
+        self.update_connected_network_status()
+        
+    def popup_callback(self, msg):
+        logging.exception("exception connect!")
+        self.is_connecting_to_network = False
+        self.update_connected_network_status()
     
     def update_connected_network_status(self):
-        img_size = self._gtk.img_scale * self.bts
-        if not self.is_connecting_to_network:
-            try:
+        try:
+            if not self.is_connecting_to_network:
+                if self.on_connecting_spinner.get_visible():
+                    self.on_connecting_spinner.hide()
+                    self.on_connecting_spinner.stop()
+                if not self.network_status_image.get_visible():
+                    self.network_status_image.show()
                 connected_ssid = self.wifi.get_connected_ssid()
                 if not connected_ssid:
-                    raise Exception("Connected ssid not found")
-                netinfo = self.wifi.get_network_info(connected_ssid)
-                # get_wifi_hotspot not needed, may add "mode" prop in get_connected_ssid (like "mode": ap.Mode)
-                if self._printer.get_wifi_hotspot() == connected_ssid:
-                    self.network_status_image = self._gtk.Image(f"access_point", img_size, img_size)
-                elif "signal_level_dBm" in netinfo:
-                    self.network_status_image = self.signal_strength(int(netinfo["signal_level_dBm"]), img_size)
-            except Exception as e:
-                data: bytes = subprocess.check_output(["nmcli", "networking", "connectivity"])
-                data = data.decode("utf-8").strip()
-                self.network_status_image = self._gtk.Image(f"lan_status_{data}", img_size, img_size) if data != 'none' else self._gtk.Image()
-            finally:
-                for child in self.control['network_box']:
-                    self.control['network_box'].remove(child)
-                self.control['network_box'].add(self.network_status_image)
-                self.control['network_box'].show_all() 
-                return True
-        else:
-            # pass if already spinner
-            if isinstance(self.network_status_image, Gtk.Spinner):
-                return True
-            self.network_status_image = Gtk.Spinner()
-            self.network_status_image.set_size_request(img_size, img_size)
-            self.network_status_image.start()
-        for child in self.control['network_box']:
-                self.control['network_box'].remove(child)
-        self.control['network_box'].add(self.network_status_image)
-        self.control['network_box'].show_all() 
+                    # connectivity в объекте нетворк манагера херово работает (он показывает 4, а команда напрямую показывает full)
+                    data: bytes = subprocess.check_output(["nmcli", "networking", "connectivity"])
+                    data = data.decode("utf-8").strip()
+                    self._screen.gtk.update_image(self.network_status_image, f"lan_status_{data}", self.img_network_size, self.img_network_size)
+                    #logging.info(f"showing lan_status_{data}")
+                else:
+                    netinfo: dict = self.wifi.get_network_info(connected_ssid)
+                    if not "is_hotspot" in netinfo:
+                        netinfo["is_hotspot"] = False
+                        logging.warning("Cannot get hotspot info")
+                    if not "signal_level_dBm" in netinfo:
+                        netinfo["signal_level_dBm"] = 0
+                        logging.warning("Cannot get signal strehgth info")
+                    if netinfo["is_hotspot"]:
+                        self._screen.gtk.update_image(self.network_status_image, "access_point", self.img_network_size, self.img_network_size)
+                        #logging.info("showing access_point")
+                    else:
+                        self._screen.gtk.update_image(self.network_status_image, self.signal_strength(netinfo["signal_level_dBm"]), self.img_network_size, self.img_network_size)
+                        #logging.info("showing wifi with signal")     
+            else:
+                if self.network_status_image.get_visible():
+                    self.network_status_image.hide()
+                if not self.on_connecting_spinner.get_visible():
+                    self.on_connecting_spinner.show()
+                    self.on_connecting_spinner.start()
+        except Exception as e:
+            logging.exception(f"Error on update network status:\n{e}")
         return True
-    
-    def signal_strength(self, signal_level, img_size):
+                
+    def signal_strength(self, signal_level):
         # networkmanager uses percentage not dbm
         # the bars of nmcli are aligned near this breakpoints
         exc = 77 if self.use_network_manager else -50
         good = 60 if self.use_network_manager else -60
         fair = 35 if self.use_network_manager else -70
         if signal_level > exc:
-            return self._gtk.Image('wifi_excellent', img_size, img_size)
+            return "wifi_excellent"
         elif signal_level > good:
-            return self._gtk.Image('wifi_good', img_size, img_size)
+            return "wifi_good"
         elif signal_level > fair:
-            return self._gtk.Image('wifi_fair', img_size, img_size)
+            return "wifi_fair"
         else:
-            return self._gtk.Image('wifi_weak', img_size, img_size)    
+            return "wifi_weak"   
         
         
     def show_heaters(self, show=True):
@@ -339,7 +371,6 @@ class BasePanel(ScreenPanel):
                     self.control['temp_box'].add(self.labels[f"{device}_box"])
                     n += 1
             self.control['temp_box'].show_all()
-            self.control['network_box'].show_all()
         except Exception as e:
             logging.debug(f"Couldn't create heaters box: {e}")
 
@@ -405,6 +436,17 @@ class BasePanel(ScreenPanel):
                                 self._gtk.remove_dialog(dialog)
         if action != "notify_status_update" or self._screen.printer is None:
             return
+        if 'configfile' in data:
+                if 'save_config_pending' in data['configfile']:
+                    logging.info(f"show config pending is {data['configfile']['save_config_pending']}")
+                    if data['configfile']['save_config_pending'] == True:
+                        if not self.on_unsaved_config.get_pixbuf():
+                            self._screen.gtk.update_image(self.on_unsaved_config, "unsaved_config", self.img_network_size, self.img_network_size)
+                        self.on_unsaved_config.show()
+                        logging.info("show unsaved")
+                    else:
+                        self.on_unsaved_config.hide()
+                        logging.info("hide unsaved")
         devices = self._printer.get_temp_store_devices()
         if devices is not None:
             for device in devices:
@@ -438,9 +480,6 @@ class BasePanel(ScreenPanel):
             if self.interrupt_dialog is not None and data['virtual_sdcard']['show_interrupt'] == False:
                 self._gtk.remove_dialog(self.interrupt_dialog)
                 self.interrupt_dialog = None
-            # Interrput dialog showing from screen.py
-            # elif data['virtual_sdcard']['show_interrupt'] == True:
-            #     self.show_interrupt_dialog()
         with contextlib.suppress(Exception):
             if "is_open" in data["messages"]:
                 if data["messages"]["is_open"]:

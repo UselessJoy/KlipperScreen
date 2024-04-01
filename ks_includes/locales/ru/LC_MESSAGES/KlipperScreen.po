@@ -368,7 +368,7 @@ msgid "Interface"
 msgstr "Интерфейс"
 
 msgid "Invalid"
-msgstr "Неверный"
+msgstr "Недействительный"
 
 msgid "Invalid password"
 msgstr "Неверный пароль"
@@ -422,7 +422,7 @@ msgid "Load"
 msgstr "Загрузить"
 
 msgid "Lower Nozzle"
-msgstr "Опустить сопло"
+msgstr "Опустить стол"
 
 msgid "Macro shortcut on sidebar"
 msgstr "Показывать макросы в панели"
@@ -488,7 +488,7 @@ msgid "Never"
 msgstr "Никогда"
 
 msgid "New"
-msgstr "Новый"
+msgstr "Новое"
 
 msgid ""
 "Not supported for auto-detection, it needs to be configured in klipperscreen."
@@ -567,6 +567,9 @@ msgstr "Идет печать"
 msgid "Probe Offset"
 msgstr "Смещение пробы"
 
+msgid "Endstop Offset"
+msgstr "Смещение концевика"
+
 msgid "Provide KlipperScreen.log when asking for help"
 msgstr "Откройте KlipperScreen.log для подробной информации"
 
@@ -574,7 +577,7 @@ msgid "Quad Gantry Level"
 msgstr "Уровень Quad Gantry"
 
 msgid "Raise Nozzle"
-msgstr "Поднять сопло"
+msgstr "Поднять стол"
 
 msgid "Recover"
 msgstr "Восстановить"
@@ -586,7 +589,34 @@ msgid "Recover Soft"
 msgstr "Восстановить software"
 
 msgid "Reference"
-msgstr "Ссылка"
+msgstr "Базовая точка"
+
+msgid "Front left screw"
+msgstr "Передний левый винт"
+
+msgid "Back left screw"
+msgstr "Задний левый винт"
+
+msgid "Back right screw"
+msgstr "Задний правый винт"
+
+msgid "Front right screw"
+msgstr "Передний правый винт"
+
+msgid "Front middle screw"
+msgstr "Передний центральный винт"
+
+msgid "Back middle screw"
+msgstr "Задний центральный винт"
+
+msgid "Left middle screw"
+msgstr "Левый центральный винт"
+
+msgid "Right middle screw"
+msgstr "Правый центральный винт"
+
+msgid "Last Print Time"
+msgstr "Последняя печать"
 
 msgid "Refresh"
 msgstr "Обновить"
@@ -624,6 +654,25 @@ msgstr "Сохранить"
 msgid "Save Config"
 msgstr "Сохранить конфиг"
 
+msgid "Have unsaved options"
+msgstr "Есть несохраненные данные"
+
+
+msgid "Endstop"
+msgstr "Концевик"
+
+msgid "Probe"
+msgstr "Проба"
+
+msgid "Bed mesh"
+msgstr "Стол"
+
+msgid "Delta Automatic"
+msgstr "Дельта автоматическая"
+
+msgid "Delta Manual"
+msgstr "Дельта ручная"
+
 msgid "Save Z"
 msgstr "Сохранить Z"
 
@@ -631,7 +680,7 @@ msgid "Save configuration?"
 msgstr "Сохранить конфигурацию?"
 
 msgid "Saved"
-msgstr "Сохранено"
+msgstr "Сохранённое"
 
 #, python-format
 msgid "Saved offset: %s"
@@ -644,7 +693,35 @@ msgid "Screen Power Off Time"
 msgstr "Время выключения экрана"
 
 msgid "Screws Adjust"
-msgstr "Настроить винты"
+msgstr "Полуавтоматическая\nкалибровка"
+
+msgid "Return Magnet Probe"
+msgstr "Вернуть пробу"
+
+msgid "Get Magnet Probe"
+msgstr "Взять пробу"
+
+msgid "Go to position"
+msgstr "Переместиться к винту"
+
+msgid "Set as base screw"
+msgstr "Установить как базовую точку"
+
+msgid "Go to calibrate"
+msgstr "Калибровать этот винт"
+
+msgid "Screws Calculate"
+msgstr "Расчет угла поворота винтов"
+
+msgid "Stop calibrating"
+msgstr "Остановить калибровку"
+
+msgid "Next screw"
+msgstr "Калибровать следующий винт"
+
+msgid "Calibration Manager"
+msgstr "Менеджер калибровки"
+
 
 msgid "Select"
 msgstr "Выбрать"

@@ -50,11 +50,12 @@ class MainPanel(MenuPanel):
             self.labels['menu'] = self.arrangeMenuItems(items, self.columns, True)
             grid.attach(self.labels['menu'], 1, 0, 1, 1)
         self.grid = grid
+        self.grid.show_all()
         self.content.add(self.grid)
 
     def update_graph_visibility(self):
         if self.left_panel is None or not self._printer.get_temp_store_devices():
-            return
+            return True
         count = 0
         for device in self.devices:
             visible = self._config.get_config().getboolean(f"graph {self._screen.connected_printer}",
@@ -84,7 +85,8 @@ class MainPanel(MenuPanel):
         if self.graph_update is None:
             # This has a high impact on load
             self.graph_update = GLib.timeout_add_seconds(5, self.update_graph)
-        self.update_graph_visibility()
+        if not self.update_graph_visibility():
+            GLib.timeout_add_seconds(1, self.update_graph_visibility)
         self._screen.base_panel_show_all()
 
     def deactivate(self):

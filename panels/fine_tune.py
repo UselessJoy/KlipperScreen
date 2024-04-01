@@ -104,9 +104,9 @@ class FineTunePanel(ScreenPanel):
             grid.attach(self.labels['extrude-'], 2, 2, 1, 1)
             grid.attach(deltgrid, 1, 3, 2, 1)
 
-        self.labels['z+'].connect("clicked", self.change_babystepping, "+")
+        self.labels['z+'].connect("clicked", self.change_babystepping, "-")
         self.labels['zoffset'].connect("clicked", self.change_babystepping, "reset")
-        self.labels['z-'].connect("clicked", self.change_babystepping, "-")
+        self.labels['z-'].connect("clicked", self.change_babystepping, "+")
         self.labels['speed+'].connect("clicked", self.change_speed, "+")
         self.labels['speedfactor'].connect("clicked", self.change_speed, "reset")
         self.labels['speed-'].connect("clicked", self.change_speed, "-")

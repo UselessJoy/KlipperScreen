@@ -53,7 +53,10 @@ PRINTER_BASE_STATUS_OBJECTS = [
     'exclude_object',
     'neopixel my_neopixel',
     'led_control',
-    'heaters'
+    'heaters',
+    'probe',
+    'screws_tilt_adjust',
+    'manual_probe'
 ]
 
 klipperscreendir = pathlib.Path(__file__).parent.resolve()
@@ -130,15 +133,13 @@ class KlipperScreen(Gtk.Window):
         self.width = self._config.get_main_config().getint("width", monitor.get_geometry().width)
         self.height = self._config.get_main_config().getint("height", monitor.get_geometry().height)
         self.set_default_size(self.width, self.height)
-        # self.set_size_request(self.width-100, self.height-100)
-        # self.resize(self.width-100, self.height-100)
         self.set_resizable(False)
         if not (self._config.get_main_config().get("width") or self._config.get_main_config().get("height")):
             self.fullscreen()
         self.vertical_mode = self.width < self.height
         logging.info(f"Screen resolution: {self.width}x{self.height}")
         self.theme = self._config.get_main_config().get('theme')
-        self.show_cursor = self._config.get_main_config().getboolean("show_cursor", fallback=False)
+        self.show_cursor = True#self._config.get_main_config().getboolean("show_cursor", fallback=False)
         self.gtk = KlippyGtk(self)
         self.init_style()
         self.set_icon_from_file(os.path.join(klipperscreendir, "styles", "icon.svg"))
@@ -238,7 +239,7 @@ class KlipperScreen(Gtk.Window):
                 "autooff": ["autoOff_enable", "autoOff"],
                 "safety_printing": ["safety_enabled", "is_doors_open", "is_hood_open", "luft_timeout", "luft_overload"],
                 "bed_mesh": ["profile_name", "mesh_max", "mesh_min", "probed_matrix", "profiles", "unsaved_profiles"],
-                "configfile": ["config"],
+                "configfile": ["config", "save_config_pending"],
                 "display_status": ["progress", "message"],
                 "fan": ["speed"],
                 "gcode_move": ["extrude_factor", "gcode_position", "homing_origin", "speed_factor", "speed"],
@@ -247,7 +248,7 @@ class KlipperScreen(Gtk.Window):
                 "print_stats": ["print_duration", "total_duration", "filament_used", "filename", "state", "message",
                                 "info"],
                 "toolhead": ["homed_axes", "estimated_print_time", "print_time", "position", "extruder",
-                             "max_accel", "max_accel_to_decel", "max_velocity", "square_corner_velocity"],
+                             "max_accel", "max_accel_to_decel", "max_velocity", "square_corner_velocity", "is_homing"],
                 "virtual_sdcard": ["file_position", "is_active", "progress", "interrupted_file", "has_interrupted_file", "show_interrupt"],
                 "wifi_mode": ["wifiMode", "hotspot"],
                 "webhooks": ["state", "state_message"],
@@ -257,7 +258,10 @@ class KlipperScreen(Gtk.Window):
                 "exclude_object": ["current_object", "objects", "excluded_objects"],
                 "neopixel my_neopixel": ["color_data"],
                 "led_control": ["led_status", "enabled"],
-                "heaters": ["is_waiting"]
+                "heaters": ["is_waiting"],
+                "probe": ["is_using_magnet_probe", "last_z_result"],
+                "screws_tilt_adjust": ["results", "base_screw", "calibrating_screw", "is_calibrating"],
+                "manual_probe": ["is_active", "command"]
             }
         }
         for extruder in self.printer.get_tools():
@@ -327,9 +331,8 @@ class KlipperScreen(Gtk.Window):
             self.process_update("notify_busy", self.printer.busy)
         if hasattr(self.panels[panel_name], "activate"):
             self.panels[panel_name].activate()
-        self.show_all()
-        if hasattr(self.panels[panel_name], "init_sizes"):
-            self.panels[panel_name].init_sizes()
+        # Fix titlebar show_all() for each panel
+        self.base_panel.content.show_all()
     
     def show_popup_message(self, message, level=3, just_popup=False):
         self.close_screensaver()
@@ -866,14 +869,14 @@ class KlipperScreen(Gtk.Window):
                 elif "unknown" in data.lower() and \
                         not ("TESTZ" in data or "MEASURE_AXES_NOISE" in data or "ACCELEROMETER_QUERY" in data):
                     self.show_popup_message(data)
-                elif "SAVE_CONFIG" in data and self.printer.state == "ready":
-                    script = {"script": "SAVE_CONFIG"}
-                    self._confirm_send_action(
-                        None,
-                        _("Save configuration?") + "\n\n" + _("Klipper will reboot"),
-                        "printer.gcode.script",
-                        script
-                    )
+                # elif "SAVE_CONFIG" in data and self.printer.state == "ready":
+                #     script = {"script": "SAVE_CONFIG"}
+                #     self._confirm_send_action(
+                #         None,
+                #         _("Save configuration?") + "\n\n" + _("Klipper will reboot"),
+                #         "printer.gcode.script",
+                #         script
+                #     )
         self.process_update(action, data)
 
     def process_update(self, *args):
@@ -1027,6 +1030,8 @@ class KlipperScreen(Gtk.Window):
         self.base_panel.show_macro_shortcut(self._config.get_main_config().getboolean('side_macro_shortcut', True))
         self.base_panel.show_heaters(True)
         self.base_panel.show_estop(True)
+        # self.base_panel.show_network_status(True)
+        # self.base_panel.show_unsaved_config(True)
 
     def printer_ready(self):
         self.close_popup_message()
@@ -1044,22 +1049,10 @@ class KlipperScreen(Gtk.Window):
     def show_keyboard(self, entry=None, event=None, accept_function=None):
         if self.keyboard is not None:
             return
-        # box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        # box.set_size_request(self.gtk.content_width, self.gtk.keyboard_height)
-
-        # if self._config.get_main_config().getboolean("use-matchbox-keyboard", False):
-        #     return self._show_matchbox_keyboard(box)
         if entry is None:
             logging.debug("Error: no entry provided for keyboard")
-            return
-        
+            return   
         self.keyboard = Keyboard(self, self.remove_keyboard, accept_function, entry=entry)
-        #self.keyboard.set_size_request(self.gtk.content_width, self.gtk.keyboard_height)
-        # self.keyboard.set_vexpand(True)
-        # self.keyboard.set_valign(Gtk.Align.START)
-        # box.get_style_context().add_class("keyboard_box")
-        # box.add(Keyboard(self, self.remove_keyboard, entry=entry))
-        # self.keyboard = {"box": box}
         self.base_panel.content.add(self.keyboard)
         self.base_panel.content.show_all()
     

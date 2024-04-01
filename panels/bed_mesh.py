@@ -91,8 +91,6 @@ class BedMeshPanel(ScreenPanel):
         self.labels['active_profile_name'].set_size_request(w, buttonHeight)
         
     def activate_mesh(self, profile, unsaved_profiles):
-        logging.info(f"olololo, thats profile {profile} and our bm name {self.active_mesh}")
-        logging.info(f"unsaved profiles is {unsaved_profiles}")
         if profile == "":
             logging.info("Clearing active profile")
             if self.active_mesh and self.active_mesh in self.profiles and "load" not in self.profiles[self.active_mesh]:
@@ -184,14 +182,8 @@ class BedMeshPanel(ScreenPanel):
         #0 - load(None), 1 - save(delete), 2 - delete(None)
         for i, b in enumerate(buttons):
             button_grid.attach(buttons[b], i, 0, 1, 1)
-            
-            
-        # for label in self.button_labels:
-            # self.button_labels[label].set_justify(Gtk.Justification.CENTER)
-            # self.button_labels[label].set_width_chars(10)
         
         name = Gtk.Label(label = profile)
-        # name.set_size_request(self._gtk.content_width / 10, 1)
         name.set_lines(2)
         name.set_justify(Gtk.Justification.LEFT)
         name.set_max_width_chars(20)
@@ -243,8 +235,6 @@ class BedMeshPanel(ScreenPanel):
                 self.remove_profile(prof)
 
     def saving_profile(self, unsaved_profiles):
-        if len(unsaved_profiles) == 0:
-            return
         for pr in self.profiles:        
             if pr not in unsaved_profiles:
                 if "save" in self.profiles[pr]:
@@ -271,9 +261,14 @@ class BedMeshPanel(ScreenPanel):
             return
         if action == "notify_status_update":
             if 'bed_mesh' in data and 'profiles' in data['bed_mesh']:
-                delete_profile = [del_prof for del_prof in self.profiles if del_prof not in data['bed_mesh']['profiles']]
-                if delete_profile:
-                    self.remove_profile(delete_profile[0])
+                delete_profiles = [del_prof for del_prof in self.profiles if del_prof not in data['bed_mesh']['profiles']]
+                add_profiles = [add_prof for add_prof in data['bed_mesh']['profiles'] if add_prof not in self.profiles]
+                if len(delete_profiles) > 0:
+                    for del_prof in delete_profiles:
+                        self.remove_profile(del_prof)
+                if len(add_profiles) > 0:
+                    for add_prof in add_profiles:
+                        self.add_profile(add_prof)
             with contextlib.suppress(KeyError):
                 self.activate_mesh(data['bed_mesh']['profile_name'], self._printer.get_stat("bed_mesh", "unsaved_profiles"))
             if 'bed_mesh' in data and 'unsaved_profiles' in data['bed_mesh']:
@@ -316,45 +311,37 @@ class BedMeshPanel(ScreenPanel):
         for child in self.content.get_children():
             self.content.remove(child)
 
-        if "create_profile" not in self.labels:
-            pl = self._gtk.Label(_("Profile Name:"))
-            pl.set_hexpand(True)
-            self.labels['profile_name'] = TypedEntry()
-            reserved = []
-            name = None
-            for prof in self.profiles:
-                if prof.startswith("profile_"):
-                    reserved.append[prof]
-            i = len(reserved)
-            while not name:
-                name = f"profile_{i}" if f"profile_{i}" not in reserved else None
-                logging.info(name)
-                i = i+1
-            self.labels['profile_name'].set_placeholder_text(name)
-            self.labels['profile_name'].set_text('')
-            self.labels['profile_name'].set_hexpand(True)
-            self.labels['profile_name'].set_vexpand(False)
-            #self.labels['profile_name'].connect("activate", self.create_profile)
-            self.labels['profile_name'].connect("focus-in-event", self.on_change_entry)
+        pl = self._gtk.Label(_("Profile Name:"))
+        pl.set_hexpand(True)
+        self.labels['profile_name'] = TypedEntry()
+        i = 0
+        # self.profiles may be not updated before click
+        while f"profile_{i}" in self._printer.get_stat("bed_mesh", "profiles"):
+            i = i + 1
+        name = f"profile_{i}"
+        self.labels['profile_name'].set_placeholder_text(name)
+        self.labels['profile_name'].set_text('')
+        self.labels['profile_name'].set_hexpand(True)
+        self.labels['profile_name'].set_vexpand(False)
+        self.labels['profile_name'].connect("focus-in-event", self.on_change_entry)
 
-            save = self._gtk.Button(None, _("Start calibrate"), "color3", self.bts)
-            save.set_hexpand(False)
-            save.connect("clicked", self.create_profile)
+        save = self._gtk.Button(None, _("Start calibrate"), "color3", self.bts)
+        save.set_hexpand(False)
+        save.connect("clicked", self.create_profile)
 
-            box = Gtk.Box()
-            box.pack_start(self.labels['profile_name'], True, True, 5)
-            box.pack_start(save, False, False, 5)
+        box = Gtk.Box()
+        box.pack_start(self.labels['profile_name'], True, True, 5)
+        box.pack_start(save, False, False, 5)
 
-            self.labels['create_profile'] = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
-            self.labels['create_profile'].set_valign(Gtk.Align.CENTER)
-            self.labels['create_profile'].set_hexpand(True)
-            self.labels['create_profile'].set_vexpand(True)
-            self.labels['create_profile'].pack_start(pl, True, True, 5)
-            self.labels['create_profile'].pack_start(box, True, True, 5)
+        self.labels['create_profile'] = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        self.labels['create_profile'].set_valign(Gtk.Align.CENTER)
+        self.labels['create_profile'].set_hexpand(True)
+        self.labels['create_profile'].set_vexpand(True)
+        self.labels['create_profile'].pack_start(pl, True, True, 5)
+        self.labels['create_profile'].pack_start(box, True, True, 5)
 
         self.content.add(self.labels['create_profile'])
         self.content.show_all()
-        #self.labels['profile_name'].grab_focus_without_selecting()
         self.show_create = True
     
     def on_change_entry(self, entry, event):
@@ -373,7 +360,6 @@ class BedMeshPanel(ScreenPanel):
         self._screen._ws.klippy.gcode_script(f"BED_MESH_CALIBRATE PROFILE='{profile}'")
 
     def show_loaded_mesh(self, widget):
-        #self.load_meshes()
         self.overlayBox = Gtk.Box()
         close_profiles_button = self._gtk.Button("back_overlay", scale=self.bts, position=Gtk.PositionType.RIGHT)
         close_profiles_button.set_vexpand(False)
@@ -389,7 +375,6 @@ class BedMeshPanel(ScreenPanel):
         self.scroll.set_halign(Gtk.Align.FILL)
         self.scroll.set_min_content_width(self._gtk.content_width / 1.2)
         self.scroll.get_style_context().add_class("scrolled_window_mesh_profiles")
-        #self.scroll.show_all()
         self.overlayBox.pack_start(self.scroll, True, True, 0)
         self.overlayBox.set_vexpand(False)
         self.overlayBox.set_hexpand(True)

@@ -473,3 +473,13 @@ class MoonrakerApi:
             callback,
             *args
     )
+        
+    def run_async_command(self, command, callback=None, *args):
+        return self._ws.send_method(
+            "printer.gcode.async_command",
+            {
+                "command": command
+            },
+            callback,
+            *args
+        )
