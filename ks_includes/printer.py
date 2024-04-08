@@ -110,7 +110,7 @@ class Printer:
                     self.set_dev_stat(x, i, data[x][i])
         for x in data:
             if x == "configfile":
-                if not 'save_config_pending' in data[x]:
+                if not 'save_config_pending' in data[x] or not 'save_config_pending_items' in data[x]:
                     continue
             if x not in self.data:
                 self.data[x] = {}

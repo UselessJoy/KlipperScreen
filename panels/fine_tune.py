@@ -66,8 +66,8 @@ class FineTunePanel(ScreenPanel):
         grid = self._gtk.HomogeneousGrid()
         grid.set_row_homogeneous(False)
 
-        self.labels['z+'] = self._gtk.Button("z-farther", "Z+", "color1")
-        self.labels['z-'] = self._gtk.Button("z-closer", "Z-", "color1")
+        self.labels['z-'] = self._gtk.Button("z-farther", "Z-", "color1")
+        self.labels['z+'] = self._gtk.Button("z-closer", "Z+", "color1")
         self.labels['zoffset'] = self._gtk.Button("refresh", '  0.00' + _("mm"),
                                                   "color1", self.bts, Gtk.PositionType.LEFT, 1)
         self.labels['speed+'] = self._gtk.Button("speed+", _("Speed +"), "color3")
@@ -104,9 +104,9 @@ class FineTunePanel(ScreenPanel):
             grid.attach(self.labels['extrude-'], 2, 2, 1, 1)
             grid.attach(deltgrid, 1, 3, 2, 1)
 
-        self.labels['z+'].connect("clicked", self.change_babystepping, "-")
+        self.labels['z-'].connect("clicked", self.change_babystepping, "-")
         self.labels['zoffset'].connect("clicked", self.change_babystepping, "reset")
-        self.labels['z-'].connect("clicked", self.change_babystepping, "+")
+        self.labels['z+'].connect("clicked", self.change_babystepping, "+")
         self.labels['speed+'].connect("clicked", self.change_speed, "+")
         self.labels['speedfactor'].connect("clicked", self.change_speed, "reset")
         self.labels['speed-'].connect("clicked", self.change_speed, "-")

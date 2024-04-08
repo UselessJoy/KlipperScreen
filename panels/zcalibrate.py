@@ -1,3 +1,4 @@
+import contextlib
 import gi
 
 gi.require_version("Gtk", "3.0")
@@ -262,29 +263,22 @@ class ZCalibratePanel(ScreenPanel):
             if 'probe' in data and 'last_z_result' in data['probe']:
                 if data['probe']['last_z_result']:
                     self.last_z_result = data['probe']['last_z_result']
+            with contextlib.suppress(Exception):
+                if 'probe' in data['configfile']['save_config_pending_items']:
+                    self.save_config()
+                elif 'stepper_z' in data['configfile']['save_config_pending_items']:
+                    self.save_config()
             if self.widgets['probe_z_result'].get_text() != "" and self.manual_active:
                 self.widgets['probe_z_result'].show()
                 self.widgets['probe_z_result'].set_text("Проба сработала на Z = %.2f" % self.last_z_result)
             else:
                 self.widgets['probe_z_result'].hide()
         if action == "notify_gcode_response":
-            data = data.lower()
-            if "unknown" in data:
-                self.buttons_not_calibrating()
-                logging.info(data)
-            elif "save_config" in data:
-                self.buttons_not_calibrating()
-            elif "out of range" in data:
+            lower_data = data.lower()
+            if "out of range" in lower_data:
                 self._screen.show_popup_message(data)
-                self.buttons_not_calibrating()
-                logging.info(data)
-            elif "fail" in data and "use testz" in data:
+            elif "fail" in lower_data and "use testz" in lower_data:
                 self._screen.show_popup_message(_("Failed, adjust position first"))
-                self.buttons_not_calibrating()
-                logging.info(data)
-            elif "use testz" in data or "use abort" in data or "z position" in data:
-                self.buttons_calibrating()
-        return
 
     def update_position(self, position):
         self.widgets['zposition'].set_text(f"Z: {position[2]:.2f}")
@@ -314,6 +308,16 @@ class ZCalibratePanel(ScreenPanel):
         logging.info("Accepting Z position")
         self._screen._ws.klippy.gcode_script(KlippyGcodes.ACCEPT)
 
+    def save_config(self):
+
+        script = {"script": "SAVE_CONFIG"}
+        self._screen._confirm_send_action(
+            None,
+            _("Save configuration?") + "\n\n" + _("Klipper will reboot"),
+            "printer.gcode.script",
+            script
+        )
+        
     def buttons_calibrating(self):
         self.buttons['start'].get_style_context().remove_class('color3')
         self.buttons['start'].set_sensitive(False)

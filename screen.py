@@ -139,7 +139,7 @@ class KlipperScreen(Gtk.Window):
         self.vertical_mode = self.width < self.height
         logging.info(f"Screen resolution: {self.width}x{self.height}")
         self.theme = self._config.get_main_config().get('theme')
-        self.show_cursor = True#self._config.get_main_config().getboolean("show_cursor", fallback=False)
+        self.show_cursor = self._config.get_main_config().getboolean("show_cursor", fallback=False)
         self.gtk = KlippyGtk(self)
         self.init_style()
         self.set_icon_from_file(os.path.join(klipperscreendir, "styles", "icon.svg"))
@@ -239,7 +239,7 @@ class KlipperScreen(Gtk.Window):
                 "autooff": ["autoOff_enable", "autoOff"],
                 "safety_printing": ["safety_enabled", "is_doors_open", "is_hood_open", "luft_timeout", "luft_overload"],
                 "bed_mesh": ["profile_name", "mesh_max", "mesh_min", "probed_matrix", "profiles", "unsaved_profiles"],
-                "configfile": ["config", "save_config_pending"],
+                "configfile": ["config", "save_config_pending", "save_config_pending_items"],
                 "display_status": ["progress", "message"],
                 "fan": ["speed"],
                 "gcode_move": ["extrude_factor", "gcode_position", "homing_origin", "speed_factor", "speed"],

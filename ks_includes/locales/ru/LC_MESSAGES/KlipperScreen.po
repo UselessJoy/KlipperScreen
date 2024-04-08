@@ -398,10 +398,10 @@ msgid "Klipper is attempting to start"
 msgstr "Klipper готов"
 
 msgid "Klipper will reboot"
-msgstr "Klipper перезагружается"
+msgstr "Klipper перезагрузится"
 
 msgid "KlipperScreen will reboot"
-msgstr "KlipperScreen перезагружается"
+msgstr "KlipperScreen перезагрузится"
 
 msgid "Language"
 msgstr "Язык"

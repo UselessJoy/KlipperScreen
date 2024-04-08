@@ -438,15 +438,15 @@ class BasePanel(ScreenPanel):
             return
         if 'configfile' in data:
                 if 'save_config_pending' in data['configfile']:
-                    logging.info(f"show config pending is {data['configfile']['save_config_pending']}")
+                    # logging.info(f"show config pending is {data['configfile']['save_config_pending']}")
                     if data['configfile']['save_config_pending'] == True:
                         if not self.on_unsaved_config.get_pixbuf():
                             self._screen.gtk.update_image(self.on_unsaved_config, "unsaved_config", self.img_network_size, self.img_network_size)
                         self.on_unsaved_config.show()
-                        logging.info("show unsaved")
+                        # logging.info("show unsaved")
                     else:
                         self.on_unsaved_config.hide()
-                        logging.info("hide unsaved")
+                        # logging.info("hide unsaved")
         devices = self._printer.get_temp_store_devices()
         if devices is not None:
             for device in devices:

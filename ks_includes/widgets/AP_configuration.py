@@ -19,12 +19,15 @@ class APConfiguration(Gtk.Box):
         self.wifi_mode = None
         for connection in nmcli.connection():
             if connection.conn_type == 'wifi':
+                try:
                 #logging.info(connection)
-                connectionData = nmcli.connection.show(connection.name)
-                if connectionData['802-11-wireless.mode'] == 'ap':
-                    self.ap_connection = connectionData
-                    data = subprocess.check_output("nmcli -f 802-11-wireless-security.psk  connection show -s %s | awk '{print $2}'" % (connection.name), universal_newlines=True, shell=True)
-                    self.ap_connection['802-11-wireless-security.psk'] = data[:-1]
+                    connectionData = nmcli.connection.show(connection.name)
+                    if connectionData['802-11-wireless.mode'] == 'ap':
+                        self.ap_connection = connectionData
+                        data = subprocess.check_output("nmcli -f 802-11-wireless-security.psk  connection show -s %s | awk '{print $2}'" % (connection.name), universal_newlines=True, shell=True)
+                        self.ap_connection['802-11-wireless-security.psk'] = data[:-1]
+                except Exception as e:
+                    logging.info(e)
         self.labels = {}
         
         self.labels['AP'] = {
@@ -175,11 +178,10 @@ class APConfiguration(Gtk.Box):
                                     "802-11-wireless.ssid", ssid,
                                     "802-11-wireless-security.psk", psk, 
                                     "connection.autoconnect", autoconnect], 
-                                    check=True, capture_output=True, text=True, stderr=subprocess.STDOUT)
+                                    check=True, capture_output=True, text=True)
             self._screen._ws.klippy.set_hotspot(ssid)
-        except subprocess.CalledProcessError as e:
-            logging.error(e.stderr)
-            raise e.stderr
+        except Exception as e:
+            raise e
         
         for child in self.button_box:
             self.button_box.remove(child)
