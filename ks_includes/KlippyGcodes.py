@@ -25,13 +25,22 @@ class KlippyGcodes:
     ABORT = "ABORT"
     ACCEPT = "ACCEPT"
     
+    
+    @staticmethod
+    def set_led_color(led, color):
+        return (
+            f'SET_LED LED="{led}" '
+            f'RED={color[0]} GREEN={color[1]} BLUE={color[2]} WHITE={color[3]} '
+            f'SYNC=0 TRANSMIT=1'
+        )
+        
     @staticmethod
     def set_bed_temp(temp):
-        return f"{KlippyGcodes.SET_BED_TEMP} S{temp}"
+        return f"M140 S{temp}"
 
     @staticmethod
     def set_ext_temp(temp, tool=0):
-        return f"{KlippyGcodes.SET_EXT_TEMP} T{tool} S{temp}"
+        return f"M104 T{tool} S{temp}"
 
     @staticmethod
     def set_heater_temp(heater, temp):
@@ -47,7 +56,7 @@ class KlippyGcodes:
 
     @staticmethod
     def set_extrusion_rate(rate):
-        return f"{KlippyGcodes.SET_EXT_FACTOR} S{rate}"
+        return f"M221 S{rate}"
 
     @staticmethod
     def set_speed_rate(rate):

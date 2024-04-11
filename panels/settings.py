@@ -2,18 +2,12 @@ import gi
 import logging
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Pango
-
 from ks_includes.screen_panel import ScreenPanel
 
-
-def create_panel(*args):
-    return SettingsPanel(*args)
-
-
-class SettingsPanel(ScreenPanel):
+class Panel(ScreenPanel):
     def __init__(self, screen, title):
         super().__init__(screen, title)
-        self.printers = self.settings = {}
+        self.printers = self.settings = self.langs = {}
         self.menu = ['settings_menu']
         options = self._config.get_configurable_options().copy()
         options.append({"printers": {
@@ -21,6 +15,12 @@ class SettingsPanel(ScreenPanel):
             "type": "menu",
             "menu": "printers"
         }})
+        options.append({"lang": {
+            "name": _("Language"),
+            "type": "menu",
+            "menu": "lang"
+        }})
+        
         self.options_data = {}
         self.labels['settings_menu'] = self._gtk.ScrolledWindow()
         self.labels['settings'] = Gtk.Grid()
@@ -29,6 +29,16 @@ class SettingsPanel(ScreenPanel):
             name = list(option)[0]
             #self.options[option[name]['name']] = option[name]['name']
             self.add_option('settings', self.settings, name, option[name])
+        
+        self.labels['lang_menu'] = self._gtk.ScrolledWindow()
+        self.labels['lang'] = Gtk.Grid()
+        self.labels['lang_menu'].add(self.labels['lang'])
+        for lang in self._config.lang_list:
+            self.langs[lang] = {
+                "name": lang,
+                "type": "lang",
+            }
+            self.add_option("lang", self.langs, lang, self.langs[lang])
 
         self.labels['printers_menu'] = self._gtk.ScrolledWindow()
         self.labels['printers'] = Gtk.Grid()
@@ -50,19 +60,26 @@ class SettingsPanel(ScreenPanel):
         if action != "notify_status_update":
             return
         
-        if "autooff" in data:
-            logging.info(f"autooff changed to {data['autooff']}")
-            for child in self.options_data['autooff_enable']['row']:
-                if hasattr(child, "set_active"):
-                    child.set_active(data['autooff']['autoOff_enable'])
+        if 'autooff' in data:
+            if 'autoOff_enable' in data['autooff']:
+                logging.info(f"autooff changed to {data['autooff']['autoOff_enable']}")
+                for child in self.options_data['autooff_enable']['row']:
+                    if hasattr(child, "set_active"):
+                        child.set_active(data['autooff']['autoOff_enable'])
                     
-        if "safety_printing" in data:
-            logging.info(f"safety_printing changed to {data['safety_printing']}")
-            for child in self.options_data['safety_printing']['row']:
-                if hasattr(child, "set_active"):
-                    child.set_active(data['safety_printing']['safety_enabled'])
-            
-            #self.options_data['safety_printing']['row'][1]
+        if 'safety_printing' in data:
+            if 'safety_enabled' in data['safety_printing']:
+                logging.info(f"safety_printing changed to {data['safety_printing']['safety_enabled']}")
+                for child in self.options_data['safety_printing']['row']:
+                    if hasattr(child, "set_active"):
+                        child.set_active(data['safety_printing']['safety_enabled'])
+        
+        if 'virtual_sdcard' in data:
+            if 'watch_bed_mesh' in data['virtual_sdcard']:
+                logging.info(f"watch_bed_mesh changed to {data['virtual_sdcard']['watch_bed_mesh']}")
+                for child in self.options_data['safety_printing']['row']:
+                    if hasattr(child, "set_active"):
+                        child.set_active(data['virtual_sdcard']['watch_bed_mesh'])
         
     def activate(self):
         while len(self.menu) > 1:
@@ -133,6 +150,12 @@ class SettingsPanel(ScreenPanel):
             open_menu.set_hexpand(False)
             open_menu.set_halign(Gtk.Align.END)
             dev.add(open_menu)
+        elif option['type'] == "lang":
+            select = self._gtk.Button("load", style="color3")
+            select.connect("clicked", self._screen.change_language, option['name'])
+            select.set_hexpand(False)
+            select.set_halign(Gtk.Align.END)
+            dev.add(select)
 
         opt_array[opt_name] = {
             "name": option['name'],

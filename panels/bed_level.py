@@ -1,24 +1,14 @@
 import logging
 import re
-
 import gi
-
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, Gtk, Pango
-
 from ks_includes.KlippyGcodes import KlippyGcodes
 from ks_includes.screen_panel import ScreenPanel
 
-
-def create_panel(*args):
-    return BedLevelPanel(*args)
-
-
-class BedLevelPanel(ScreenPanel):
-
+class Panel(ScreenPanel):
     def __init__(self, screen, title):
         super().__init__(screen, title)
-        self.response_count = 0
         self.screw_dict = {}
         self.screws = []
         self.y_cnt = 0
@@ -141,9 +131,6 @@ class BedLevelPanel(ScreenPanel):
         self.buttons['border_bm'] = self._gtk.Button("bed-level-t-m", scale=2.5)
                 
         rotation = self.ks_printer_cfg.getint("screw_rotation", 0)
-        if 'bed_screws' in self._config.get_config():
-            rotation = self._config.get_config()['bed_screws'].getint("rotation", 0)
-            logging.debug(f"Rotation: {rotation}")
 
         self.bedgrid = Gtk.Grid()
         nscrews = len(self.screws)
@@ -163,12 +150,11 @@ class BedLevelPanel(ScreenPanel):
                 self.bedgrid.attach(self.buttons['border_lm'], 0, 1, 1, 1)
                 self.bedgrid.attach(self.buttons['border_rm'], 2, 1, 1, 1)
         else:
-            label = Gtk.Label(
+            label = Gtk.Label(wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR)
+            label.set_text(
                 _("Bed screw configuration:") + f" {nscrews}\n\n"
                 + _("Not supported for auto-detection, it needs to be configured in klipperscreen.conf")
             )
-            label.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
-            label.set_line_wrap(True)
             self.bedgrid.attach(label, 1, 0, 3, 2)
             self.content.add(self.bedgrid)
             return
@@ -345,8 +331,8 @@ class BedLevelPanel(ScreenPanel):
             self.buttons[button].set_sensitive((not busy))
 
     def process_update(self, action, data):
-        if action == "notify_busy":
-            self.process_busy(data)
+        if 'idle_timeout' in data:
+            self.process_busy(data['idle_timeout']['state'].lower() == "printing")
             return
         if action == "notify_status_update":
             if 'probe' in data:
@@ -356,7 +342,6 @@ class BedLevelPanel(ScreenPanel):
                         self.buttonGrid.remove(self.buttons[not self.is_using_magnet])
                     self.buttonGrid.attach(self.buttons[self.is_using_magnet], 0, 0, 1, 1)
                     self.buttonGrid.show_all()
-            # Я хз почему во время пробы он не берет данные с объекта.
             if 'screws_tilt_adjust' in data:
                 if 'results' in data['screws_tilt_adjust']: 
                     if len(data['screws_tilt_adjust']['results']) != 0:
@@ -441,7 +426,6 @@ class BedLevelPanel(ScreenPanel):
     def screws_tilt_calculate(self, widget):
         if self._printer.get_stat("toolhead", "homed_axes") != "xyz":
             self._screen._ws.klippy.gcode_script(KlippyGcodes.HOME)
-        self.response_count = 0
         self.buttons['screws_tilt_calculate'].set_sensitive(False)
         self._screen._ws.klippy.gcode_script("SCREWS_TILT_CALCULATE")
 

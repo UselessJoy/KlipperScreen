@@ -3,21 +3,14 @@ import contextlib
 import profile
 import re 
 import gi
-
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Pango
-
 from ks_includes.KlippyGcodes import KlippyGcodes
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.bedmap import BedMap
 from ks_includes.widgets.typed_entry import TypedEntry
-#from transliterate import translit
 
-def create_panel(*args):
-    return BedMeshPanel(*args)
-
-
-class BedMeshPanel(ScreenPanel):
+class Panel(ScreenPanel):
 
     def __init__(self, screen, title):
         super().__init__(screen, title)
@@ -40,15 +33,12 @@ class BedMeshPanel(ScreenPanel):
         self.buttons['show_profiles'].set_hexpand(True)
         self.scroll = None
         self.overlayBox = None
-        topbar = Gtk.Box(spacing=5)
-        topbar.set_hexpand(True)
-        topbar.set_vexpand(False)
+        topbar = Gtk.Box(spacing=5, hexpand=True, vexpand=False)
         topbar.add(self.buttons['calib'])
         topbar.add(self.buttons['show_profiles'])
         
         # Create a grid for all profiles
-        self.labels['profiles'] = Gtk.Grid()
-        self.labels['profiles'].set_valign(Gtk.Align.START)
+        self.labels['profiles'] = Gtk.Grid(valign=Gtk.Align.CENTER)
         self.overlay = Gtk.Overlay()
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         spacing = 10
@@ -81,7 +71,7 @@ class BedMeshPanel(ScreenPanel):
     def activate(self):
         self.load_meshes()
         with contextlib.suppress(KeyError):
-            self.activate_mesh(self._printer.get_stat("bed_mesh", "profile_name"), self._printer.get_stat("bed_mesh", "unsaved_profiles"))
+            self.activate_mesh(self._printer.get_stat("bed_mesh", "profile_name"))
 
     
     def on_allocate_clear_button(self, widget=None, allocation=None, gdata=None):

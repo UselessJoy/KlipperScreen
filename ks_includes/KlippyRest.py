@@ -12,55 +12,44 @@ class KlippyRest:
 
     @property
     def endpoint(self):
-        protocol = "http"
-        if int(self.port) in {443, 7130}:
-            protocol = "https"
-        return f"{protocol}://{self.ip}:{self.port}"
+        return f"{'https' if int(self.port) in {443, 7130} else 'http'}://{self.ip}:{self.port}"
 
     def get_server_info(self):
         return self.send_request("server/info")
 
     def get_oneshot_token(self):
-        r = self.send_request("access/oneshot_token")
-        if r is False or 'result' not in r:
-            return False
-        return r['result']
+        res = self.send_request("access/oneshot_token")
+        return res['result'] if 'result' in res else False
 
     def get_printer_info(self):
         return self.send_request("printer/info")
     
+    def get_gcode_help(self):
+        return self.send_request("printer/gcode/help")
+    
     def get_thumbnail_stream(self, thumbnail):
         return self.send_request(f"server/files/gcodes/{thumbnail}", json=False)
 
-    def send_request(self, method, json=True):
+    def _do_request(self, method, request_method, data=None, json=None, json_response=True, timeout=3):
         url = f"{self.endpoint}/{method}"
-        headers = {} if self.api_key is False else {"x-api-key": self.api_key}
-        data = False
+        headers = {"x-api-key": self.api_key} if self.api_key else {}
+        logging.debug(f"Sending {request_method} to {url}")
         try:
-            response = requests.get(url, headers=headers)
+            callee = getattr(requests, request_method)
+            response = callee(url, json=json, data=data, headers=headers, timeout=timeout)
             response.raise_for_status()
-            if json:
-                logging.debug(f"Sending request to {url}")
-                data = response.json()
-            else:
-                data = response.content
-        except requests.exceptions.HTTPError as h:
-            self.status = self.format_status(h)
-        except requests.exceptions.ConnectionError as c:
-            self.status = self.format_status(c)
-        except requests.exceptions.Timeout as t:
-            self.status = self.format_status(t)
-        except requests.exceptions.JSONDecodeError as j:
-            self.status = self.format_status(j)
-        except requests.exceptions.RequestException as r:
-            self.status = self.format_status(r)
+            self.status = ''
+            return response.json() if json_response else response.content
         except Exception as e:
             self.status = self.format_status(e)
-        if data:
-            self.status = ''
-        else:
             logging.error(self.status.replace('\n', '>>'))
-        return data
+            return False
+
+    def post_request(self, method, data=None, json=None, json_response=True):
+        return self._do_request(method, "post", data, json, json_response)
+
+    def send_request(self, method, json=True, timeout=4):
+        return self._do_request(method, "get", json_response=json, timeout=timeout)
 
     @staticmethod
     def format_status(status):

@@ -20,20 +20,18 @@ def find_widget(widget, wanted_type):
                 return result
 
 def format_label(widget, lines=2, is_ellipsize=True):
-    if type(widget) == Gtk.Label:
+    if isinstance(widget, Gtk.Label):
+        widget.set_line_wrap(True)
+        widget.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        widget.set_justify(Gtk.Justification.CENTER)
+        if is_ellipsize:
+            widget.set_ellipsize(True)
+            widget.set_ellipsize(Pango.EllipsizeMode.END)
+            widget.set_lines(lines)
         return widget, lines, is_ellipsize
-    if type(widget) in (Gtk.Container, Gtk.Bin, Gtk.Button, Gtk.Alignment, Gtk.Box):
+    elif isinstance(widget, (Gtk.Container, Gtk.Bin, Gtk.Button, Gtk.Alignment, Gtk.Box)):
         for _ in widget.get_children():
             lbl, lines, is_ellipsize = format_label(_, lines, is_ellipsize)
-            if lbl is not None:
-                lbl.set_line_wrap(True)
-                lbl.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
-                lbl.set_justify(Gtk.Justification.CENTER)
-                if is_ellipsize:
-                    lbl.set_ellipsize(True)
-                    lbl.set_ellipsize(Pango.EllipsizeMode.END)
-                    lbl.set_lines(lines)
-    return None, lines, is_ellipsize
 
 
 class KlippyGtk:
@@ -118,26 +116,21 @@ class KlippyGtk:
         for key in self.color_list:
             self.color_list[key]['state'] = 0
 
-    @staticmethod
-    def Label(label, style=None):
-        la = Gtk.Label(label)
-        if style is not None:
-            la.get_style_context().add_class(style)
-        return la
-
     def Image(self, image_name=None, width=None, height=None):
         if image_name is None:
             return Gtk.Image()
+        pixbuf = self.PixbufFromIcon(image_name, width, height)
+        return Gtk.Image.new_from_pixbuf(pixbuf) if pixbuf is not None else Gtk.Image()
+    
+    def PixbufFromIcon(self, filename, width=None, height=None):
         width = width if width is not None else self.img_width
         height = height if height is not None else self.img_height
-        filename = os.path.join(self.themedir, image_name)
+        filename = os.path.join(self.themedir, filename)
         for ext in ["svg", "png"]:
-            with contextlib.suppress(Exception):
-                pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(f"{filename}.{ext}", int(width), int(height))
-                if pixbuf is not None:
-                    return Gtk.Image.new_from_pixbuf(pixbuf)
-        logging.error(f"Unable to find image {filename}.{ext}")
-        return Gtk.Image()
+            pixbuf = self.PixbufFromFile(f"{filename}.{ext}", int(width), int(height))
+            if pixbuf is not None:
+                return pixbuf
+        return None
 
     def update_image(self, image_object, image_name, width=None, height=None):
         filename = os.path.join(self.themedir, image_name)
@@ -153,14 +146,23 @@ class KlippyGtk:
 
     @staticmethod
     def PixbufFromFile(filename, width=-1, height=-1):
-        return GdkPixbuf.Pixbuf.new_from_file_at_size(filename, int(width), int(height))
+        try:
+            return GdkPixbuf.Pixbuf.new_from_file_at_size(filename, int(width), int(height))
+        except Exception as e:
+            logging.exception(e)
+            logging.error(f"Unable to find image {filename}")
+            return None
 
     def PixbufFromHttp(self, resource, width=-1, height=-1):
         response = self.screen.apiclient.get_thumbnail_stream(resource)
         if response is False:
             return None
         stream = Gio.MemoryInputStream.new_from_data(response, None)
-        pixbuf = GdkPixbuf.Pixbuf.new_from_stream_at_scale(stream, int(width), int(height), True)
+        try:
+            pixbuf = GdkPixbuf.Pixbuf.new_from_stream_at_scale(stream, int(width), int(height), True)
+        except Exception as e:
+            logging.exception(e)
+            return None
         stream.close_async(2)
         return pixbuf
 
@@ -211,20 +213,22 @@ class KlippyGtk:
                 spinner.stop()
             widget.set_sensitive(True)
 
-    def Dialog(self, screen, buttons, content, callback=None, *args, width=None, height=None, style=None):
+    def Dialog(self, buttons, content, title=None, callback=None, *args, width=None, height=None, style=None):
         dialog = Gtk.Dialog()
+        if title:
+            dialog.set_title(title)
         if not width:
             if not height:
-                dialog.set_size_request(screen.width, screen.height)
+                dialog.set_size_request(self.screen.width, self.screen.height)
             else:
-                dialog.set_size_request(screen.width, height)
+                dialog.set_size_request(self.screen.width, height)
         else:
             if height:
                 dialog.set_size_request(width, height)
             else:
-                dialog.set_size_request(width, screen.height)
+                dialog.set_size_request(width, self.screen.height)
         dialog.set_resizable(False)
-        dialog.set_transient_for(screen)
+        dialog.set_transient_for(self.screen)
         dialog.set_modal(True)
 
         for button in buttons:
@@ -241,7 +245,13 @@ class KlippyGtk:
                 if "width" and "height" in button:
                     b.set_size_request(button['width'], button['height'])
             else:
-                b.set_size_request((screen.width - 30) / 3, screen.height / 5)
+                # b.set_size_request((self.screen.width - 30) / 3, self.screen.height / 5)
+                if len(buttons) > 2:
+                    dialog.get_action_area().set_layout(Gtk.ButtonBoxStyle.EXPAND)
+                    button_hsize = -1
+                else:
+                    button_hsize = int((self.width / 3))
+                button.set_size_request(button_hsize - 30, round(self.height / 5))
             format_label(button, 3)
 
         dialog.connect("response", self.screen.reset_screensaver_timeout)
@@ -255,6 +265,7 @@ class KlippyGtk:
         content_area.set_margin_end(15)
         content_area.set_margin_top(15)
         content_area.set_margin_bottom(15)
+        content.set_valign(Gtk.Align.CENTER)
         content_area.add(content)
         self.screen.base_panel.main_grid.set_opacity(0.2)
         self.screen.base_panel.main_grid.set_sensitive(False)
@@ -290,24 +301,20 @@ class KlippyGtk:
         if width is not None and height is not None:
             g.set_size_request(width, height)
         return g
+    
+    # def ToggleButton(self, text):
+    #     b = Gtk.ToggleButton(label=text, hexpand=True, vexpand=True)
+    #     b.connect("clicked", self.screen.reset_screensaver_timeout)
+    #     return b
 
-    def ToggleButton(self, text):
-        b = Gtk.ToggleButton(text)
-        b.props.relief = Gtk.ReliefStyle.NONE
-        b.set_hexpand(True)
-        b.set_vexpand(True)
-        b.connect("clicked", self.screen.reset_screensaver_timeout)
-        return b
-
-    @staticmethod
-    def ScrolledWindow():
-        scroll = Gtk.ScrolledWindow()
-        scroll.set_property("overlay-scrolling", False)
-        scroll.set_vexpand(True)
+    def ScrolledWindow(self, steppers=True):
+        scroll = Gtk.ScrolledWindow(vexpand=True, overlay_scrolling=False)
         scroll.add_events(Gdk.EventMask.BUTTON_PRESS_MASK |
                           Gdk.EventMask.TOUCH_MASK |
                           Gdk.EventMask.BUTTON_RELEASE_MASK)
         scroll.set_kinetic_scrolling(True)
+        if self.screen._config.get_main_config().getboolean("show_scroll_steppers", fallback=False) and steppers:
+            scroll.get_vscrollbar().get_style_context().add_class("with-steppers")
         return scroll
 
     

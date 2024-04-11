@@ -1,24 +1,11 @@
-import logging
-import os
-
 import gi
+gi.require_version("Gtk", "3.0")
 from ks_includes.widgets.interface_configuration import InterfaceConfiguration
 from ks_includes.widgets.wifi_connection import WiFiConnection
 from ks_includes.widgets.AP_configuration import APConfiguration
-import netifaces
-import subprocess
-import re
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Gdk, GLib, Pango
 from ks_includes.screen_panel import ScreenPanel
-import sys
-from ipaddress import IPv4Network
 
-def create_panel(*args):
-    return NetworkPanel(*args)
-
-
-class NetworkPanel(ScreenPanel):
+class Panel(ScreenPanel):
     initialized = False
 
     def __init__(self, screen, title):

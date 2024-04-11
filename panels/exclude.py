@@ -1,26 +1,16 @@
 import contextlib
 import logging
-
 import gi
-
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Pango
-
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.objectmap import ObjectMap
 
-
-def create_panel(*args):
-    return ExcludeObjectPanel(*args)
-
-
-class ExcludeObjectPanel(ScreenPanel):
+class Panel(ScreenPanel):
     def __init__(self, screen, title):
         super().__init__(screen, title)
         self._screen = screen
-        self.object_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        self.object_list.set_valign(Gtk.Align.CENTER)
-        self.object_list.set_halign(Gtk.Align.START)
+        self.object_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
         self.buttons = {}
         self.current_object = self._gtk.Button("extrude", "", scale=self.bts, position=Gtk.PositionType.LEFT, lines=1)
         self.current_object.connect("clicked", self.exclude_current)
@@ -35,10 +25,8 @@ class ExcludeObjectPanel(ScreenPanel):
 
         scroll = self._gtk.ScrolledWindow()
         scroll.add(self.object_list)
-        scroll.set_halign(Gtk.Align.CENTER)
 
-        grid = self._gtk.HomogeneousGrid()
-        grid.set_row_homogeneous(False)
+        grid = Gtk.Grid(column_homogeneous=True)
         grid.attach(self.current_object, 0, 0, 2, 1)
         grid.attach(Gtk.Separator(), 0, 1, 2, 1)
 
@@ -47,14 +35,11 @@ class ExcludeObjectPanel(ScreenPanel):
             if self._screen.vertical_mode:
                 grid.attach(self.labels['map'], 0, 2, 2, 1)
                 grid.attach(scroll, 0, 3, 2, 1)
-                scroll.set_size_request(self._gtk.content_width, -1)
             else:
                 grid.attach(self.labels['map'], 0, 2, 1, 1)
                 grid.attach(scroll, 1, 2, 1, 1)
-                scroll.set_size_request((self._screen.width * .9) // 2, -1)
         else:
             grid.attach(scroll, 0, 2, 2, 1)
-            scroll.set_size_request(self._gtk.content_width, -1)
 
         self.content.add(grid)
         self.content.show_all()

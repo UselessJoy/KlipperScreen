@@ -38,9 +38,7 @@ class KlippyWebsocket(threading.Thread):
 
     @property
     def ws_proto(self):
-        if int(self.port) in {443, 7130}:
-            return "wss"
-        return "ws"
+        return "wss" if int(self.port) in {443, 7130} else "ws"
 
     def retry(self):
         self.reconnect_count = 0
@@ -48,14 +46,25 @@ class KlippyWebsocket(threading.Thread):
         self.initial_connect()
 
     def initial_connect(self):
-        # Enable a timeout so that way if moonraker is not running, it will attempt to reconnect
-        self.connect()
-        if self.connecting:
+        if self.connect() is not False:
             GLib.timeout_add_seconds(10, self.reconnect)
+    
+    def reconnect(self):
+        if self.reconnect_count > self.max_retries:
+            logging.debug("Stopping reconnections")
+            self.connecting = False
+            self._screen.printer_initializing(
+                _("Cannot connect to Moonraker")
+                + f'\n\n{self._screen.apiclient.status}')
+            return False
+        return self.connect()
+
 
     def connect(self):
         if self.connected:
-            return
+            logging.debug("Already connected")
+            return False
+        logging.debug("Attempting to connect")
         self.reconnect_count += 1
         try:
             state = self._screen.apiclient.get_server_info()
@@ -65,12 +74,11 @@ class KlippyWebsocket(threading.Thread):
                         _("Cannot connect to Moonraker") + '\n\n'
                         + _("Retrying") + f' #{self.reconnect_count}'
                     )
-                return False
+                return True
             token = self._screen.apiclient.get_oneshot_token()
         except Exception as e:
-            logging.critical(e, exc_info=True)
-            logging.debug("Unable to get oneshot token")
-            return False
+            logging.debug(f"Unable to get oneshot token {e}")
+            return True
 
         self.ws_url = f"{self.ws_proto}://{self._url}/websocket?token={token}"
         self.ws = websocket.WebSocketApp(
@@ -82,8 +90,9 @@ class KlippyWebsocket(threading.Thread):
             logging.debug("Starting websocket thread")
             self._wst.start()
         except Exception as e:
-            logging.critical(e, exc_info=True)
-            logging.debug("Error starting web socket")
+            logging.debug(f"Error starting web socket {e}")
+            return True
+        return False
 
     def close(self):
         self.closing = True
@@ -99,13 +108,13 @@ class KlippyWebsocket(threading.Thread):
                     self.callback_table[response['id']][1],
                     self.callback_table[response['id']][2],
                     *self.callback_table[response['id']][3])
-            GLib.idle_add(self.callback_table[response['id']][0], *args)
+            GLib.idle_add(self.callback_table[response['id']][0], *args, priority=GLib.PRIORITY_HIGH_IDLE)
             self.callback_table.pop(response['id'])
             return
 
         if "method" in response and "on_message" in self._callback:
-            args = response['method'], response['params'][0] if "params" in response else {}
-            GLib.idle_add(self._callback['on_message'], *args)
+            args = (response['method'], response['params'][0] if "params" in response else {})
+            GLib.idle_add(self._callback['on_message'], *args, priority=GLib.PRIORITY_HIGH_IDLE)
         return
 
     def send_method(self, method, params=None, callback=None, *args):
@@ -138,10 +147,11 @@ class KlippyWebsocket(threading.Thread):
     def on_open(self, *args):
         logging.info("Moonraker Websocket Open")
         self.connected = True
+        self.connecting = False
         self._screen.reinit_count = 0
         self.reconnect_count = 0
         if "on_connect" in self._callback:
-            GLib.idle_add(self._callback['on_connect'])
+            GLib.idle_add(self._callback['on_connect'], priority=GLib.PRIORITY_HIGH_IDLE)
 
     def on_close(self, *args):
         # args: ws, status, message
@@ -159,23 +169,11 @@ class KlippyWebsocket(threading.Thread):
             self.closing = False
             return
         if "on_close" in self._callback:
-            GLib.idle_add(self._callback['on_close'], "Lost Connection to Moonraker")
+            GLib.idle_add(self._callback['on_close'],
+                          _("Lost Connection to Moonraker"),
+                          priority=GLib.PRIORITY_HIGH_IDLE)
         logging.info("Moonraker Websocket Closed")
         self.connected = False
-
-    def reconnect(self):
-        if self.connected:
-            return False
-        if self.reconnect_count > self.max_retries:
-            logging.debug("Stopping reconnections")
-            self.connecting = False
-            self._screen.printer_initializing(
-                _("Cannot connect to Moonraker")
-                + f'\n\n{self._screen.apiclient.status}')
-            return False
-        logging.debug("Attempting to reconnect")
-        self.connect()
-        return True
 
     @staticmethod
     def on_error(*args):
@@ -203,7 +201,7 @@ class MoonrakerApi:
         )
 
     def get_file_dir(self, path='gcodes', callback=None, *args):
-        logging.debug("Sending server.files.directory")
+        logging.debug(f"Sending server.files.directory {path}")
         return self._ws.send_method(
             "server.files.list",
             {"path": path},
@@ -220,6 +218,15 @@ class MoonrakerApi:
             *args
         )
 
+    def get_dir_info(self, callback=None, directory='gcodes', *args):
+        logging.debug(f"Sending server.files.get_directory  {directory}")
+        return self._ws.send_method(
+            "server.files.get_directory",
+            {"path": directory},
+            callback,
+            *args
+        )
+    
     def get_file_metadata(self, filename, callback=None, *args):
         return self._ws.send_method(
             "server.files.metadata",
@@ -394,6 +401,17 @@ class MoonrakerApi:
             "printer.setSafetyPrinting",
             {
                 "safety_enabled": safety
+            },
+            callback,
+            *args
+        )
+        
+    def set_watch_bed_mesh(self, watch_bed_mesh, callback=None, *args):
+        logging.debug("Sending printer.setWatchBedMesh")
+        return self._ws.send_method(
+            "printer.setSafetyPrinting",
+            {
+                "watch_bed_mesh": watch_bed_mesh
             },
             callback,
             *args

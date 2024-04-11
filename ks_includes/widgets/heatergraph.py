@@ -6,17 +6,17 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, Gtk
-
+from cairo import Context as cairoContext
 
 class HeaterGraph(Gtk.DrawingArea):
-    def __init__(self, printer, font_size):
+    def __init__(self, screen, printer, font_size):
         super().__init__()
         self.set_hexpand(True)
         self.set_vexpand(True)
         self.get_style_context().add_class('heatergraph')
+        self._screen = screen
         self.printer = printer
         self.store = {}
-        self.max_length = 0
         self.connect('draw', self.draw_graph)
         self.add_events(Gdk.EventMask.TOUCH_MASK)
         self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
@@ -25,15 +25,10 @@ class HeaterGraph(Gtk.DrawingArea):
         self.font_size = round(font_size * 0.75)
 
     def add_object(self, name, ev_type, rgb=None, dashed=False, fill=False):
-        if rgb is None:
-            rgb = [0, 0, 0]
-        if name not in self.store:
-            self.store.update({name: {"show": True}})
-        self.store[name].update({ev_type: {
-            "dashed": dashed,
-            "fill": fill,
-            "rgb": rgb
-        }})
+        rgb = [0, 0, 0] if rgb is None else rgb
+        self.store.update(
+            {name: {"show": True, ev_type: {"dashed": dashed, "fill": fill, "rgb": rgb}}}
+        )
 
     @staticmethod
     def event_cb(da, ev):
@@ -41,10 +36,6 @@ class HeaterGraph(Gtk.DrawingArea):
             x = ev.x
             y = ev.y
             logging.info(f"Graph area: {x} {y}")
-
-    def get_max_length(self):
-        return min(len(self.printer.get_temp_store(name, "temperatures"))
-                   for name in self.store if "temperatures" in self.store[name])
 
     def get_max_num(self, data_points=0):
         mnum = [0]
@@ -58,14 +49,15 @@ class HeaterGraph(Gtk.DrawingArea):
                     mnum.append(max(target))
         return max(mnum)
 
-    def draw_graph(self, da, ctx):
+    def draw_graph(self, da: Gtk.DrawingArea, ctx: cairoContext):
         width = da.get_allocated_width()
         height = da.get_allocated_height()
 
-        g_width_start = round(self.font_size * 2.75)
-        g_width = width - 15
-        g_height_start = 10
-        g_height = height - self.font_size * 2
+        x = round(self.font_size * 2.75)
+        y = 10
+        width = da.get_allocated_width() - 15
+        height = da.get_allocated_height() - self.font_size * 2
+        gsize = [[x, y], [width, height]]
 
         ctx.set_source_rgb(.5, .5, .5)
         ctx.set_line_width(1)

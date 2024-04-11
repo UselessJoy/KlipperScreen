@@ -1,20 +1,12 @@
 import contextlib
 import gi
-
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-
 from ks_includes.KlippyGcodes import KlippyGcodes
 from ks_includes.screen_panel import ScreenPanel
-
 import logging
 
-
-def create_panel(*args):
-    return ZCalibratePanel(*args)
-
-
-class ZCalibratePanel(ScreenPanel):
+class Panel(ScreenPanel):
     widgets = {}
     distances = ['.01', '.05', '.1', '.5', '1', '5']
     distance = distances[-2]
@@ -54,18 +46,17 @@ class ZCalibratePanel(ScreenPanel):
 
         functions = []
         pobox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        if self._printer.config_section_exists("stepper_z") \
-                and not self._printer.get_config_section("stepper_z")['endstop_pin'].startswith("probe"):
+        if "Z_ENDSTOP_CALIBRATE" in self._printer.available_commands:
             self._add_button(_("Endstop"), "endstop", pobox)
             functions.append("endstop")
-        if self.probe:
+        if "PROBE_CALIBRATE" in self._printer.available_commands:
             self._add_button(_("Probe"), "probe", pobox)
             functions.append("probe")
-        if self._printer.config_section_exists("bed_mesh") and "probe" not in functions:
+        if "BED_MESH_CALIBRATE" in self._printer.available_commands and "probe" not in functions:
             # This is used to do a manual bed mesh if there is no probe
             self._add_button(_("Bed mesh"), "mesh", pobox)
             functions.append("mesh")
-        if "delta" in self._printer.get_config_section("printer")['kinematics']:
+        if "DELTA_CALIBRATE" in self._printer.available_commands:
             if "probe" in functions:
                 self._add_button(_("Delta Automatic"), "delta", pobox)
                 functions.append("delta")
@@ -163,11 +154,6 @@ class ZCalibratePanel(ScreenPanel):
         if self.ks_printer_cfg is not None:
             x_position = self.ks_printer_cfg.getfloat("calibrate_x_position", None)
             y_position = self.ks_printer_cfg.getfloat("calibrate_y_position", None)
-        elif 'z_calibrate_position' in self._config.get_config():
-            # OLD global way, this should be deprecated
-            x_position = self._config.get_config()['z_calibrate_position'].getfloat("calibrate_x_position", None)
-            y_position = self._config.get_config()['z_calibrate_position'].getfloat("calibrate_y_position", None)
-
         if self.probe:
             if "sample_retract_dist" in self.probe:
                 z_hop = self.probe['sample_retract_dist']
@@ -175,7 +161,8 @@ class ZCalibratePanel(ScreenPanel):
                 speed = self.probe['speed']
 
         # Use safe_z_home position
-        if "safe_z_home" in self._printer.get_config_section_list():
+        if ("safe_z_home" in self._printer.get_config_section_list() and
+                "Z_ENDSTOP_CALIBRATE" not in self._printer.available_commands):
             safe_z = self._printer.get_config_section("safe_z_home")
             safe_z_xy = safe_z['home_xy_position']
             safe_z_xy = [str(i.strip()) for i in safe_z_xy.split(',')]
@@ -281,13 +268,13 @@ class ZCalibratePanel(ScreenPanel):
                 self._screen.show_popup_message(_("Failed, adjust position first"))
 
     def update_position(self, position):
-        self.widgets['zposition'].set_text(f"Z: {position[2]:.2f}")
+        self.widgets['zposition'].set_text(f"Z: {position[2]:.3f}")
         if self.z_offset:
             if self.widgets['probe_z_result'].get_text() == "": #Если концевик
-                self.widgets['zoffset'].set_text(f"{(self.z_offset - position[2]):.2f}")
+                self.widgets['zoffset'].set_text(f"{(self.z_offset - position[2]):.3f}")
             # Если проба
             elif self.last_z_result:
-                self.widgets['zoffset'].set_text(f"{(self.last_z_result - position[2]):.2f}")
+                self.widgets['zoffset'].set_text(f"{(self.last_z_result - position[2]):.3f}")
 
     def change_distance(self, widget, distance):
         logging.info(f"### Distance {distance}")

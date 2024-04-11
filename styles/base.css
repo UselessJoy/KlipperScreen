@@ -7,9 +7,44 @@
     border: 0;
 }
 
+
+button:disabled {
+    opacity: .2;
+}
+
+list row,
+treeview.view,
 window {
     background-color: #13181C;
     -gtk-icon-shadow: none;
+}
+
+switch slider {
+    border: 0;
+}
+
+switch, treeview.view check {
+    margin: 0.75em;
+    min-width: 6em;
+    min-height: 3em;
+    border: 0;
+    border-radius: 3em;
+}
+
+treeview.view check {
+    background-color: rgb(32,41,47);
+    -gtk-icon-source: -gtk-icontheme("switch-off-symbolic");
+    background-repeat: no-repeat;
+    background-position: left center;
+    background-size : 3em 3em;
+    background-image: image(url("./styles/circle.svg"));
+    -gtk-icon-transform: translateX(1.5em);
+}
+treeview.view check:checked {
+    background-color : rgb(53,132,228);
+    background-position: right center;
+    -gtk-icon-source: -gtk-icontheme("switch-on-symbolic");
+    -gtk-icon-transform: translateX(-1.5em);
 }
 
 button {
@@ -44,7 +79,7 @@ button.color4:disabled label {
 
 button label {
     margin-top: .25em;
-    margin-bottom: .5em;
+    margin-bottom: 0;
 }
 
 button.color1 {
@@ -106,7 +141,7 @@ combobox arrow {
     min-width: 1em;
 }
 
-switch {
+/* switch {
     margin: 0.75em;
     min-width: 6em;
     min-height: 3em;
@@ -116,6 +151,10 @@ switch {
 
 switch slider {
     border: 0;
+} */
+
+expander label {
+    padding : 1em;
 }
 
 entry {
@@ -159,9 +198,19 @@ trough progress.left {
     border: 0px;
 }
 
+scale {
+    margin-bottom: 0;
+    margin-top: 0;
+    padding-bottom: 0;
+    padding-top: 0;
+}
+
 scale mark {
-    margin-top: 1em;
     color: white;
+}
+
+spinner {
+    animation-timing-function: steps(10);
 }
 
 scale trough slider {
@@ -172,12 +221,30 @@ scale trough slider {
 scrollbar, scrollbar button, scrollbar trough {
     border: none;
     background-color: #13181C;
+    min-height: 1em;
 }
 
 scrollbar slider {
-    min-width: 2em;
+    min-width: 2.5em;
     border-radius: .7em;
     background-color: #404E57;
+}
+
+scrollbar.vertical.with-steppers {
+    -GtkScrollbar-has-backward-stepper: true;
+    -GtkScrollbar-has-forward-stepper: true;
+}
+
+scrollbar.vertical.with-steppers button.down {
+    -gtk-icon-source: -gtk-icontheme("pan-down-symbolic");
+}
+
+scrollbar.vertical.with-steppers button.up {
+    -gtk-icon-source: -gtk-icontheme("pan-up-symbolic");
+}
+
+undershoot.top, undershoot.bottom {
+    background-image: none;
 }
 
 separator {
@@ -285,6 +352,10 @@ trough {
     min-height: 350px;
 }
 
+.heater-list scrollbar slider{
+    min-width: 1.5em;
+}
+
 .heater-grid {
     margin-right: .1em;
 }
@@ -302,12 +373,16 @@ trough {
 }
 
 .heater-grid-temp {
+    min-width: 5.5em;
+}
+
+.heater-grid-temp-power {
     min-width: 8em;
 }
 
-.keyboard_box {
+/* .keyboard_box {
     margin-top: 35px;
-}
+} */
 
 .keyboard_matchbox {
     margin-top: 42px;
@@ -348,8 +423,14 @@ trough {
     background-color: #9e2f3a;
 }
 
-.numpad{
+/* .numpad{
     margin-top: 30px;
+} */
+
+.numpad_key {
+    border: .15em;
+    border-style: solid;
+    border-color: #cccccc;
 }
 
 .numpad_tleft {
@@ -552,36 +633,13 @@ popover button {
     background-color: darkred;
 }
 
-/* Hardcoded values until creation of dynamic CSS updates */
-.graph_label_hidden {padding-left: .9em;} /* .4em on top of normal button padding */
-.graph_label_extruder {border-left-width: .4em; border-left-style: solid;}
-.graph_label_extruder_temp {border-right-width: .4em; border-right-style: solid;}
-.graph_label_extruder1 {border-left-width: .4em; border-left-style: solid;}
-.graph_label_extruder1_temp {border-right-width: .4em; border-right-style: solid;}
-.graph_label_extruder2 {border-left-width: .4em; border-left-style: solid;}
-.graph_label_extruder2_temp {border-right-width: .4em; border-right-style: solid;}
-.graph_label_extruder3 {border-left-width: .4em; border-left-style: solid;}
-.graph_label_extruder3_temp {border-right-width: .4em; border-right-style: solid;}
-.graph_label_extruder4 {border-left-width: .4em; border-left-style: solid;}
-.graph_label_extruder4_temp {border-right-width: .4em; border-right-style: solid;}
-.graph_label_heater_bed {border-left-width: .4em; border-left-style: solid;}
-.graph_label_heater_bed_temp {border-right-width: .4em; border-right-style: solid;}
-.graph_label_fan_1 {border-left-width: .4em; border-left-style: solid;}
-.graph_label_fan_1_temp {border-right-width: .4em; border-right-style: solid;}
-.graph_label_fan_2 {border-left-width: .4em; border-left-style: solid;}
-.graph_label_fan_2_temp {border-right-width: .4em; border-right-style: solid;}
-.graph_label_fan_3 {border-left-width: .4em; border-left-style: solid;}
-.graph_label_fan_3_temp {border-right-width: .4em; border-right-style: solid;}
-.graph_label_fan_4 {border-left-width: .4em; border-left-style: solid;}
-.graph_label_fan_4_temp {border-right-width: .4em; border-right-style: solid;}
-.graph_label_sensor_1 {border-left-width: .4em; border-left-style: solid;}
-.graph_label_sensor_1_temp {border-right-width: .4em; border-right-style: solid;}
-.graph_label_sensor_2 {border-left-width: .4em; border-left-style: solid;}
-.graph_label_sensor_2_temp {border-right-width: .4em; border-right-style: solid;}
-.graph_label_sensor_3 {border-left-width: .4em; border-left-style: solid;}
-.graph_label_sensor_3_temp {border-right-width: .4em; border-right-style: solid;}
-.graph_label_sensor_4 {border-left-width: .4em; border-left-style: solid;}
-.graph_label_sensor_4_temp {border-right-width: .4em; border-right-style: solid;}
-.graph_label_sensor_5 {border-left-width: .4em; border-left-style: solid;}
-.graph_label_sensor_5_temp {border-right-width: .4em; border-right-style: solid;}
+.buttons_slim, .buttons_slim label {
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.graph_label {border-left-width: .4em; border-left-style: solid;}
+.graph_label_temp {border-right-width: .4em; border-right-style: solid;}
 

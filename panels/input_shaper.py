@@ -1,17 +1,9 @@
 import re
-
 import gi
-
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Pango
-
 from ks_includes.KlippyGcodes import KlippyGcodes
 from ks_includes.screen_panel import ScreenPanel
-
-
-def create_panel(*args):
-    return InputShaperPanel(*args)
-
 
 # X and Y frequencies
 XY_FREQ = [
@@ -20,8 +12,7 @@ XY_FREQ = [
 ]
 SHAPERS = ['zv', 'mzv', 'zvd', 'ei', '2hump_ei', '3hump_ei']
 
-
-class InputShaperPanel(ScreenPanel):
+class Panel(ScreenPanel):
     def __init__(self, screen, title):
         super().__init__(screen, title)
         self.freq_xy_adj = {}
@@ -33,10 +24,8 @@ class InputShaperPanel(ScreenPanel):
         self.calibrating_axis = None
         self.calibrating_axis = None
 
-        auto_calibration_label = Gtk.Label()
+        auto_calibration_label = Gtk.Label(wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR)
         auto_calibration_label.set_markup('<big><b>%s</b></big>' % _("Auto Calibration"))
-        auto_calibration_label.set_line_wrap(True)
-        auto_calibration_label.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
         
         auto_grid = Gtk.Grid()
         auto_grid.attach(auto_calibration_label, 0, 0, 1, 1)
@@ -49,9 +38,8 @@ class InputShaperPanel(ScreenPanel):
             axis_lbl.set_hexpand(False)
 
             self.freq_xy_adj[dim_freq['config']] = Gtk.Adjustment(0, dim_freq['min'], dim_freq['max'], 0.1)
-            scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=self.freq_xy_adj[dim_freq['config']])
+            scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, hexpand=True, adjustment=self.freq_xy_adj[dim_freq['config']])
             scale.set_digits(1)
-            scale.set_hexpand(True)
             scale.set_has_origin(True)
             scale.get_style_context().add_class("option_slider")
             scale.connect("button-release-event", self.set_opt_value, dim_freq['config'])
@@ -164,15 +152,19 @@ class InputShaperPanel(ScreenPanel):
         # Recommended shaper_type_y = ei, shaper_freq_y = 48.4 Hz
         if 'recommended shaper_type_' in data:
             results = re.search(r'shaper_type_(?P<axis>[xy])\s*=\s*(?P<shaper_type>.*?), shaper_freq_.\s*=\s*('
-                                r'?P<shaper_freq>[0-9.]+)', data).groupdict()
-            self.freq_xy_adj['shaper_freq_' + results['axis']].set_value(float(results['shaper_freq']))
-            self.freq_xy_combo['shaper_type_' + results['axis']].set_active(SHAPERS.index(results['shaper_type']))
-            if self.calibrating_axis == results['axis'] or (self.calibrating_axis == "both" and results['axis'] == 'y'):
-                self.calibrate_btn.set_sensitive(True)
-                self.calibrate_btn.set_label(_('Calibrated'))
+                                r'?P<shaper_freq>[0-9.]+)', data)
+            if results:
+                results = results.groupdict()
+                self.freq_xy_adj['shaper_freq_' + results['axis']].set_value(float(results['shaper_freq']))
+                self.freq_xy_combo['shaper_type_' + results['axis']].set_active(SHAPERS.index(results['shaper_type']))
+                if self.calibrating_axis == results['axis'] or (self.calibrating_axis == "both" and results['axis'] == 'y'):
+                    self.calibrate_btn.set_sensitive(True)
+                    self.calibrate_btn.set_label(_('Calibrated'))
         # shaper_type_y:ei shaper_freq_y:48.400 damping_ratio_y:0.100000
         if 'shaper_type_' in data:
             results = re.search(r'shaper_type_(?P<axis>[xy]):(?P<shaper_type>.*?) shaper_freq_.:('
-                                r'?P<shaper_freq>[0-9.]+)', data).groupdict()
-            self.freq_xy_adj['shaper_freq_' + results['axis']].set_value(float(results['shaper_freq']))
-            self.freq_xy_combo['shaper_type_' + results['axis']].set_active(SHAPERS.index(results['shaper_type']))
+                                r'?P<shaper_freq>[0-9.]+)', data)
+            if results:
+                results = results.groupdict()
+                self.freq_xy_adj['shaper_freq_' + results['axis']].set_value(float(results['shaper_freq']))
+                self.freq_xy_combo['shaper_type_' + results['axis']].set_active(SHAPERS.index(results['shaper_type']))

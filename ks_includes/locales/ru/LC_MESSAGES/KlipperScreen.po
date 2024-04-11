@@ -54,8 +54,8 @@ msgid "Apply"
 msgstr "Применить"
 
 #, python-format
-msgid "Apply %.2f offset to Endstop?"
-msgstr "Применить смещение %.2f к концевику?"
+msgid "Apply %s%.2f offset to Endstop?"
+msgstr "Применить смещение %s%.2f к концевику?"
 
 #, python-format
 msgid "Apply %s%.2f offset to Probe?"
@@ -414,6 +414,9 @@ msgstr "Слой:"
 
 msgid "Left:"
 msgstr "Осталось:"
+
+msgid "Watch bed mesh"
+msgstr "Отслеживать сетку стола при начале печати"
 
 msgid "Limits"
 msgstr "Лимиты"
@@ -815,6 +818,12 @@ msgstr "Неизвестное положение винта"
 
 msgid "Unload"
 msgstr "Загружено"
+
+msgid "Load\nfull"
+msgstr "Заправить\nполностью"
+
+msgid "Unload\nfull"
+msgstr "Извлечь\nполностью"
 
 msgid "Unretract Extra Length"
 msgstr "Дополнительная длина подачи перед возобновлением печати"

@@ -1,9 +1,11 @@
-/* Colorized theme created by Farinov 2023 */
+/* Gelios theme created by UselessJoy 2023 */
 
 * {
     color: #fdf6e3; /*base3*/
 }
 
+list row,
+treeview.view,
 window {
     background-color: #002b36;
     padding: 30px;
@@ -170,6 +172,7 @@ combobox box button {
     border-color: #002b36; /*base03*/
 }
 
+treeview.view check,
 switch {
     background-color: #93a1a1; /* base02 */
 }
@@ -179,7 +182,8 @@ switch:disabled slider {
     /* #6e7777 */
 }
 
-switch:checked {
+treeview.view check:checked,
+switch:checked {    
     background-color: #859900; /*solarized-green*/
 }
 
@@ -375,9 +379,14 @@ textview .time {
 }
 
 .numpad_tleft, .numpad_top, .numpad_tright, .numpad_left, .numpad_button, .numpad_right, .numpad_bleft, .numpad_bottom, .numpad_bright {
-    border-color: #002b36; /*base03*/
-    background-color: #073642; /*base02*/
+    border-color: #002b36; 
+    background-color: #073642; 
 }
+
+/* .numpad_key {
+    border-color: #002b36; 
+    background-color: #073642; 
+} */
 
 .printing-status {
     color: #fdf6e3; /*base3*/
