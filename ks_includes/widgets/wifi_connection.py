@@ -422,8 +422,7 @@ class WiFiConnection(Gtk.Box):
 
         if "add_network" in self.labels:
             del self.labels['add_network']
-        label = self._screen.gtk.Label(_("PSK for") + f' {ssid}')
-        label.set_hexpand(False)
+        label = Gtk.Label(label=_("PSK for") + f' {ssid}', hexpand=False)
         self.labels['network_psk'] = TypedEntry()
         self.labels['network_psk'].set_text('')
         self.labels['network_psk'].set_hexpand(True)

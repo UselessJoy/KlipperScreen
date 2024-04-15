@@ -3,7 +3,7 @@ import contextlib
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib
-from panels.menu import MenuPanel
+from panels.menu import Panel as MenuPanel
 from ks_includes.widgets.heatergraph import HeaterGraph
 from ks_includes.widgets.keypad import Keypad
 
@@ -29,7 +29,7 @@ class Panel(MenuPanel):
         
         if stats["temperature_devices"]["count"] > 0 or stats["extruders"]["count"] > 0:
             self._gtk.reset_temp_color()
-            self.grid.attach(self.create_left_panel(), 0, 0, 1, 1)
+            self.main_menu.attach(self.create_left_panel(), 0, 0, 1, 1)
         self.columns = 2
         if self._screen.vertical_mode:
             self.columns = 3
@@ -40,7 +40,6 @@ class Panel(MenuPanel):
             self.labels['menu'] = self.arrangeMenuItems(items, self.columns, True)
             scroll.add(self.labels['menu'])
             self.main_menu.attach(scroll, 1, 0, 1, 1)
-        self.main_menu = self.grid
         self.main_menu.show_all()
         self.content.add(self.main_menu)
 

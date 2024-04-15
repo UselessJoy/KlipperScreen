@@ -11,7 +11,7 @@ class PrintListItem(Gtk.FlowBoxChild):
         self.size = None
         self.dir = 0
         self.path = None
-        self.print_start_time = None
+        self.print_start_time = .0
 
     def set_date(self, date):
         self.date = date

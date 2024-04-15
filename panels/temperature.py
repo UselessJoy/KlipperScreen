@@ -7,7 +7,7 @@ from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.heatergraph import HeaterGraph
 from ks_includes.widgets.keypad import Keypad
 
-class TemperaturePanel(ScreenPanel):
+class Panel(ScreenPanel):
     graph_update = None
     active_heater = None
 
@@ -371,7 +371,7 @@ class TemperaturePanel(ScreenPanel):
         return True
 
     def name_pressed(self, widget, event, device):
-        self.popover_timeout = GLib.timeout_add(100, self.popover_popup, widget, device)
+        self.popover_timeout = GLib.timeout_add(300, self.popover_popup, widget, device)
 
     def name_released(self, widget, event, device):
         if self.popover_timeout is not None:
@@ -478,20 +478,6 @@ class TemperaturePanel(ScreenPanel):
 
         return self.left_panel
 
-    def hide_numpad(self, widget=None):
-        for d in self.active_heaters:
-            self.devices[d]['name'].get_style_context().add_class("button_active")
-        self.devices[self.active_heater]['temp'].get_style_context().remove_class("button_active")
-        self.active_heater = None
-
-        if self._screen.vertical_mode:
-            self.grid.remove_row(1)
-            self.grid.attach(self.create_right_panel(), 0, 1, 1, 1)
-        else:
-            self.grid.remove_column(1)
-            self.grid.attach(self.create_right_panel(), 1, 0, 1, 1)
-        self.grid.show_all()
-
     def popover_closed(self, widget):
         self.popover_device = None
 
@@ -531,6 +517,8 @@ class TemperaturePanel(ScreenPanel):
         for d in self.active_heaters:
             self.devices[d]['temp'].get_style_context().remove_class("button_active")
             self.devices[d]['name'].get_style_context().remove_class("button_active")
+        if self.active_heater:
+            self.devices[self.active_heater]['temp'].get_style_context().remove_class("button_active")
         self.active_heater = self.popover_device if device is None else device
         self.devices[self.active_heater]['temp'].get_style_context().add_class("button_active")
 
@@ -550,6 +538,20 @@ class TemperaturePanel(ScreenPanel):
         self.grid.show_all()
 
         self.labels['popover'].popdown()
+    
+    def hide_numpad(self, widget=None):
+        for d in self.active_heaters:
+            self.devices[d]['name'].get_style_context().add_class("button_active")
+        self.devices[self.active_heater]['temp'].get_style_context().remove_class("button_active")
+        self.active_heater = None
+
+        if self._screen.vertical_mode:
+            self.grid.remove_row(1)
+            self.grid.attach(self.create_right_panel(), 0, 1, 1, 1)
+        else:
+            self.grid.remove_column(1)
+            self.grid.attach(self.create_right_panel(), 1, 0, 1, 1)
+        self.grid.show_all()
 
     def update_graph(self):
         self.labels['da'].queue_draw()

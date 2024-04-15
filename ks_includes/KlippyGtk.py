@@ -31,7 +31,7 @@ def format_label(widget, lines=2, is_ellipsize=True):
         return widget, lines, is_ellipsize
     elif isinstance(widget, (Gtk.Container, Gtk.Bin, Gtk.Button, Gtk.Alignment, Gtk.Box)):
         for _ in widget.get_children():
-            lbl, lines, is_ellipsize = format_label(_, lines, is_ellipsize)
+            format_label(_, lines, is_ellipsize)
 
 
 class KlippyGtk:
@@ -251,7 +251,7 @@ class KlippyGtk:
                     button_hsize = -1
                 else:
                     button_hsize = int((self.width / 3))
-                button.set_size_request(button_hsize - 30, round(self.height / 5))
+                b.set_size_request(button_hsize - 30, round(self.height / 5))
             format_label(button, 3)
 
         dialog.connect("response", self.screen.reset_screensaver_timeout)

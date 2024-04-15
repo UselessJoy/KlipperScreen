@@ -11,28 +11,37 @@ from ks_includes.widgets.bedmap import BedMap
 from ks_includes.widgets.typed_entry import TypedEntry
 
 class Panel(ScreenPanel):
-
     def __init__(self, screen, title):
         super().__init__(screen, title)
+        self.overlayBoxWidth = self._gtk.content_width / 1.2
+        self.request_show_save_button = False
         self.show_create = False
         self.active_mesh = None
+        self.scroll = None
+        self.overlayBox = None
         self.profiles = {}
         self.buttons = {
             'calib': self._gtk.Button("resume", " " + _("Calibrate"), "color3", self.bts, Gtk.PositionType.LEFT, 1),
             'show_profiles': self._gtk.Button(None, " " + _("Profile manager"), "color1", self.bts, Gtk.PositionType.LEFT, 1),
-            'clear': self._gtk.Button("cancel", " " + _("Clear"), "color2", self.bts, Gtk.PositionType.LEFT, 1),
+            'clear': self._gtk.Button("cancel", " " + _("Clear bed mesh"), "color2", self.bts, Gtk.PositionType.LEFT, 1),
+            'save': self._gtk.Button("increase", _("Save profile"), "color3", self.bts, Gtk.PositionType.LEFT, 1)
         }
-            
+        
+        self.buttons['save'].set_vexpand(False)
+        self.buttons['save'].set_halign(Gtk.Align.END)
+        self.buttons['save'].connect("clicked", self.send_save_mesh, self.active_mesh)
+        
         self.buttons['clear'].connect("clicked", self.send_clear_mesh)
         self.buttons['clear'].connect("size-allocate", self.on_allocate_clear_button)
         self.buttons['clear'].set_vexpand(False)
         self.buttons['clear'].set_halign(Gtk.Align.END)
+        
         self.buttons['calib'].connect("clicked", self.show_create_profile)
         self.buttons['calib'].set_hexpand(True)
+        
         self.buttons['show_profiles'].connect("clicked", self.show_loaded_mesh)
         self.buttons['show_profiles'].set_hexpand(True)
-        self.scroll = None
-        self.overlayBox = None
+
         topbar = Gtk.Box(spacing=5, hexpand=True, vexpand=False)
         topbar.add(self.buttons['calib'])
         topbar.add(self.buttons['show_profiles'])
@@ -54,15 +63,20 @@ class Panel(ScreenPanel):
         content_box.add(self.bedMapBox)
         main_box.add(topbar)
         
-        self.labels['label_box'] = Gtk.Box()
         self.labels['active_profile_name'] = Gtk.Label()
         self.labels['active_profile_name'].set_use_markup(True)
-        
         self.labels['active_profile_name'].set_halign(Gtk.Align.START)
         self.labels['active_profile_name'].set_ellipsize(True)
-        self.labels['label_box'].pack_start(self.labels['active_profile_name'], True, True, 0)
-        self.labels['label_box'].pack_end(self.buttons['clear'], True, True, 0)
-        main_box.add(self.labels['label_box'])
+        
+        label_box = Gtk.Box()
+        label_box.pack_start(self.labels['active_profile_name'], True, True, 0)
+        
+        control_mesh_box = Gtk.Box()
+        control_mesh_box.pack_start(self.buttons['save'], True, False, 0)
+        control_mesh_box.pack_end(self.buttons['clear'], True, False, 0)
+        
+        main_box.add(label_box)
+        main_box.add(control_mesh_box)
         main_box.add(content_box)
         self.overlay.add_overlay(main_box)
         self.labels['main_grid'] = self.overlay
@@ -70,30 +84,44 @@ class Panel(ScreenPanel):
 
     def activate(self):
         self.load_meshes()
+        self._screen.show_content()
         with contextlib.suppress(KeyError):
-            self.activate_mesh(self._printer.get_stat("bed_mesh", "profile_name"))
+            self.activate_mesh(self._printer.get_stat("bed_mesh", "profile_name"), self._printer.get_stat("bed_mesh", "unsaved_profiles"))
+            
 
     
     def on_allocate_clear_button(self, widget=None, allocation=None, gdata=None):
+        # Это очень смешно, но этот сраный сигнал показывает все виджеты, как минимум, находящиеся в родительском контейнере
         buttonHeight = allocation.height
         self.bedMapBox.set_size_request(self.baseBedMapW, self.baseBedMapH - buttonHeight)
-        w = self.labels['active_profile_name'].get_allocation().width
-        self.labels['active_profile_name'].set_size_request(w, buttonHeight)
+        if not self.request_show_save_button:
+            self.buttons['save'].hide()
+        if not self.request_show_clear_button:
+            self.buttons['clear'].hide()
+        # self.labels['control_mesh_box'].set_size_request(self.baseBedMapW, buttonHeight)
+        # w = self.labels['active_profile_name'].get_allocation().width
+        # self.labels['active_profile_name'].set_size_request(w, buttonHeight)
         
     def activate_mesh(self, profile, unsaved_profiles):
         if profile == "":
             logging.info("Clearing active profile")
-            if self.active_mesh and self.active_mesh in self.profiles and "load" not in self.profiles[self.active_mesh]:
+            if self.active_mesh and self.active_mesh in self.profiles:
                 self.profiles[self.active_mesh]["name"].set_markup("<b>%s</b>" % (self.active_mesh))
-                self.profiles[self.active_mesh]["load"] = self._gtk.Button("complete", _("Load profile"), "color4", self.bts)
-                self.profiles[self.active_mesh]["load"].connect("clicked", self.send_load_mesh, self.active_mesh)
-                self.profiles[self.active_mesh]["button_grid"].insert_column(0)
-                self.profiles[self.active_mesh]["button_grid"].attach(self.profiles[self.active_mesh]["load"], 0, 0, 1, 1)   
+                if "clear" in self.profiles[self.active_mesh]:
+                    self.profiles[self.active_mesh]["button_grid"].remove_column(0)
+                    del self.profiles[self.active_mesh]["clear"]
+                if "load" not in self.profiles[self.active_mesh]:
+                    self.profiles[self.active_mesh]["load"] = self._gtk.Button("complete", _("Load profile"), "color4", self.bts)
+                    self.profiles[self.active_mesh]["load"].connect("clicked", self.send_load_mesh, self.active_mesh)
+                    self.profiles[self.active_mesh]["button_grid"].insert_column(0)
+                    self.profiles[self.active_mesh]["button_grid"].attach(self.profiles[self.active_mesh]["load"], 0, 0, 1, 1)   
                 self.profiles[self.active_mesh]["button_grid"].show_all()
                 self.active_mesh = None
             self.update_graph()
             self.labels['active_profile_name'].set_markup("<big><b>%s</b></big>" % (_("No mesh profile has been loaded")))
+            self.request_show_clear_button = self.request_show_save_button = False
             self.buttons['clear'].hide()
+            self.buttons['save'].hide()
             return
         
         if profile not in self.profiles:
@@ -111,7 +139,15 @@ class Panel(ScreenPanel):
                     if "load" in self.profiles[pr]:
                         self.profiles[pr]["button_grid"].remove_column(0)
                         del self.profiles[pr]["load"]
+                    if "clear" not in self.profiles[pr]:
+                        self.profiles[pr]["clear"] = self._gtk.Button("cancel", _("Deactivate"), "color1", self.bts)
+                        self.profiles[pr]["clear"].connect("clicked", self.send_clear_mesh)
+                        self.profiles[pr]["button_grid"].insert_column(0)
+                        self.profiles[pr]["button_grid"].attach(self.profiles[pr]["clear"], 0, 0, 1, 1)
                 else:
+                    if "clear" in self.profiles[pr]:
+                        self.profiles[pr]["button_grid"].remove_column(0)
+                        del self.profiles[pr]["clear"]
                     if "load" not in self.profiles[pr]:
                         self.profiles[pr]["name"].set_markup("<b>%s</b>" % (pr))
                         self.profiles[pr]["load"] = self._gtk.Button("complete", _("Load profile"), "color4", self.bts)
@@ -121,12 +157,17 @@ class Panel(ScreenPanel):
                         
                                   
                 if pr in unsaved_profiles:
+                    logging.info("showing button save")
+                    self.request_show_save_button = True
+                    self.buttons['save'].show()
                     if "save" not in self.profiles[pr]:
                         self.profiles[pr]["save"] = self._gtk.Button("increase", _("Save profile"), "color3", self.bts)
                         self.profiles[pr]["save"].connect("clicked", self.send_save_mesh, profile)
                         self.profiles[pr]["button_grid"].insert_column(1)
                         self.profiles[pr]["button_grid"].attach(self.profiles[pr]["save"], 1, 0, 1, 1)
                 else:
+                    self.request_show_save_button = False
+                    self.buttons['save'].hide()
                     if "save" in self.profiles[pr]:
                         self.profiles[pr]["button_grid"].remove_column(1)
                         del self.profiles[pr]["save"]
@@ -135,6 +176,7 @@ class Panel(ScreenPanel):
                 self.profiles[pr]["name"].show_all()
         self.update_graph(profile=profile)
         self.labels['active_profile_name'].set_markup("<big><b>%s: %s</b></big>" % (_("Active profile"), profile))
+        self.request_show_clear_button = True
         self.buttons['clear'].show()
         if self.overlayBox and self.scroll:
                 self.scroll.show_all()
@@ -160,13 +202,16 @@ class Panel(ScreenPanel):
         if self.active_mesh != profile:
             buttons["load"] = self._gtk.Button("complete", _("Load profile"), "color4", self.bts)
             buttons["load"].connect("clicked", self.send_load_mesh, profile)
-                
+        else:
+            buttons["clear"] = self._gtk.Button("cancel", _("Deactivate"), "color1", self.bts)
+            buttons["clear"].connect("clicked", self.send_clear_mesh) 
         if profile in unsaved_profiles:
             buttons["save"] = self._gtk.Button("increase", _("Save profile"), "color3", self.bts)
             buttons["save"].connect("clicked", self.send_save_mesh, profile)
         buttons["delete"] = self._gtk.Button("cancel", _("Delete profile"), "color2", self.bts)
         buttons["delete"].connect("clicked", self.send_remove_mesh, profile)
-        button_grid = Gtk.Grid()
+        button_grid = Gtk.Grid(column_homogeneous=True)
+        button_grid.set_size_request(self.overlayBoxWidth / 1.5, 1)
         button_grid.set_hexpand(True)
         button_grid.set_halign(Gtk.Align.END)
         #0 - load(None), 1 - save(delete), 2 - delete(None)
@@ -225,8 +270,11 @@ class Panel(ScreenPanel):
                 self.remove_profile(prof)
 
     def saving_profile(self, unsaved_profiles):
-        for pr in self.profiles:        
+        for pr in self.profiles:
             if pr not in unsaved_profiles:
+                if self.active_mesh == pr:
+                    self.request_show_save_button = False
+                    self.buttons['save'].hide()
                 if "save" in self.profiles[pr]:
                     self.profiles[pr]["button_grid"].remove_column(1)
                     del self.profiles[pr]["save"]
@@ -301,8 +349,7 @@ class Panel(ScreenPanel):
         for child in self.content.get_children():
             self.content.remove(child)
 
-        pl = self._gtk.Label(_("Profile Name:"))
-        pl.set_hexpand(True)
+        pl = Gtk.Label(label=_("Profile Name:"), hexpand=True)
         self.labels['profile_name'] = TypedEntry()
         i = 0
         # self.profiles may be not updated before click
@@ -363,7 +410,7 @@ class Panel(ScreenPanel):
         self.scroll.set_vexpand(False)
         self.scroll.set_hexpand(True)
         self.scroll.set_halign(Gtk.Align.FILL)
-        self.scroll.set_min_content_width(self._gtk.content_width / 1.2)
+        self.scroll.set_min_content_width(self.overlayBoxWidth)
         self.scroll.get_style_context().add_class("scrolled_window_mesh_profiles")
         self.overlayBox.pack_start(self.scroll, True, True, 0)
         self.overlayBox.set_vexpand(False)

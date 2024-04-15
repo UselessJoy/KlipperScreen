@@ -19,6 +19,22 @@ msgstr ""
 "X-Generator: Poedit 3.2.2\n"
 "X-Poedit-Flags-xgettext: --add-comments\n"
 
+
+msgid "Warning"
+msgstr "Предупреждение"
+
+msgid "Ended official support in June 2023"
+msgstr "Официальная поддержка была прекращена в июне 2023"
+
+msgid "KlipperScreen will drop support in June 2024"
+msgstr "KlipperScreen прекратит поддержку в июне 2024"
+
+msgid "Loading..."
+msgstr "Загрузка"
+
+msgid "disconnected"
+msgstr "Нет соединения"
+
 #, python-format
 msgid "%s will be updated to version"
 msgstr "%s будет обновлен до версии"
@@ -54,12 +70,12 @@ msgid "Apply"
 msgstr "Применить"
 
 #, python-format
-msgid "Apply %s%.2f offset to Endstop?"
-msgstr "Применить смещение %s%.2f к концевику?"
+msgid "Apply %s%.3f offset to Endstop?"
+msgstr "Применить смещение %s%.3f к концевику?"
 
 #, python-format
-msgid "Apply %s%.2f offset to Probe?"
-msgstr "Применить смещение %s%.2f к пробе?"
+msgid "Apply %s%.3f offset to Probe?"
+msgstr "Применить смещение %s%.3f к пробе?"
 
 msgid "Are you sure do you want to exclude the object?"
 msgstr "Вы уверены, что хотите исключить объект?"
@@ -142,8 +158,11 @@ msgstr "Проверьте проводку ADXL"
 msgid "Checking for updates, please wait..."
 msgstr "Проверка обновлений, подождите..."
 
-msgid "Clear"
-msgstr "Очистить"
+msgid "Clear bed mesh"
+msgstr "Очистить сетку стола"
+
+msgid "Deactivate"
+msgstr "Деактивировать"
 
 msgid "Close"
 msgstr "Закрыть"
@@ -442,6 +461,9 @@ msgstr "Максимум"
 msgid "Max Acceleration"
 msgstr "Максимальное ускорение"
 
+msgid "Minimum Cruise Ratio"
+msgstr "Минимальное соотношение \"Ускорение-Замедление\""
+
 msgid "Max Acceleration to Deceleration"
 msgstr "Ускорения торможения"
 
@@ -477,6 +499,15 @@ msgstr "Moonraker: подключен"
 
 msgid "Move"
 msgstr "Двигать"
+
+msgid "More"
+msgstr "Управление принтером"
+
+msgid "Leds"
+msgstr "Светодиоды"
+
+msgid "Notifications"
+msgstr "История уведомлений"
 
 msgid "Move Distance (mm)"
 msgstr "Дистанция перемещения (мм)"
@@ -744,6 +775,12 @@ msgstr "Показывать"
 msgid "Show Heater Power"
 msgstr "Показывать мощность нагрева"
 
+msgid "Auto-open Extrude On Pause"
+msgstr "Автооткрытие меню \"Заправить\" при паузе"
+
+msgid "Show Scrollbars Buttons"
+msgstr "Показывать стрелки на полосах прокрутки"
+
 msgid "Shutdown"
 msgstr "Выключить"
 
@@ -872,6 +909,12 @@ msgstr[2] "изменение"
 
 msgid "dBm"
 msgstr "dBm"
+
+msgid "minute"
+msgid_plural "minutes"
+msgstr[0] "минута"
+msgstr[1] "минуты"
+msgstr[2] "минут"
 
 msgid "hour"
 msgid_plural "hours"

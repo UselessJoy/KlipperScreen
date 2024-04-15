@@ -179,6 +179,7 @@ class Panel(ScreenPanel):
             if self.current_extruder:
                 self.labels['temp_grid'].attach(self.buttons['extruder'][self.current_extruder], n, 0, 1, 1)
                 n += 1
+        self.buttons['heater'] = {}
         for dev in self._printer.get_heaters():
             if n >= nlimit:
                 break
@@ -385,12 +386,12 @@ class Panel(ScreenPanel):
         if device == "probe":
             probe = self._printer.get_probe()
             saved_z_offset = probe['z_offset'] if probe else "?"
-            label.set_label(_("Apply %s%.3f offset to Probe?") % (sign, abs(self.zoffset))# no locale
+            label.set_label(_("Apply %s%.3f offset to Probe?") % (sign, self.zoffset)
                             + "\n\n"
                             + _("Saved offset: %s") % saved_z_offset)
         elif device == "endstop":
             saved_z_offset = None
-            msg = _("Apply %s%.3f offset to Endstop?") % (sign, abs(self.zoffset)) # no locale
+            msg = _("Apply %s%.3f offset to Endstop?") % (sign, self.zoffset) 
             if 'stepper_z' in self._printer.get_config_section_list():
                 saved_z_offset = self._printer.get_config_section('stepper_z')['position_endstop']
             elif 'stepper_a' in self._printer.get_config_section_list():

@@ -119,9 +119,9 @@ class Panel(ScreenPanel):
         self.labels['speed+'].connect("clicked", self.change_speed, "+")
         self.labels['speedfactor'].connect("clicked", self.change_speed, "reset")
         self.labels['speed-'].connect("clicked", self.change_speed, "-")
-        self.labels['extrude+'].connect("clicked", self.change_extrusion, "+")
-        self.labels['extrudefactor'].connect("clicked", self.change_extrusion, "reset")
         self.labels['extrude-'].connect("clicked", self.change_extrusion, "-")
+        self.labels['extrudefactor'].connect("clicked", self.change_extrusion, "reset")
+        self.labels['extrude+'].connect("clicked", self.change_extrusion, "+")
 
         self.content.add(grid)
 
@@ -130,7 +130,8 @@ class Panel(ScreenPanel):
             return
         if "gcode_move" in data:
             if "homing_origin" in data["gcode_move"]:
-                self.labels['zoffset'].set_label(f'  {data["gcode_move"]["homing_origin"][2]:.3f}mm') # no locale
+                mm = _("mm")
+                self.labels['zoffset'].set_label(f'  {data["gcode_move"]["homing_origin"][2]:.3f}{mm}')
                 self.z_offset = float(data["gcode_move"]["homing_origin"][2])
             if "extrude_factor" in data["gcode_move"]:
                 self.extrusion = round(float(data["gcode_move"]["extrude_factor"]) * 100)

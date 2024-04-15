@@ -8,9 +8,9 @@
 }
 
 
-button:disabled {
+/* button:disabled {
     opacity: .2;
-}
+} */
 
 list row,
 treeview.view,

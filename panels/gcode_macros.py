@@ -61,17 +61,21 @@ class Panel(ScreenPanel):
             return
         name = Gtk.Label(hexpand=True, vexpand=True, halign=Gtk.Align.START, valign=Gtk.Align.CENTER,
                          wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR)
+        name.set_margin_bottom(10)
         name.set_markup(f"<big><b>{macro if macro_locale == None else macro_locale}</b></big>")
 
         btn = self._gtk.Button("resume", style="color3")
         btn.connect("clicked", self.run_gcode_macro, macro)
         btn.set_hexpand(False)
+        btn.set_vexpand(False)
+        btn.set_margin_bottom(10)
+        btn.set_valign(Gtk.Align.CENTER)
         btn.set_halign(Gtk.Align.END)
 
         labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         labels.add(name)
 
-        row = Gtk.Box(spacing=5)
+        row = Gtk.Box(spacing=5, margin_bottom=15)
         row.get_style_context().add_class("frame-item")
         row.add(labels)
         row.add(btn)
@@ -86,19 +90,29 @@ class Panel(ScreenPanel):
                 result = re.search(pattern, line)
                 if result:
                     result = result.groupdict()
-                    default = result["default"] if "default" in result else ""
+                    default = result["default"] if "default" in result and result['default'] else ""
                     entry = TypedEntry()
+                    entry.set_margin_bottom(10)
                     entry.set_text(default)
                     self.macros[macro]["params"].update({result["param"]: entry})
 
-        for param in self.macros[macro]["params"]:
+        params_grid = Gtk.Grid(column_homogeneous=True)
+        for i, param in enumerate(self.macros[macro]["params"]):
+            # Перевести в homogeneous grid, добавить переход на новый row после третьего входного параметра
+            param_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5, margin_right=10)
             if param in param_locale_dict:
-                labels.add(Gtk.Label(param_locale_dict[param]))
+                param_box.add(Gtk.Label(label=param_locale_dict[param], hexpand=True, halign=Gtk.Align.CENTER))
             else:
-                labels.add(Gtk.Label(param))
+                param_box.add(Gtk.Label(label=param, hexpand=True, halign=Gtk.Align.CENTER))
+            #plugRight = Gtk.Label()
+            #plugRight.set_size_request(self._screen.gtk.content_width * 0.3, 1)
+            param_box.add(self.macros[macro]["params"][param])
+            #param_box.add(plugRight)
+            
             self.macros[macro]["params"][param].connect("focus-in-event", self.on_change_entry)
             self.macros[macro]["params"][param].connect("focus-out-event", self._screen.remove_keyboard)
-            labels.add(self.macros[macro]["params"][param])
+            params_grid.attach(param_box, i % 3, i / 3, 1, 1)    
+        labels.add(params_grid)
 
     def on_change_entry(self, entry, event):
         self._screen.show_keyboard(entry=entry)
@@ -132,13 +146,15 @@ class Panel(ScreenPanel):
         return False
 
     def load_gcode_macros(self):
-        for macro in self._printer.get_gcode_macros():
+        macros = self._printer.get_gcode_macros()
+        for macro in macros:
             macro_locale = None
             param_locale_dict: dict = {}
-            if 'macro_locale' in self._printer.config[macro]:
-                macro_locale = self._printer.config[macro]['macro_locale']
-            if 'param_locale' in self._printer.config[macro]:
-                param_locale: str = self._printer.config[macro]['param_locale']
+            macro_params = self._printer.get_macro(macro)
+            if 'macro_locale' in macro_params:
+                macro_locale = macro_params['macro_locale']
+            if 'param_locale' in macro_params:
+                param_locale: str = macro_params['param_locale']
                 param_locale_list: list[str] = param_locale.split(',')
                 for pl in param_locale_list:
                     partition_pl = pl.strip().partition('.')

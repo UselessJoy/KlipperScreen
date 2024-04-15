@@ -77,7 +77,7 @@ class KlippyFiles:
 
     def process_update(self, data):
         if (
-            'item' in data and data['item']['root'] != 'gcodes'
+            'item' in data and data['item']['root'] not in ['gcodes', 'media']
             or data['action'].endswith("file") and not self.is_gcode(data['item']['path'])
         ):
             return

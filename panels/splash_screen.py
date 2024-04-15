@@ -21,10 +21,10 @@ class Panel(ScreenPanel):
         self.labels['restart'].connect("clicked", self.restart_klipper)
         self.labels['firmware_restart'] = self._gtk.Button("refresh", _("Firmware Restart"), "color2")
         self.labels['firmware_restart'].connect("clicked", self.firmware_restart)
-        self.labels['restart_system'] = self._gtk.Button("refresh", _("System Restart"), "color1")
-        self.labels['restart_system'].connect("clicked", self.reboot_poweroff, 'reboot')
-        self.labels['shutdown'] = self._gtk.Button("shutdown", _('System Shutdown'), "color2")
-        self.labels['shutdown'].connect("clicked", self.reboot_poweroff, 'shutdown')
+        # self.labels['restart_system'] = self._gtk.Button("refresh", _("System Restart"), "color1")
+        # self.labels['restart_system'].connect("clicked", self.reboot_poweroff, 'reboot')
+        # self.labels['shutdown'] = self._gtk.Button("shutdown", _('System Shutdown'), "color2")
+        # self.labels['shutdown'].connect("clicked", self.reboot_poweroff, 'shutdown')
         self.labels['retry'] = self._gtk.Button("load", _('Retry'), "color3")
         self.labels['retry'].connect("clicked", self.retry)
 
@@ -114,21 +114,21 @@ class Panel(ScreenPanel):
         self._screen._init_printer(_("Connecting to %s") % self._screen.connecting_to_printer)
         self.show_restart_buttons()
     
-    def reboot_poweroff(self, widget, method):
-        label = Gtk.Label(wrap=True, hexpand=True, vexpand=True)
-        if method == "reboot":
-            label.set_label(_("Are you sure you wish to reboot the system?"))
-            title = _("Restart")
-        else:
-            label.set_label(_("Are you sure you wish to shutdown the system?"))
-            title = _("Shutdown")
-        buttons = [
-            {"name": _("Host"), "response": Gtk.ResponseType.OK, "style": 'dialog-info'},
-            {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": 'dialog-error'}
-        ]
-        if self._screen._ws.connected:
-            buttons.insert(1, {"name": _("Printer"), "response": Gtk.ResponseType.APPLY, "style": 'dialog-warning'})
-        self._gtk.Dialog(title, buttons, label, self.reboot_poweroff_confirm, method)
+    # def reboot_poweroff(self, widget, method):
+    #     label = Gtk.Label(wrap=True, hexpand=True, vexpand=True)
+    #     if method == "reboot":
+    #         label.set_label(_("Are you sure you wish to reboot the system?"))
+    #         title = _("Restart")
+    #     else:
+    #         label.set_label(_("Are you sure you wish to shutdown the system?"))
+    #         title = _("Shutdown")
+    #     buttons = [
+    #         {"name": _("Host"), "response": Gtk.ResponseType.OK, "style": 'dialog-info'},
+    #         {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": 'dialog-error'}
+    #     ]
+    #     if self._screen._ws.connected:
+    #         buttons.insert(1, {"name": _("Printer"), "response": Gtk.ResponseType.APPLY, "style": 'dialog-warning'})
+    #     self._gtk.Dialog(title, buttons, label, self.reboot_poweroff_confirm, method)
 
     def reboot_poweroff_confirm(self, dialog, response_id, method):
         self._gtk.remove_dialog(dialog)

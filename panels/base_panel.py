@@ -65,14 +65,14 @@ class BasePanel(ScreenPanel):
         self.control['estop'] = self._gtk.Button('emergency', scale=abscale)
         self.control['estop'].connect("clicked", self.emergency_stop)
         self.control['estop'].set_no_show_all(True)
-        self.shutdown = {
-            "name": None,
-            "panel": "shutdown",
-            "icon": "shutdown",
-        }
-        self.control['shutdown'] = self._gtk.Button('shutdown', scale=abscale)
-        self.control['shutdown'].connect("clicked", self.menu_item_clicked, self.shutdown)
-        self.control['shutdown'].set_no_show_all(True)
+        # self.shutdown = {
+        #     "name": None,
+        #     "panel": "shutdown",
+        #     "icon": "shutdown",
+        # }
+        # self.control['shutdown'] = self._gtk.Button('shutdown', scale=abscale)
+        # self.control['shutdown'].connect("clicked", self.menu_item_clicked, self.shutdown)
+        # self.control['shutdown'].set_no_show_all(True)
         self.control['printer_select'] = self._gtk.Button('shuffle', scale=abscale)
         self.control['printer_select'].connect("clicked", self._screen.show_printer_select)
         self.control['printer_select'].set_no_show_all(True)
@@ -108,7 +108,7 @@ class BasePanel(ScreenPanel):
         self.action_bar.add(self.control['printer_select'])
         self.action_bar.add(self.control['shortcut'])
         self.action_bar.add(self.control['estop'])
-        self.action_bar.add(self.control['shutdown'])
+        # self.action_bar.add(self.control['shutdown'])
         self.action_bar.add(self.control['power'])
         self.show_printer_select(len(self._config.get_printers()) > 1)
         # Titlebar
@@ -401,7 +401,7 @@ class BasePanel(ScreenPanel):
         printing = self._printer and self._printer.state in {"printing", "paused"}
         connected = self._printer and self._printer.state not in {'disconnected', 'startup', 'shutdown', 'error'}
         self.control['estop'].set_visible(printing)
-        self.control['shutdown'].set_visible(not printing)
+        # self.control['shutdown'].set_visible(not printing)
         self.show_shortcut(connected)
         self.show_heaters(connected)
         for control in ('back', 'home'):
@@ -593,7 +593,7 @@ class BasePanel(ScreenPanel):
             and self._printer.get_printer_status_data()["printer"]["gcode_macros"]["count"] > 0
         )
         self.control['shortcut'].set_visible(show)
-        self.set_control_sensitive(self._screen._cur_panels[-1] != self.shutdown['panel'], control='shutdown')
+        # self.set_control_sensitive(self._screen._cur_panels[-1] != self.shutdown['panel'], control='shutdown')
         
     def show_printer_select(self, show=True):
         self.control['printer_select'].set_visible(show)

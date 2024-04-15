@@ -50,11 +50,12 @@ class Panel(ScreenPanel):
             name = self._screen.env.from_string(item['name']).render(self.j2_data)
             icon = self._screen.env.from_string(item['icon']).render(self.j2_data) if item['icon'] else None
             style = self._screen.env.from_string(item['style']).render(self.j2_data) if item['style'] else None
+            show_all = self.evaluate_show_all(item['show_all']) if 'show_all' in item else True
 
             b = self._gtk.Button(icon, name, style or f"color{i % 4 + 1}", scale=scale)
 
             if item['panel']:
-                b.connect("clicked", self.menu_item_clicked, item)
+                b.connect("clicked", self.menu_item_clicked, item, show_all)
             elif item['method']:
                 params = {}
 
@@ -73,6 +74,14 @@ class Panel(ScreenPanel):
             else:
                 b.connect("clicked", self._screen._go_to_submenu, key)
             self.labels[key] = b
+     
+    def evaluate_show_all(self, show_all):
+        try:
+            j2_temp = Template(show_all, autoescape=True)
+            return j2_temp.render(self.j2_data) == 'True'
+        except Exception as e:
+            logging.debug(f"Error evaluating show_all statement: {show_all}\n{e}")
+            return True
         
     def evaluate_enable(self, enable):
         if enable == "{{ moonraker_connected }}":

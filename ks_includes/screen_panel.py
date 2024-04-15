@@ -32,6 +32,7 @@ class ScreenPanel:
         self.bts = self._gtk.bsidescale
 
         self.update_dialog = None
+
     def _autoscroll(self, scroll, *args):
         adj = scroll.get_vadjustment()
         adj.set_value(adj.get_upper() - adj.get_page_size())
@@ -58,11 +59,11 @@ class ScreenPanel:
             return self._gtk.PixbufFromHttp(loc[1], width, height)
         return None
 
-    def menu_item_clicked(self, widget, item):
+    def menu_item_clicked(self, widget, item, show_all):
         if 'extra' in item:
-            self._screen.show_panel(item['panel'], item['name'], extra=item['extra'])
+            self._screen.show_panel(item['panel'], item['name'], extra=item['extra'], show_all=show_all)
             return
-        self._screen.show_panel(item['panel'], item['name'])
+        self._screen.show_panel(item['panel'], item['name'], show_all=show_all)
 
     def load_menu(self, widget, name, title=None):
         logging.info(f"loading menu {name}")
@@ -82,7 +83,6 @@ class ScreenPanel:
     def unload_menu(self, widget=None):
         logging.debug(f"self.menu: {self.menu}")
         if len(self.menu) <= 1 or self.menu[-2] not in self.labels:
-            logging.debug(f"something wrong")
             return
         self._screen.base_panel.set_title(self._screen.panels[self._screen._cur_panels[-1]].title)
         self.menu.pop()
@@ -164,7 +164,7 @@ class ScreenPanel:
         if name.islower():
             name = name.title()
         return name
-    
+
     def update_temp(self, dev, temp, target, power, lines=1):
         if temp is None:
             return

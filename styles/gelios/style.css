@@ -8,17 +8,17 @@ list row,
 treeview.view,
 window {
     background-color: #002b36;
-    padding: 30px;
-    margin: 30px;
+    /* padding: 16px; */
+    /* margin: 16px; */
 }
 
 .content > * > * {
-    padding-right: 16px;
+    padding-right: 8px;
 }
 
 .title_bar {
-    padding-right: 32px;
-    padding-left: 32px;
+    padding-right: 16px;
+    padding-left: 16px;
 }
 
 .action_bar {
@@ -421,4 +421,10 @@ textview .time {
 
 .keyboard_pad {
     background-color: #073642; /*base02*/
+}
+
+.frame-item {
+    min-height: 4.5em;
+    padding: .2em .3em;
+    border-bottom: 1px solid rgba(253, 246, 227, 0.4);
 }
