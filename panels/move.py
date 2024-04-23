@@ -135,7 +135,8 @@ class Panel(ScreenPanel):
             'z+': self._gtk.Button("z-farther", None, "color3"),
             'z-': self._gtk.Button("z-closer", None, "color3"),
             'home': self._gtk.Button("home", _("All"), "color4"),
-            'home_xy': self._gtk.Button("home", _("XY"), "color4"),
+            'home_x': self._gtk.Button("home", _("X"), "color4"),
+            'home_y': self._gtk.Button("home", _("Y"), "color4"),
             'motors_off': self._gtk.Button("motor-off", _("Off"), "color4"),
             'home_z': self._gtk.Button("home", _("Z"), "color4"),
             'mode' : self._gtk.Button("Z-axis", None, "color2")
@@ -147,19 +148,15 @@ class Panel(ScreenPanel):
         self.buttons['z+'].connect("clicked", self.move, "Z", "-")
         self.buttons['z-'].connect("clicked", self.move, "Z", "+")
         self.buttons['home'].connect("clicked", self.home)
-        self.buttons['home_xy'].connect("clicked", self.homexy)
+        self.buttons['home_x'].connect("clicked", self.homex)
+        self.buttons['home_y'].connect("clicked", self.homey)
         self.buttons['home_z'].connect("clicked", self.homez)
         self.buttons['mode'].connect("clicked", self.change_axis)
         script = {"script": "M18"}
         self.buttons['motors_off'].connect("clicked", self._screen._confirm_send_action,
                                            _("Are you sure you wish to disable motors?"),
                                            "printer.gcode.script", script)
-        
-        adjust = self._gtk.Button("settings", None, "color2", 1, Gtk.PositionType.LEFT, 1)
-        adjust.connect("clicked", self.load_menu, 'options', _('Settings'))
-        adjust.set_hexpand(False)
-        
-        
+      
         grid = self._gtk.HomogeneousGrid()
         if self._screen.vertical_mode:
             if self._screen.lang_ltr:
@@ -187,37 +184,12 @@ class Panel(ScreenPanel):
             grid.attach(self.buttons['z+'], 3, 0, 1, 1)
             grid.attach(self.buttons['z-'], 3, 1, 1, 1)
             grid.attach(self.buttons['home'], 1, 1, 1, 1)
-            grid.attach_next_to(self.buttons['home_xy'], self.buttons['y+'], Gtk.PositionType.LEFT, 1, 1)
-            grid.attach_next_to(self.buttons['home_z'], self.buttons['y+'], Gtk.PositionType.RIGHT, 1, 1)
-            grid.attach_next_to(adjust, self.buttons['y-'], Gtk.PositionType.RIGHT, 1, 1)
-            grid.attach_next_to(self.buttons['motors_off'], adjust, Gtk.PositionType.RIGHT, 1, 1)
+            grid.attach_next_to(self.buttons['home_x'], self.buttons['y+'], Gtk.PositionType.LEFT, 1, 1)
+            grid.attach_next_to(self.buttons['home_y'], self.buttons['y+'], Gtk.PositionType.RIGHT, 1, 1)
+            grid.attach_next_to(self.buttons['home_z'], self.buttons['y-'], Gtk.PositionType.RIGHT, 1, 1)
+            grid.attach_next_to(self.buttons['motors_off'], self.buttons['home_z'], Gtk.PositionType.RIGHT, 1, 1)
             grid.attach_next_to(self.buttons['mode'], self.buttons['y-'], Gtk.PositionType.LEFT, 1, 1)
-
-        printer_cfg = self._printer.get_config_section("printer")
-        # The max_velocity parameter is not optional in klipper config.
-        max_velocity = int(float(printer_cfg["max_velocity"]))
-        if "max_z_velocity" in printer_cfg:
-            max_z_velocity = int(float(printer_cfg["max_z_velocity"]))
-        else:
-            max_z_velocity = max_velocity
-
-        configurable_options = [
-            {"move_speed_xy": {
-                "section": "main", "name": _("XY Speed (mm/s)"), "type": "scale", "value": "50",
-                "range": [1, max_velocity], "step": 1}},
-            {"move_speed_z": {
-                "section": "main", "name": _("Z Speed (mm/s)"), "type": "scale", "value": "10",
-                "range": [1, max_z_velocity], "step": 1}}
-        ]
-
-        self.labels['options_menu'] = self._gtk.ScrolledWindow()
-        self.labels['options'] = Gtk.Grid()
-        self.labels['options_menu'].add(self.labels['options'])
-        for option in configurable_options:
-            name = list(option)[0]
-            self.add_option('options', self.settings, name, option[name])
-            
-            
+                        
         for p in ('X', 'Y', 'Z'):
             self.labels[p] = Gtk.Label()
             self.labels[p].set_width_chars(8)
@@ -729,57 +701,6 @@ class Panel(ScreenPanel):
         if self._printer.get_stat("gcode_move", "absolute_coordinates"):
             self._screen._ws.klippy.gcode_script("G90")
 
-    def add_option(self, boxname, opt_array, opt_name, option):
-        name = Gtk.Label()
-        name.set_markup(f"<big><b>{option['name']}</b></big>")
-        name.set_hexpand(True)
-        name.set_vexpand(True)
-        name.set_halign(Gtk.Align.START)
-        name.set_valign(Gtk.Align.CENTER)
-        name.set_line_wrap(True)
-        name.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
-
-        dev = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
-        dev.get_style_context().add_class("frame-item")
-        dev.set_hexpand(True)
-        dev.set_vexpand(False)
-        dev.set_valign(Gtk.Align.CENTER)
-        dev.add(name)
-
-        if option['type'] == "binary":
-            box = Gtk.Box()
-            box.set_vexpand(False)
-            switch = Gtk.Switch()
-            switch.set_hexpand(False)
-            switch.set_vexpand(False)
-            switch.set_active(self._config.get_config().getboolean(option['section'], opt_name))
-            switch.connect("notify::active", self.switch_config_option, option['section'], opt_name)
-            switch.set_property("width-request", round(self._gtk.font_size * 7))
-            switch.set_property("height-request", round(self._gtk.font_size * 3.5))
-            box.add(switch)
-            dev.add(box)
-        elif option['type'] == "scale":
-            dev.set_orientation(Gtk.Orientation.VERTICAL)
-            scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
-                                             min=option['range'][0], max=option['range'][1], step=option['step'])
-            scale.set_hexpand(True)
-            scale.set_value(int(self._config.get_config().get(option['section'], opt_name, fallback=option['value'])))
-            scale.set_digits(0)
-            scale.connect("button-release-event", self.scale_moved, option['section'], opt_name)
-            dev.add(scale)
-
-        opt_array[opt_name] = {
-            "name": option['name'],
-            "row": dev
-        }
-
-        opts = sorted(list(opt_array), key=lambda x: opt_array[x]['name'])
-        pos = opts.index(opt_name)
-
-        self.labels[boxname].insert_row(pos)
-        self.labels[boxname].attach(opt_array[opt_name]['row'], 0, pos, 1, 1)
-        self.labels[boxname].show_all()
-
     def back(self):
         if len(self.menu) > 1:
             self.unload_menu()
@@ -788,9 +709,12 @@ class Panel(ScreenPanel):
 
     def home(self, widget):
         self._screen._ws.klippy.gcode_script(KlippyGcodes.HOME)
-
-    def homexy(self, widget):
-        self._screen._ws.klippy.gcode_script(KlippyGcodes.HOME_XY)
+    
+    def homex(self, widget):
+        self._screen._ws.klippy.gcode_script(KlippyGcodes.HOME_X)
+    
+    def homey(self, widget):
+        self._screen._ws.klippy.gcode_script(KlippyGcodes.HOME_Y)
     
     def homez(self, widget):
         self._screen._ws.klippy.gcode_script(KlippyGcodes.HOME_Z)

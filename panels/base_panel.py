@@ -64,7 +64,7 @@ class BasePanel(ScreenPanel):
             self.set_control_sensitive(False, control)
         self.control['estop'] = self._gtk.Button('emergency', scale=abscale)
         self.control['estop'].connect("clicked", self.emergency_stop)
-        self.control['estop'].set_no_show_all(True)
+        # self.control['estop'].set_no_show_all(True)
         # self.shutdown = {
         #     "name": None,
         #     "panel": "shutdown",
@@ -400,7 +400,7 @@ class BasePanel(ScreenPanel):
     def add_content(self, panel):
         printing = self._printer and self._printer.state in {"printing", "paused"}
         connected = self._printer and self._printer.state not in {'disconnected', 'startup', 'shutdown', 'error'}
-        self.control['estop'].set_visible(printing)
+        # self.control['estop'].set_visible(printing)
         # self.control['shutdown'].set_visible(not printing)
         self.show_shortcut(connected)
         self.show_heaters(connected)

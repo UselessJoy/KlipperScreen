@@ -1,6 +1,8 @@
 class KlippyGcodes:
     HOME = "G28"
     HOME_XY = "G28 X Y"
+    HOME_X = "G28 X"
+    HOME_Y = "G28 Y"
     HOME_Z = "G28 Z"
     Z_TILT = "Z_TILT_ADJUST"
     QUAD_GANTRY_LEVEL = "QUAD_GANTRY_LEVEL"

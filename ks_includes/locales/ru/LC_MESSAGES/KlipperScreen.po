@@ -919,6 +919,12 @@ msgstr "Скорость перемещения по осям XY (мм/с)"
 msgid "XY Speed (mm/s)"
 msgstr "Скорость по осям XY (мм/с)"
 
+msgid "XY Speed"
+msgstr "Скорость по осям XY"
+
+msgid "Z Speed"
+msgstr "Скорость оси Z"
+
 msgid "Z Calibrate"
 msgstr "Калибр. Z"
 

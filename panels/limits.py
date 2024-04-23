@@ -38,6 +38,18 @@ class Panel(ScreenPanel):
                 "option": "square_corner_velocity",
                 "units": _("mm/s"),
                 "value": int(float(conf['square_corner_velocity'])) if "square_corner_velocity" in conf else 5
+            },
+            {
+              "name": _("XY Speed"),
+              "option": "move_speed_xy",
+              "units": _("mm/s"),
+              "value": int(float(conf['move_speed_xy'])) if "move_speed_xy" in conf else 50
+            },
+            {
+              "name": _("Z Speed"),
+              "option": "move_speed_z",
+              "units": _("mm/s"),
+              "value": int(float(conf['move_speed_xy'])) if "move_speed_z" in conf else 10
             }
         ]
 
