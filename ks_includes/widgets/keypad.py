@@ -53,7 +53,8 @@ class Keypad(Gtk.Box):
 
         self.pid = self._gtk.Button('heat-up', _('Calibrate') + ' PID', None, .66, Gtk.PositionType.LEFT, 1)
         self.pid.connect("clicked", self.update_entry, "PID")
-        self.pid.set_sensitive(False)
+        self.pid.set_sensitive(True)
+        # self.pid.set_sensitive(False)
         self.pid.set_no_show_all(True)
         b = self._gtk.Button('cancel', _('Close'), None, .66, Gtk.PositionType.LEFT, 1)
         b.connect("clicked", close_function)
@@ -73,6 +74,13 @@ class Keypad(Gtk.Box):
     def clear(self):
         self.labels['entry'].set_text("")
 
+    def set_active(self, active):
+        if active:
+            self.pid.get_style_context().add_class("button_active")
+        else:
+            self.pid.get_style_context().remove_class("button_active")
+            
+    
     def update_entry(self, widget, digit):
         text = self.labels['entry'].get_text()
         temp = self.validate_temp(text)
@@ -84,13 +92,19 @@ class Keypad(Gtk.Box):
             self.change_temp(temp)
             self.labels['entry'].set_text("")
         elif digit == 'PID':
-            self.pid_calibrate(temp)
+            if self.pid.get_style_context().has_class("button_active"):
+                self.set_active(False)
+                self.pid_calibrate(temp, False)
+            else:
+                self.set_active(True)
+                self.pid_calibrate(temp, True)
             self.labels['entry'].set_text("")
         elif len(text + digit) > 3:
             return
         else:
             self.labels['entry'].set_text(text + digit)
-        self.pid.set_sensitive(self.validate_temp(self.labels['entry'].get_text()) > 9)
+        self.pid.set_sensitive(True)
+        # self.pid.set_sensitive(self.validate_temp(self.labels['entry'].get_text()) > 9)
         
     @staticmethod
     def validate_temp(temp):

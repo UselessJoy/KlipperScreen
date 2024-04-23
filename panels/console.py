@@ -31,7 +31,7 @@ class Panel(ScreenPanel):
         o2_button.get_style_context().add_class("buttons_slim")
         o2_button.connect("clicked", self.hide_temps)
 
-        o3_button = self._gtk.Button("refresh", _('Clear') + " ", None, self.bts, Gtk.PositionType.RIGHT, 1)
+        o3_button = self._gtk.Button("refresh", _("Clear") + " ", None, self.bts, Gtk.PositionType.RIGHT, 1)
         o3_button.get_style_context().add_class("buttons_slim")
         o3_button.connect("clicked", self.clear)
 
@@ -49,7 +49,7 @@ class Panel(ScreenPanel):
 
         sw.add(tv)
 
-        ebox = Gtk.Box(hexpand=True, vexpand=False)
+        ebox = Gtk.Box(hexpand=True, vexpand=False, margin_bottom=10)
 
         entry = TypedEntry()
         entry.set_hexpand(True)

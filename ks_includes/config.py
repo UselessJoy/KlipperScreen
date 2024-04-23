@@ -156,7 +156,7 @@ class KlipperScreenConfig:
             bools = strs = numbers = ()
             if section == 'main':
                 bools = (
-                    'invert_x', 'invert_y', 'invert_z', 'autooff_enable', 'safety_printing', 'watch_bed_mesh',
+                    'invert_x', 'invert_y', 'invert_z', 'autooff_enable', 'safety_printing', 'watch_bed_mesh', 'autoload_bed_mesh',
                     '24htime', 'only_heaters', 'show_cursor', 'confirm_estop',
                     'autoclose_popups', 'use_dpms', 'use_default_menu', 'side_macro_shortcut', 'use-matchbox-keyboard',
                     'show_heater_power', "show_scroll_steppers", "auto_open_extrude"
@@ -186,7 +186,7 @@ class KlipperScreenConfig:
                 strs = ('gcode', '')
                 numbers = [f'{option}' for option in config[section] if option != 'gcode']
             elif section.startswith('menu '):
-                strs = ('name', 'icon', 'panel', 'method', 'params', 'enable', 'confirm', 'style', 'show_all')
+                strs = ('name', 'icon', 'panel', 'method', 'params', 'enable', 'confirm', 'style')
             elif section.startswith('graph')\
                     or section.startswith('displayed_macros')\
                     or section.startswith('spoolman'):
@@ -244,7 +244,7 @@ class KlipperScreenConfig:
             {"theme": {
                 "section": "main", "name": _("Icon Theme"), "type": "dropdown",
                 "value": "gelios", "callback": screen.restart_ks, "options": [
-                    {"name": "gelios" + " " + _("(default)"), "value": "gelios"}]}},
+                    {"name": _("gelios") + " " + _("(default)"), "value": "gelios"}]}},
             {"print_estimate_method": {
                 "section": "main", "name": _("Estimated Time Method"), "type": "dropdown",
                 "value": "auto", "options": [
@@ -264,6 +264,8 @@ class KlipperScreenConfig:
                                 "value": "False", "callback": screen.set_safety}},
             {"watch_bed_mesh": {"section": "main", "name": _("Watch bed mesh"), "type": "binary",
                                 "value": "False", "callback": screen.set_watch_bed_mesh}},
+            {"autoload_bed_mesh": {"section": "main", "name": _("Autoload bed mesh"), "type": "binary",# no locale
+                                "value": "False", "callback": screen.set_autoload_bed_mesh}},
             ####    END NEW    ####
             {"24htime": {"section": "main", "name": _("24 Hour Time"), "type": "binary", "value": "True"}},
             {"side_macro_shortcut": {
@@ -313,7 +315,8 @@ class KlipperScreenConfig:
         theme_opt = self.configurable_options[1]['theme']['options']
 
         for theme in themes:
-            theme_opt.append({"name": theme, "value": theme})
+            if theme != theme_opt[0]['value']:
+                theme_opt.append({"name": _(theme), "value": theme})
 
         index = self.configurable_options.index(
             [i for i in self.configurable_options if list(i)[0] == "screen_blanking"][0])

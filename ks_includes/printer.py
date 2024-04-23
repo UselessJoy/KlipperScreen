@@ -349,6 +349,9 @@ class Printer:
     def get_watch_bed_mesh(self) -> bool:
         return self.data['virtual_sdcard']['watch_bed_mesh']
     
+    def get_autoload_bed_mesh(self) -> bool:
+      return self.data['virtual_sdcard']['autoload_bed_mesh']
+    
     def get_wifi_hotspot(self) -> str:
         return self.data['wifi_mode']['hotspot']
     

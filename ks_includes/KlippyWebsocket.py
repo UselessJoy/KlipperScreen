@@ -409,9 +409,20 @@ class MoonrakerApi:
     def set_watch_bed_mesh(self, watch_bed_mesh, callback=None, *args):
         logging.debug("Sending printer.setWatchBedMesh")
         return self._ws.send_method(
-            "printer.setSafetyPrinting",
+            "printer.setWatchBedMesh",
             {
                 "watch_bed_mesh": watch_bed_mesh
+            },
+            callback,
+            *args
+        )
+    
+    def set_autoload_bed_mesh(self, autoload_bed_mesh, callback=None, *args):
+        logging.debug("Sending printer.setAutoloadBedMesh")
+        return self._ws.send_method(
+            "printer.setAutoloadBedMesh",
+            {
+                "autoload_bed_mesh": autoload_bed_mesh
             },
             callback,
             *args

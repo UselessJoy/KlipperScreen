@@ -4,21 +4,23 @@ import profile
 import re 
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Pango
+from gi.repository import Gtk, Gdk, Pango
 from ks_includes.KlippyGcodes import KlippyGcodes
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.bedmap import BedMap
 from ks_includes.widgets.typed_entry import TypedEntry
 
 class Panel(ScreenPanel):
+    default_re = re.compile('^profile_(?P<i>\d+)$')
+    
     def __init__(self, screen, title):
         super().__init__(screen, title)
         self.overlayBoxWidth = self._gtk.content_width / 1.2
-        self.request_show_save_button = False
         self.show_create = False
         self.active_mesh = None
         self.scroll = None
         self.overlayBox = None
+        self.new_default_profile_name = ""
         self.profiles = {}
         self.buttons = {
             'calib': self._gtk.Button("resume", " " + _("Calibrate"), "color3", self.bts, Gtk.PositionType.LEFT, 1),
@@ -27,6 +29,8 @@ class Panel(ScreenPanel):
             'save': self._gtk.Button("increase", _("Save profile"), "color3", self.bts, Gtk.PositionType.LEFT, 1)
         }
         
+        self.buttons['save'].set_no_show_all(True)
+        self.buttons['clear'].set_no_show_all(True)
         self.buttons['save'].set_vexpand(False)
         self.buttons['save'].set_halign(Gtk.Align.END)
         self.buttons['save'].connect("clicked", self.send_save_mesh, self.active_mesh)
@@ -84,7 +88,6 @@ class Panel(ScreenPanel):
 
     def activate(self):
         self.load_meshes()
-        self._screen.show_content()
         with contextlib.suppress(KeyError):
             self.activate_mesh(self._printer.get_stat("bed_mesh", "profile_name"), self._printer.get_stat("bed_mesh", "unsaved_profiles"))
             
@@ -94,10 +97,6 @@ class Panel(ScreenPanel):
         # Это очень смешно, но этот сраный сигнал показывает все виджеты, как минимум, находящиеся в родительском контейнере
         buttonHeight = allocation.height
         self.bedMapBox.set_size_request(self.baseBedMapW, self.baseBedMapH - buttonHeight)
-        if not self.request_show_save_button:
-            self.buttons['save'].hide()
-        if not self.request_show_clear_button:
-            self.buttons['clear'].hide()
         # self.labels['control_mesh_box'].set_size_request(self.baseBedMapW, buttonHeight)
         # w = self.labels['active_profile_name'].get_allocation().width
         # self.labels['active_profile_name'].set_size_request(w, buttonHeight)
@@ -106,7 +105,12 @@ class Panel(ScreenPanel):
         if profile == "":
             logging.info("Clearing active profile")
             if self.active_mesh and self.active_mesh in self.profiles:
-                self.profiles[self.active_mesh]["name"].set_markup("<b>%s</b>" % (self.active_mesh))
+                locale_name = self.active_mesh
+                result = self.default_re.search(self.active_mesh)
+                if result:
+                    result = result.groupdict()
+                    locale_name = _("profile_%d") % int(result['i'])
+                self.profiles[self.active_mesh]["name"].set_markup("<b>%s</b>" % (locale_name))
                 if "clear" in self.profiles[self.active_mesh]:
                     self.profiles[self.active_mesh]["button_grid"].remove_column(0)
                     del self.profiles[self.active_mesh]["clear"]
@@ -119,7 +123,6 @@ class Panel(ScreenPanel):
                 self.active_mesh = None
             self.update_graph()
             self.labels['active_profile_name'].set_markup("<big><b>%s</b></big>" % (_("No mesh profile has been loaded")))
-            self.request_show_clear_button = self.request_show_save_button = False
             self.buttons['clear'].hide()
             self.buttons['save'].hide()
             return
@@ -130,12 +133,19 @@ class Panel(ScreenPanel):
                 for child in self.scroll:
                     self.scroll.remove(child)
                 self.scroll.add(self.labels['profiles'])
+                
+        locale_name = profile
+        result = self.default_re.search(profile)
+        if result:
+            result = result.groupdict()
+            locale_name = _("profile_%d") % int(result['i'])
+            
         if self.active_mesh != profile:
             logging.info(f"Active {self.active_mesh} changing to {profile}")
             self.active_mesh = profile
-            for pr in self.profiles:
+            for pr in self.profiles:                    
                 if self.active_mesh == pr:
-                    self.profiles[pr]["name"].set_markup(_("<b>%s (%s)</b>" % (pr, _("active"))))
+                    self.profiles[pr]["name"].set_markup(_("<b>%s (%s)</b>" % (locale_name, _("active"))))
                     if "load" in self.profiles[pr]:
                         self.profiles[pr]["button_grid"].remove_column(0)
                         del self.profiles[pr]["load"]
@@ -149,7 +159,7 @@ class Panel(ScreenPanel):
                         self.profiles[pr]["button_grid"].remove_column(0)
                         del self.profiles[pr]["clear"]
                     if "load" not in self.profiles[pr]:
-                        self.profiles[pr]["name"].set_markup("<b>%s</b>" % (pr))
+                        self.profiles[pr]["name"].set_markup("<b>%s</b>" % (locale_name))
                         self.profiles[pr]["load"] = self._gtk.Button("complete", _("Load profile"), "color4", self.bts)
                         self.profiles[pr]["load"].connect("clicked", self.send_load_mesh, pr)
                         self.profiles[pr]["button_grid"].insert_column(0)
@@ -158,7 +168,6 @@ class Panel(ScreenPanel):
                                   
                 if pr in unsaved_profiles:
                     logging.info("showing button save")
-                    self.request_show_save_button = True
                     self.buttons['save'].show()
                     if "save" not in self.profiles[pr]:
                         self.profiles[pr]["save"] = self._gtk.Button("increase", _("Save profile"), "color3", self.bts)
@@ -166,7 +175,6 @@ class Panel(ScreenPanel):
                         self.profiles[pr]["button_grid"].insert_column(1)
                         self.profiles[pr]["button_grid"].attach(self.profiles[pr]["save"], 1, 0, 1, 1)
                 else:
-                    self.request_show_save_button = False
                     self.buttons['save'].hide()
                     if "save" in self.profiles[pr]:
                         self.profiles[pr]["button_grid"].remove_column(1)
@@ -175,8 +183,7 @@ class Panel(ScreenPanel):
                 self.profiles[pr]["button_grid"].show_all()
                 self.profiles[pr]["name"].show_all()
         self.update_graph(profile=profile)
-        self.labels['active_profile_name'].set_markup("<big><b>%s: %s</b></big>" % (_("Active profile"), profile))
-        self.request_show_clear_button = True
+        self.labels['active_profile_name'].set_markup(_("<big><b>%s: %s</b></big>") % (_("Active profile"), locale_name))
         self.buttons['clear'].show()
         if self.overlayBox and self.scroll:
                 self.scroll.show_all()
@@ -217,13 +224,18 @@ class Panel(ScreenPanel):
         #0 - load(None), 1 - save(delete), 2 - delete(None)
         for i, b in enumerate(buttons):
             button_grid.attach(buttons[b], i, 0, 1, 1)
-        
-        name = Gtk.Label(label = profile)
+
+        locale_name = profile
+        result = self.default_re.search(profile)
+        if result:
+            result = result.groupdict()
+            locale_name = _("profile_%d") % int(result['i'])
+        name = Gtk.Label(locale_name)
         name.set_lines(2)
         name.set_justify(Gtk.Justification.LEFT)
         name.set_max_width_chars(20)
         name.set_use_markup(True)
-        name.set_markup("<b>%s</b>" % (profile))
+        name.set_markup("<b>%s</b>" % (locale_name))
         name.set_line_wrap(True)
         name.set_line_wrap_mode(Pango.WrapMode.CHAR)
         name.set_ellipsize(True)
@@ -273,12 +285,16 @@ class Panel(ScreenPanel):
         for pr in self.profiles:
             if pr not in unsaved_profiles:
                 if self.active_mesh == pr:
-                    self.request_show_save_button = False
                     self.buttons['save'].hide()
                 if "save" in self.profiles[pr]:
                     self.profiles[pr]["button_grid"].remove_column(1)
                     del self.profiles[pr]["save"]
-        self.profiles[pr]["name"].set_markup("<b>%s</b>" % (pr))
+        locale_name = pr
+        result = self.default_re.search(pr)
+        if result:
+            result = result.groupdict()
+            locale_name = _("profile_%d") % int(result['i'])
+        self.profiles[pr]["name"].set_markup("<b>%s</b>" % (locale_name))
         self.profiles[pr]["name"].show_all()
         self.profiles[pr]["button_grid"].show_all()
             
@@ -353,15 +369,18 @@ class Panel(ScreenPanel):
         self.labels['profile_name'] = TypedEntry()
         i = 0
         # self.profiles may be not updated before click
-        while f"profile_{i}" in self._printer.get_stat("bed_mesh", "profiles"):
+        
+        while ("profile_%d" % i) in self._printer.get_stat("bed_mesh", "profiles"):
             i = i + 1
-        name = f"profile_{i}"
-        self.labels['profile_name'].set_placeholder_text(name)
+        self.new_default_profile_name = f"profile_{i}"
+        locale_name = _("profile_%d") % i
+        self.labels['profile_name'].set_placeholder_text(_(locale_name))
         self.labels['profile_name'].set_text('')
         self.labels['profile_name'].set_hexpand(True)
         self.labels['profile_name'].set_vexpand(False)
-        self.labels['profile_name'].connect("focus-in-event", self.on_change_entry)
-
+        self.labels['profile_name'].connect("focus-in-event", self.on_focus_in_event)
+        self.labels['profile_name'].connect("focus-out-event", self.on_focus_out_event)
+        self.labels['profile_name'].connect("button_release_event", self.click_to_entry)
         save = self._gtk.Button(None, _("Start calibrate"), "color3", self.bts)
         save.set_hexpand(False)
         save.connect("clicked", self.create_profile)
@@ -370,25 +389,40 @@ class Panel(ScreenPanel):
         box.pack_start(self.labels['profile_name'], True, True, 5)
         box.pack_start(save, False, False, 5)
 
-        self.labels['create_profile'] = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
-        self.labels['create_profile'].set_valign(Gtk.Align.CENTER)
-        self.labels['create_profile'].set_hexpand(True)
-        self.labels['create_profile'].set_vexpand(True)
+        self.labels['create_profile'] = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, 
+                                                hexpand=True, 
+                                                vexpand=True, 
+                                                valign=Gtk.Align.CENTER, 
+                                                spacing=5)
         self.labels['create_profile'].pack_start(pl, True, True, 5)
         self.labels['create_profile'].pack_start(box, True, True, 5)
-
-        self.content.add(self.labels['create_profile'])
+        
+        eventBox = Gtk.EventBox()
+        eventBox.set_can_focus(True)
+        eventBox.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+        eventBox.connect("button_release_event", self.click_to_eventbox)
+        eventBox.add(self.labels['create_profile'])
+        self.content.add(eventBox)
         self.content.show_all()
         self.show_create = True
     
-    def on_change_entry(self, entry, event):
+    def click_to_eventbox(self, eventBox, event):
+        eventBox.grab_focus()
+        
+    def on_focus_out_event(self, entry, event):
+        self._screen.remove_keyboard()
+
+    def click_to_entry(self, entry, event):
+        return True
+        
+    def on_focus_in_event(self, entry, event):
         self._screen.show_keyboard(entry=entry)
         self._screen.keyboard.change_entry(entry=entry)
     
     def create_profile(self, widget=None):
         name = self.labels['profile_name'].get_text()
         if not name:
-            name = self.labels['profile_name'].get_placeholder_text()
+            name = self.new_default_profile_name
         self.calibrate_mesh(None, name)
         self.remove_create()
 

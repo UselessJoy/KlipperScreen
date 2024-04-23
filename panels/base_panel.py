@@ -128,7 +128,7 @@ class BasePanel(ScreenPanel):
         self.unsaved_config_box.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
         self.unsaved_config_box.add_events(Gdk.EventMask.TOUCH_MASK)
         self.unsaved_config_box.connect("button_release_event", self.on_popover_clicked)
-        self.unsaved_config_box.connect('touch-event', self.on_popover_clicked)
+        # self.unsaved_config_box.connect('touch-event', self.on_popover_clicked)
         
         self.on_unsaved_config = Gtk.Image()
         self.on_unsaved_config.set_margin_left(15)

@@ -22,7 +22,7 @@ class HeaterGraph(Gtk.DrawingArea):
         self.connect('draw', self.draw_graph)
         self.add_events(Gdk.EventMask.TOUCH_MASK)
         self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
-        self.connect('touch-event', self.event_cb)
+        # self.connect('touch-event', self.event_cb)
         self.connect('button_press_event', self.event_cb)
         self.font_size = round(font_size * 0.75)
         self.fullscreen = fullscreen

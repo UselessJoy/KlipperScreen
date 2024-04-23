@@ -24,6 +24,7 @@ from ks_includes.files import KlippyFiles
 from ks_includes.KlippyGtk import KlippyGtk
 from ks_includes.printer import Printer
 from ks_includes.widgets.keyboard import Keyboard
+from ks_includes.widgets.numpad import Numpad
 from ks_includes.widgets.prompts import Prompt
 from ks_includes.config import KlipperScreenConfig
 from panels.base_panel import BasePanel
@@ -90,6 +91,7 @@ class KlipperScreen(Gtk.Window):
     connected_printer = None
     files = None
     keyboard = None
+    numpad = None
     panels = {}
     popup_message = None
     screensaver = None
@@ -277,7 +279,7 @@ class KlipperScreen(Gtk.Window):
                                 "info"],
                 "toolhead": ["homed_axes", "estimated_print_time", "print_time", "position", "extruder",
                              "max_accel", "minimum_cruise_ratio", "max_velocity", "square_corner_velocity", "is_homing"],
-                "virtual_sdcard": ["file_position", "is_active", "progress", "interrupted_file", "has_interrupted_file", "show_interrupt", "watch_bed_mesh"],
+                "virtual_sdcard": ["file_position", "is_active", "progress", "interrupted_file", "has_interrupted_file", "show_interrupt", "watch_bed_mesh", "autoload_bed_mesh"],
                 "wifi_mode": ["wifiMode", "hotspot"],
                 "webhooks": ["state", "state_message"],
                 "firmware_retraction": ["retract_length", "retract_speed", "unretract_extra_length", "unretract_speed"],
@@ -321,7 +323,7 @@ class KlipperScreen(Gtk.Window):
             raise FileNotFoundError(os.strerror(2), "\n" + panel_path)
         return import_module(f"panels.{panel}")
 
-    def show_panel(self, panel, title, remove_all=False, panel_name=None, show_all=True, **kwargs):
+    def show_panel(self, panel, title, remove_all=False, panel_name=None, **kwargs):
         if panel_name is None:
             panel_name = panel
         try:
@@ -345,18 +347,15 @@ class KlipperScreen(Gtk.Window):
         except Exception as e:
             logging.exception(f"Error attaching panel:\n{e}\n\n{traceback.format_exc()}")
     
-    def attach_panel(self, panel, show_all=True):
+    def attach_panel(self, panel):
         self.base_panel.add_content(self.panels[panel])
         logging.debug(f"Current panel hierarchy: {' > '.join(self._cur_panels)}")
         if hasattr(self.panels[panel], "process_update"):
             self.process_update("notify_status_update", self.printer.data)
         if hasattr(self.panels[panel], "activate"):
             self.panels[panel].activate()
-        if show_all:
-            self.show_content()
-    
-    def show_content(self):
         self.base_panel.content.show_all()
+        
         
     def log_notification(self, message, level=0):
         time = datetime.now().strftime("%H:%M:%S")
@@ -593,6 +592,7 @@ class KlipperScreen(Gtk.Window):
     def _menu_go_back(self, widget=None, home=False):
         logging.info(f"#### Menu go {'home' if home else 'back'}")
         self.remove_keyboard()
+        self.remove_numpad()
         while len(self._cur_panels) > 1:
             self._remove_current_panel()
             del self._cur_panels[-1]
@@ -615,6 +615,7 @@ class KlipperScreen(Gtk.Window):
         if self.screensaver is not None:
             self.close_screensaver()
         self.remove_keyboard()
+        self.remove_numpad()
         self.close_popup_message()
         for dialog in self.dialogs:
             logging.debug("Hiding dialog")
@@ -687,6 +688,9 @@ class KlipperScreen(Gtk.Window):
         
     def set_watch_bed_mesh(self, watch_bed_mesh):
         self._ws.klippy.set_watch_bed_mesh(watch_bed_mesh)
+      
+    def set_autoload_bed_mesh(self, autoload_bed_mesh):
+        self._ws.klippy.set_autoload_bed_mesh(autoload_bed_mesh)
       
     def get_autooff(self):
         return self.printer.get_autooff()
@@ -896,7 +900,7 @@ class KlipperScreen(Gtk.Window):
         elif action == "notify_klippy_ready":
             if not self.initialized:
                 self.reinit_count = 0
-                self._init_printer("Reconnecting", klipper=True)
+                self._init_printer(_("Reconnecting"), klipper=True)
                 return
             self.printer.process_update({'webhooks': {'state': "ready"}})
             return
@@ -1082,10 +1086,10 @@ class KlipperScreen(Gtk.Window):
             return self._init_printer(msg, klipper=True)
         printer_info = self.apiclient.get_printer_info()
         if printer_info is False:
-            return self._init_printer("Unable to get printer info from moonraker")
+            return self._init_printer(_("Unable to get printer info from moonraker"))
         config = self.apiclient.send_request("printer/objects/query?configfile")
         if config is False:
-            return self._init_printer("Error getting printer configuration")
+            return self._init_printer(_("Error getting printer configuration"))
         #logging.debug(config['result']['status'])
         # Reinitialize printer, in case the printer was shut down and anything has changed.
         self.printer.reinit(printer_info['result'], config['result']['status'])
@@ -1105,7 +1109,7 @@ class KlipperScreen(Gtk.Window):
         data = self.apiclient.send_request("printer/objects/query?" + "&".join(PRINTER_BASE_STATUS_OBJECTS +
                                                                                extra_items))
         if data is False:
-            return self._init_printer("Error getting printer object data with extra items")
+            return self._init_printer(_("Error getting printer object data with extra items"))
 
         self.files.set_gcodes_path()
         self.init_spoolman()
@@ -1161,6 +1165,22 @@ class KlipperScreen(Gtk.Window):
         self.keyboard = Keyboard(self, self.remove_keyboard, accept_function, entry=entry)
         self.base_panel.content.add(self.keyboard)
         self.base_panel.content.show_all()
+        
+    def show_numpad(self, entry=None, event=None, accept_function=None): 
+        if self.numpad is not None:
+                return
+        if entry is None:
+            logging.debug("Error: no entry provided for keyboard")
+            return
+        self.numpad = Numpad(self, accept_function, entry=entry)
+        self.base_panel.content.pack_end(self.numpad, True, True, 5)
+        self.base_panel.content.show_all()
+
+    def remove_numpad(self, widget=None, event=None):
+        if self.numpad is None:
+            return
+        self.base_panel.content.remove(self.numpad)
+        self.numpad = None   
     
     def _show_matchbox_keyboard(self, box):
         env = os.environ.copy()

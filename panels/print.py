@@ -2,7 +2,7 @@ import logging
 import os
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Pango
+from gi.repository import Gtk, Pango, GLib
 from datetime import datetime
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.KlippyGtk import find_widget
@@ -99,7 +99,19 @@ class Panel(ScreenPanel):
         self.set_loading(True)
         self._screen._ws.klippy.get_dir_info(self.load_files, 'gcodes')
         self._screen._ws.klippy.get_dir_info(self.load_files, 'media')
+        GLib.timeout_add_seconds(1, self.watch_cur_directory)
 
+    def watch_cur_directory(self):
+        if self.cur_directory != '':
+            self._screen._ws.klippy.get_dir_info(self.watch_result, self.cur_directory)
+        return True
+    
+    def watch_result(self, result, method, params):
+        if not result.get("result") or not isinstance(result["result"], dict):
+            logging.info(result)
+            self.cur_directory = ''
+            self._refresh_files() 
+     
     def switch_view_mode(self, widget):
         self.list_mode ^= True
         logging.info(f"lista {self.list_mode}")
@@ -276,7 +288,11 @@ class Panel(ScreenPanel):
             self.hide_rename()
             return True
         if self.cur_directory != '':
-            self.change_dir(None, os.path.dirname(self.cur_directory))
+            try:
+                self.change_dir(None, os.path.dirname(self.cur_directory))
+            except:
+                self.cur_directory = ''
+                self._refresh_files()
             return True
         return False
 
@@ -404,12 +420,12 @@ class Panel(ScreenPanel):
         return info
         
     def load_files(self, result, method, params):
-        path = params['path']
-        start = datetime.now()
         self.set_loading(True)
         if not result.get("result") or not isinstance(result["result"], dict):
             logging.info(result)
             return
+        path = params['path']
+        start = datetime.now()
         items = [self.create_item(item, path) for item in [*result["result"]["dirs"], *result["result"]["files"]]]
         for item in filter(None, items):
             self.flowbox.add(item)

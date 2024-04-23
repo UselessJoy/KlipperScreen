@@ -1,5 +1,6 @@
 import logging
 import contextlib
+import re
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib
@@ -11,6 +12,11 @@ class Panel(MenuPanel):
     def __init__(self, screen, title, items=None):
         super().__init__(screen, title, items)
         self.left_panel = None
+        self.is_active = False
+        self.rows_box = None
+        self.temperatures = []
+        self.pid_scroll = self._screen.gtk.ScrolledWindow()
+        self.pid_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL)
         self.menu_labels = None
         self.devices = {}
         self.graph_update = None
@@ -188,11 +194,14 @@ class Panel(MenuPanel):
         self.update_graph_visibility()
 
     def change_target_temp(self, temp):
-        name = self.active_heater.split()[1] if len(self.active_heater.split()) > 1 else self.active_heater
-        temp = self.verify_max_temp(temp)
+        temp = self.verify_temp(temp)
         if temp is False:
             return
-
+        if self.is_active:
+            self.rows_box.add(self.add_tempearture(temp))
+            self.rows_box.show_all()
+            return
+        name = self.active_heater.split()[1] if len(self.active_heater.split()) > 1 else self.active_heater
         if self.active_heater.startswith('extruder'):
             self._screen._ws.klippy.set_tool_temp(self._printer.get_tool_number(self.active_heater), temp)
         elif self.active_heater == "heater_bed":
@@ -206,26 +215,97 @@ class Panel(MenuPanel):
             self._screen.show_popup_message(_("Unknown Heater") + " " + self.active_heater)
         self._printer.set_dev_stat(self.active_heater, "target", temp)
     
-    def verify_max_temp(self, temp):
+    def verify_temp(self, temp):
         temp = int(temp)
         max_temp = int(float(self._printer.get_config_section(self.active_heater)['max_temp']))
+        min_temp = int(float(self._printer.get_config_section(self.active_heater)['min_temp']))
         logging.debug(f"{temp}/{max_temp}")
         if temp > max_temp:
             self._screen.show_popup_message(_("Can't set above the maximum:") + f' {max_temp}')
             return False
-        return max(temp, 0)
-
-    def pid_calibrate(self, temp):
-        if self.verify_max_temp(temp):
-            script = {"script": f"PID_CALIBRATE HEATER={self.active_heater} TARGET={temp}"}
-            self._screen._confirm_send_action(
-                None,
-                _("Initiate a PID calibration for:") + f" {self.active_heater} @ {temp} ºC"
-                + "\n\n" + _("It may take more than 5 minutes depending on the heater power."),
-                "printer.gcode.script",
-                script
-            )
-
+        elif temp < min_temp:
+            self._screen.show_popup_message(_("Can't set below the minimum:") + f' {min_temp}')
+            return False
+        elif temp in self.temperatures:
+            self._screen.show_popup_message(_("Temperature already exist") + f' {temp}')
+            return False
+        return max(temp, 0)    
+        
+    def pid_calibrate(self, widget=None):
+        self.temperatures.sort()
+        str_temps = re.compile('[\[\]]').sub('', str(self.temperatures))
+        script = {"script": f"CALIBRATE_HEATER_PID HEATER={self.active_heater} TEMPERATURES={str_temps}"}
+        self._screen._confirm_send_action(
+            None,
+            _("Initiate a PID calibration for:") + f" {self.active_heater} @ {self.temperatures} ºC"
+            + "\n\n" + _("It may take more than 5 minutes depending on the heater power."), 
+            "printer.gcode.script",
+            script
+        )
+        self.main_menu.set_sensititve(True)
+        self.close_left_pid_panel()
+            
+    def switch_left_pid_panel(self, temper, is_active):
+        self.is_active = is_active
+        # Добавлять в scroll контейнер, содержащий rows
+        if is_active:
+            self.create_left_pid_panel()
+        else:
+            self.close_left_pid_panel()
+        
+    
+    def create_left_pid_panel(self):
+        temps = [215, 235, 240]
+        self.rows_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing = 10)
+        for temp in temps:
+            row_temp = self.add_tempearture(temp)
+            self.rows_box.add(row_temp)
+        pid_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing = 15)
+        pid_box.add(self.rows_box)
+        calibrate_button = self._gtk.Button("heat-up", _("Calibrate"), "color3")
+        calibrate_button.connect("clicked", self.pid_calibrate)
+        calibrate_button.set_vexpand(False)
+        calibrate_button.set_hexpand(False)
+        pid_box.add(calibrate_button)
+        self.pid_scroll.add(pid_box)
+        self.main_menu.remove(self.left_panel)
+        self.main_menu.attach(self.pid_scroll, 0, 0, 1, 1)
+        self.main_menu.show_all()
+        
+    def close_left_pid_panel(self):
+        self.labels["keypad"].set_active(False)
+        self.temperatures = []
+        self.is_active = False
+        if self.rows_box:
+            for child in self.rows_box.get_children():
+                self.rows_box.remove(child)
+            self.rows_box = None
+            for child in self.pid_scroll.get_children():
+                self.pid_scroll.remove(child)
+            self.main_menu.remove(self.pid_scroll)
+        self.main_menu.attach(self.left_panel, 0, 0, 1, 1)
+        self.main_menu.show_all()
+        
+    def add_tempearture(self, temp=0):
+        # Здесь в контейнер, содержащий rows надо добавлять (возвращать None)
+        label = Gtk.Label(label=_("Temperature") + f"       {temp}")
+        self.temperatures.append(temp)
+        delete_button = self._gtk.Button("delete", None, None, .66)
+        delete_button.set_hexpand(False)
+        delete_button.set_vexpand(False)
+        # self._gtk.Button(image, _(devname), None, self.bts, Gtk.PositionType.LEFT, 1)
+        row_temp = Gtk.Box(spacing = 5)
+        row_temp.pack_start(label, False, False, 0)
+        row_temp.pack_end(delete_button, False, False, 0)
+        delete_button.connect("clicked", self.delete_temperature, row_temp, temp)
+        return row_temp
+            
+    def delete_temperature(self, widget, row, temp):
+        if self.rows_box and row in self.rows_box:
+            self.temperatures.remove(temp)
+            self.rows_box.remove(row)
+        self.rows_box.show_all()
+            
     def create_left_panel(self):
         self.labels['devices'] = Gtk.Grid()
         self.labels['devices'].get_style_context().add_class('heater-grid')
@@ -255,6 +335,7 @@ class Panel(MenuPanel):
         return self.left_panel
 
     def hide_numpad(self, widget=None):
+        self.close_left_pid_panel()
         self.devices[self.active_heater]['temp'].get_style_context().remove_class("button_active")
         self.active_heater = None
 
@@ -323,7 +404,7 @@ class Panel(MenuPanel):
         self.devices[self.active_heater]['temp'].get_style_context().add_class("button_active")
 
         if "keypad" not in self.labels:
-            self.labels["keypad"] = Keypad(self._screen, self.change_target_temp, self.pid_calibrate, self.hide_numpad)
+            self.labels["keypad"] = Keypad(self._screen, self.change_target_temp, self.switch_left_pid_panel, self.hide_numpad)
         can_pid = self._printer.state not in ("printing", "paused") \
             and self._screen.printer.config[self.active_heater]['control'] == 'pid'
         self.labels["keypad"].show_pid(can_pid)
@@ -346,6 +427,7 @@ class Panel(MenuPanel):
 
     def back(self):
         if self.numpad_visible:
+            self.close_left_pid_panel()
             self.hide_numpad()
             return True
         return False

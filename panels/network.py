@@ -29,6 +29,7 @@ class Panel(ScreenPanel):
     
     def on_change_page(self, notebook, page, page_num):
         self._screen.remove_keyboard()
+        self._screen.remove_numpad()
         self.cur_page = page
         notebook.grab_focus()
         if hasattr(self.cur_page, "reinit"):

@@ -69,7 +69,7 @@ class Panel(ScreenPanel):
                     
         if 'safety_printing' in data:
             if 'safety_enabled' in data['safety_printing']:
-                logging.info(f"safety_printing changed to {data['safety_printing']['safety_enabled']}")
+                logging.info(f"safety_printing changed to {data['virtual_sdcard']['watch_bed_mesh']}")
                 for child in self.options_data['safety_printing']['row']:
                     if hasattr(child, "set_active"):
                         child.set_active(data['safety_printing']['safety_enabled'])
@@ -77,9 +77,14 @@ class Panel(ScreenPanel):
         if 'virtual_sdcard' in data:
             if 'watch_bed_mesh' in data['virtual_sdcard']:
                 logging.info(f"watch_bed_mesh changed to {data['virtual_sdcard']['watch_bed_mesh']}")
-                for child in self.options_data['safety_printing']['row']:
+                for child in self.options_data['watch_bed_mesh']['row']:
                     if hasattr(child, "set_active"):
                         child.set_active(data['virtual_sdcard']['watch_bed_mesh'])
+            if 'autoload_bed_mesh' in data['virtual_sdcard']:
+                logging.info(f"autoload_bed_mesh changed to {data['virtual_sdcard']['autoload_bed_mesh']}")
+                for child in self.options_data['autoload_bed_mesh']['row']:
+                    if hasattr(child, "set_active"):
+                        child.set_active(data['virtual_sdcard']['autoload_bed_mesh'])
         
     def activate(self):
         while len(self.menu) > 1:

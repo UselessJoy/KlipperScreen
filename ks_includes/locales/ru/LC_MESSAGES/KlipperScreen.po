@@ -23,6 +23,18 @@ msgstr ""
 msgid "Warning"
 msgstr "Предупреждение"
 
+msgid "Reconnecting"
+msgstr "Переподключение"
+
+msgid "Unable to get printer info from moonraker"
+msgstr "Ошибка moonraker: не удалось получить информацию о принтере"
+
+msgid "Error getting printer configuration"
+msgstr "Ошибка при получении конфигурации принтера"
+
+msgid "Error getting printer object data with extra items"
+msgstr "Ошибка при получении данных объекта принтера с дополнительными элементами"
+
 msgid "Ended official support in June 2023"
 msgstr "Официальная поддержка была прекращена в июне 2023"
 
@@ -30,7 +42,7 @@ msgid "KlipperScreen will drop support in June 2024"
 msgstr "KlipperScreen прекратит поддержку в июне 2024"
 
 msgid "Loading..."
-msgstr "Загрузка"
+msgstr "Загрузка..."
 
 msgid "disconnected"
 msgstr "Нет соединения"
@@ -107,6 +119,9 @@ msgstr "Автоматическое закрытие уведомлений"
 msgid "Auto-scroll"
 msgstr "Автоматическая прокрутка"
 
+msgid "Clear"
+msgstr "Очистить"
+
 msgid "Bed Level"
 msgstr "Уровень стола"
 
@@ -133,6 +148,18 @@ msgstr "Камера"
 
 msgid "Can't set above the maximum:"
 msgstr "Невозможно установить выше максимума:"
+
+msgid "Can't set below the minimum:"
+msgstr "Невозможно установить ниже минимума:"
+
+msgid "Temperature already exist"
+msgstr "Температура уже в списке:"
+
+msgid "Initiate a PID calibration for:"
+msgstr "Инициализация PID-калибровки для:"
+
+msgid "It may take more than 5 minutes depending on the heater power."
+msgstr "Это может занять длительное время"
 
 msgid "Cancel"
 msgstr "Отменить"
@@ -366,6 +393,9 @@ msgstr "Имя хоста"
 msgid "Icon Theme"
 msgstr "Темы"
 
+msgid "gelios"
+msgstr "Гелиос"
+
 msgid "Initializing printer..."
 msgstr "Инициализация принтера..."
 
@@ -435,7 +465,10 @@ msgid "Left:"
 msgstr "Осталось:"
 
 msgid "Watch bed mesh"
-msgstr "Отслеживать сетку стола при начале печати"
+msgstr "Отслеживать сетку стола в начале печати"
+
+msgid "Autoload bed mesh"
+msgstr "Автозагрузка сетки стола в начале печати"
 
 msgid "Limits"
 msgstr "Лимиты"
@@ -958,6 +991,10 @@ msgstr "Не удалось подключиться к запрашиваемо
 msgid "No mesh profile has been loaded"
 msgstr "Ни один профиль не был загружен"
 
+#, python-format
+msgid "profile_%d"
+msgstr "Профиль_%d"
+
 msgid "Active profile"
 msgstr "Активный профиль"
 
@@ -1014,6 +1051,20 @@ msgstr "<b>Отключить точку доступа?</b>\n"
 msgid "After turning on the access point, Wi-Fi is turned off.\n To turn on Wi-Fi, turn off the access point"
 msgstr "После включения точки доступа Wi-Fi отключается.\n Чтобы включить Wi-Fi, выключите точку доступа"
 
+#, python-format
+msgid "Cannot configure ipv4 addresses for connection.\n Reconfigure connection\n"
+msgstr "Невозможно сконфигурировать ip-адрес для подключения.\n Измените метод соединения на \"auto\" либо \"manual\"\n"
+
+#, python-format
+msgid "Cannot find method for connection\n"
+msgstr "Невозможно найти метод для подключения\n Валидные методы - \"auto\", \"manual\"\n"
+
+msgid "DHCP selected. Set parameters will be deleted after saving"
+msgstr "Выбран DHCP. Установленные параметры будут удалены после применения изменений"
+
+msgid "Data is not valid"
+msgstr "Некорректный формат данных"
+
 msgid "Disconnect"
 msgstr "Отключить"
 
@@ -1033,6 +1084,8 @@ msgstr "Автоподключение"
 msgid "Access Point Address"
 msgstr "IP точки доступа"
 
+msgid "DHCP-address"
+msgstr "DHCP адрес"
 msgid "IP-address"
 msgstr "IP-адрес"
 
