@@ -1,3 +1,4 @@
+
 import logging
 import logging.handlers
 import os
@@ -99,8 +100,10 @@ def get_software_version():
         logging.exception("Error runing git describe")
     return "?"
 
+
 def parse_bool(value):
     return value.lower() == "true"
+
 
 def patch_threading_excepthook():
     """Installs our exception handler into the threading modules Thread object
@@ -140,11 +143,13 @@ class KlipperScreenLoggingHandler(logging.handlers.RotatingFileHandler):
         self.rollover_info[name] = item
 
     def doRollover(self):
+        super(KlipperScreenLoggingHandler, self).doRollover()
         self.log_start()
 
     def log_start(self):
         for line in self.rollover_info.values():
             logging.info(line)
+
 
 # Logging based on Arksine's logging setup
 def setup_logging(log_file):
@@ -156,7 +161,8 @@ def setup_logging(log_file):
 
     stdout_hdlr = logging.StreamHandler(sys.stdout)
     stdout_fmt = logging.Formatter(
-        '%(asctime)s [%(filename)s:%(funcName)s()] - %(message)s')
+        '%(asctime)s,%(msecs)03d [%(filename)s:%(funcName)s] - %(message)s',
+        '%Y%m%d %H:%M:%S')
     stdout_hdlr.setFormatter(stdout_fmt)
     fh = listener = None
     try:

@@ -99,7 +99,7 @@ class Panel(ScreenPanel):
         self.set_loading(True)
         self._screen._ws.klippy.get_dir_info(self.load_files, 'gcodes')
         self._screen._ws.klippy.get_dir_info(self.load_files, 'media')
-        GLib.timeout_add_seconds(1, self.watch_cur_directory)
+        # GLib.timeout_add_seconds(1, self.watch_cur_directory)
 
     def watch_cur_directory(self):
         if self.cur_directory != '':
@@ -415,7 +415,7 @@ class Panel(ScreenPanel):
             if "estimated_time" in fileinfo:
                 info += _("Print Time") + f': <b>{self.format_time(fileinfo["estimated_time"])}</b>'
         if "print_start_time" in item:
-            if item['print_start_time'] != .0:
+            if item['print_start_time']:
                 info += _("Last Print Time") + f': <b>{datetime.fromtimestamp(fileinfo["print_start_time"]):%Y/%m/%d %I:%M %p}</b>\n'
         return info
         
