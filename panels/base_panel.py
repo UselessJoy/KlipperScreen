@@ -227,16 +227,42 @@ class BasePanel(ScreenPanel):
                 ]
         grid = self._gtk.HomogeneousGrid()
         grid.attach(Gtk.Label(label=_("Select action")), 0, 0, 1, 1)
-        dialog = self._gtk.Dialog(buttons, grid, _("Power Manager"), self.close_power_modal, width = 1, height = 1)
-    
-    def close_power_modal(self, dialog, response_id):
+        button_grid = self._gtk.HomogeneousGrid()
+        button_grid.set_margin_top(20)
+        b = []
+        for i, button in enumerate(buttons):
+          b.append(self._gtk.Button(None, button['name'], button['style'], self.bts))
+          
+          button_grid.attach(b[i], i, 0, 1, 1)
+        last_btn = self._gtk.Button(None, _("Shutdown on cooling"), "color2", self.bts)
+        
+        button_grid.attach(last_btn, 1, 1, 1, 1)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        box.add(grid)
+        box.add(button_grid)
+        # grid.attach(button, 0, 1, 1, 1)
+        dialog = self._gtk.Dialog([], box, _("Power Manager"), self.close_power_modal, width = 1, height = 1)
+        for i, button in enumerate(b):
+          button.connect("clicked", self.close_power_modal, dialog, buttons[i]['response'])
+        last_btn.connect("clicked", self.close_power_modal, dialog, Gtk.ResponseType.APPLY)
+        
+    def close_power_modal(self, widget, dialog, response_id):
         if response_id == Gtk.ResponseType.OK:
             os.system("systemctl poweroff")
         elif response_id == Gtk.ResponseType.YES: 
             os.system("systemctl reboot")
+        elif response_id == Gtk.ResponseType.APPLY: 
+          self._screen.show_popup_message(_("Shutdown on cooling"), level=1, timeout=0)
+          GLib.timeout_add_seconds(1, self.shutdown_on_cooling)
+          self.create_timer_to_shutdown
         self._gtk.remove_dialog(dialog)
     
     
+    def shutdown_on_cooling(self, widget=None):
+      if int(self._printer.get_dev_stat("extruder", "temperature")) < 90:
+        os.system("systemctl poweroff")
+        return False
+      return True
     # def on_properties_changed_callback(self, ap_status):
     #     # Update status only for connected ssid
     #     if ap_status['ssid'] == self.wifi.get_connected_ssid():

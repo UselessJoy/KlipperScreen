@@ -694,6 +694,9 @@ msgstr "Переименовать:"
 msgid "Restart"
 msgstr "Перезагрузка"
 
+msgid "Shutdown on cooling"
+msgstr "Выключить после охлаждения"
+
 msgid "Resume"
 msgstr "Продолжить"
 
@@ -1027,6 +1030,9 @@ msgstr "активен"
 
 msgid "Autooff after print"
 msgstr "Автовыключение после печати"
+
+msgid "Quite Mode"
+msgstr "Тихий режим работы двигателей"
 
 msgid "Printing is paused due to open cap or doors. Close the cap and doors to continue print"
 msgstr "Печать приостановлена из-за открытой крышки или створок. Закройте крышку и створки для продолжения печати"

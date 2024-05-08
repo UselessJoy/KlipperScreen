@@ -74,6 +74,12 @@ class Panel(ScreenPanel):
                     if hasattr(child, "set_active"):
                         child.set_active(data['safety_printing']['safety_enabled'])
         
+        if 'tmc2209 stepper_x' in data:
+          if 'quite_mode' in data['tmc2209 stepper_x']:
+            for child in self.options_data['quite_mode']['row']:
+              if hasattr(child, "set_active"):
+                  child.set_active(data['tmc2209 stepper_x']['quite_mode'])
+        
         if 'virtual_sdcard' in data:
             if 'watch_bed_mesh' in data['virtual_sdcard']:
                 logging.info(f"watch_bed_mesh changed to {data['virtual_sdcard']['watch_bed_mesh']}")

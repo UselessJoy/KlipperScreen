@@ -268,6 +268,7 @@ class KlipperScreen(Gtk.Window):
             "objects": {
                 "autooff": ["autoOff_enable", "autoOff"],
                 "safety_printing": ["safety_enabled", "is_doors_open", "is_hood_open", "luft_timeout", "luft_overload"],
+                "tmc2209 stepper_x": ["quite_mode"],
                 "bed_mesh": ["profile_name", "mesh_max", "mesh_min", "probed_matrix", "profiles", "unsaved_profiles"],
                 "configfile": ["config", "save_config_pending", "save_config_pending_items"],
                 "display_status": ["progress", "message"],
@@ -410,7 +411,8 @@ class KlipperScreen(Gtk.Window):
             if self.popup_timeout is not None:
                 GLib.source_remove(self.popup_timeout)
                 self.popup_timeout = None
-            self.popup_timeout = GLib.timeout_add_seconds(timeout, self.close_popup_message)
+            if timeout:
+              self.popup_timeout = GLib.timeout_add_seconds(timeout, self.close_popup_message)
         return False
     
     def on_close_popup_message(self, widget):
@@ -685,6 +687,10 @@ class KlipperScreen(Gtk.Window):
     
     def set_safety(self, safety):
         self._ws.klippy.set_safety(safety)
+    
+    def set_quite_mode(self, quite_mode):
+        self._ws.klippy.set_quite_mode("stepper_x", quite_mode)
+        self._ws.klippy.set_quite_mode("stepper_y", quite_mode)
         
     def set_watch_bed_mesh(self, watch_bed_mesh):
         self._ws.klippy.set_watch_bed_mesh(watch_bed_mesh)

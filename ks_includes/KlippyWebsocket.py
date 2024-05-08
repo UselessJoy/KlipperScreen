@@ -405,6 +405,18 @@ class MoonrakerApi:
             callback,
             *args
         )
+    
+    def set_quite_mode(self, stepper, quite_mode, callback=None, *args):
+        logging.debug("Sending printer.setQuiteMode")
+        return self._ws.send_method(
+            "printer.setQuiteMode",
+            {
+              'stepper': stepper,
+              'quite_mode': quite_mode
+            },
+            callback,
+            *args
+        )
         
     def set_watch_bed_mesh(self, watch_bed_mesh, callback=None, *args):
         logging.debug("Sending printer.setWatchBedMesh")

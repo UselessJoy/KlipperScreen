@@ -156,7 +156,7 @@ class KlipperScreenConfig:
             bools = strs = numbers = ()
             if section == 'main':
                 bools = (
-                    'invert_x', 'invert_y', 'invert_z', 'autooff_enable', 'safety_printing', 'watch_bed_mesh', 'autoload_bed_mesh',
+                    'invert_x', 'invert_y', 'invert_z', 'quite_mode', 'autooff_enable', 'safety_printing', 'watch_bed_mesh', 'autoload_bed_mesh',
                     '24htime', 'only_heaters', 'show_cursor', 'confirm_estop',
                     'autoclose_popups', 'use_dpms', 'use_default_menu', 'side_macro_shortcut', 'use-matchbox-keyboard',
                     'show_heater_power', "show_scroll_steppers", "auto_open_extrude"
@@ -258,13 +258,15 @@ class KlipperScreenConfig:
                     {"name": _("Never"), "value": "off"}]
             }},
             ####      NEW      ####
+            {"quite_mode": {"section": "main", "name": _("Quite Mode"), "type": "binary",# no locale
+                                "value": "False", "callback": screen.set_quite_mode}},
             {"autooff_enable": {"section": "main", "name": _("Enable autooff after print"), "type": "binary",
                                 "value": "False", "callback": screen.set_autooff}},
             {"safety_printing": {"section": "main", "name": _("Enable safety printing"), "type": "binary",
                                 "value": "False", "callback": screen.set_safety}},
             {"watch_bed_mesh": {"section": "main", "name": _("Watch bed mesh"), "type": "binary",
                                 "value": "False", "callback": screen.set_watch_bed_mesh}},
-            {"autoload_bed_mesh": {"section": "main", "name": _("Autoload bed mesh"), "type": "binary",# no locale
+            {"autoload_bed_mesh": {"section": "main", "name": _("Autoload bed mesh"), "type": "binary",
                                 "value": "False", "callback": screen.set_autoload_bed_mesh}},
             ####    END NEW    ####
             {"24htime": {"section": "main", "name": _("24 Hour Time"), "type": "binary", "value": "True"}},
