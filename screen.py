@@ -268,6 +268,7 @@ class KlipperScreen(Gtk.Window):
             "objects": {
                 "autooff": ["autoOff_enable", "autoOff"],
                 "safety_printing": ["safety_enabled", "is_doors_open", "is_hood_open", "luft_timeout", "luft_overload"],
+                "power_button": ["state"],
                 "tmc2209 stepper_x": ["quite_mode"],
                 "bed_mesh": ["profile_name", "mesh_max", "mesh_min", "probed_matrix", "profiles", "unsaved_profiles"],
                 "configfile": ["config", "save_config_pending", "save_config_pending_items"],
@@ -388,6 +389,8 @@ class KlipperScreen(Gtk.Window):
             if not just_popup:
                 self.remove_window_classes(self.base_panel.main_grid.get_style_context())
                 self.base_panel.main_grid.get_style_context().add_class("window-warning")
+        elif level == 10:
+          msg.get_style_context().add_class("message_popup_suggestion")
         else:
             msg.get_style_context().add_class("message_popup_error")
             if not just_popup:
@@ -946,6 +949,8 @@ class KlipperScreen(Gtk.Window):
                     self.prompt.decode(action)
                 elif data.startswith("echo: "):
                     self.show_popup_message(data[6:], 1)
+                elif data.startswith("(suggestion) "):
+                  self.show_popup_message(data[13:], 10)
                 elif data.startswith("!! "):
                     self.show_popup_message(data[3:], 3)
                 elif "unknown" in data.lower() and \

@@ -816,8 +816,8 @@ class Panel(ScreenPanel):
         if not filename:
             return
         self.filename = filename
-        self.labels["file"].set_label(os.path.splitext(self.filename)[0])
-        self.labels["filepath"].set_label(self.filename.split('/').pop())
+        self.labels["file"].set_label(self.filename.split('/').pop())
+        self.labels["filepath"].set_label(os.path.splitext(self.filename)[0])
         self.filename_label = {
             "complete": self.labels['file'].get_label(),
             "current": self.labels['file'].get_label(),

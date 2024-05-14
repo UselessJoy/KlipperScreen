@@ -378,9 +378,19 @@ textview .time {
 }
 
 .message_popup_warning, .message_popup_warning button {
-    background-color: #fac115; /*solarazed-yellow*/
+    background-color: #c18c00; /*solarazed-yellow*/
 }
 
+.message_popup_suggestion, .message_popup_suggestion button {
+  background-color: #1552fa; /*solarazed-yellow*/
+}
+
+/* .message_popup_warning button label {
+  color: #001d24;
+}
+.message_popup_suggestion button label {
+  color: #001d24;
+} */
 .message_popup_error, .message_popup_error button {
     background-color: #dc322f; /*solarazed-red*/
 }

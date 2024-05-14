@@ -25,6 +25,7 @@ class BasePanel(ScreenPanel):
         self.time_format = self._config.get_main_config().getboolean("24htime", True)
         self.time_update = None
         self.autooff_dialog = None
+        self.power_dialog = None
         self.titlebar_items = []
         self.titlebar_name_type = None
         self.last_time_message = None
@@ -219,7 +220,7 @@ class BasePanel(ScreenPanel):
 
     ####      NEW      ####
         
-    def show_power_dialog(self, widget):
+    def show_power_dialog(self, widget=None):
         buttons = [
                     {"name": _("Restart"), "response": Gtk.ResponseType.YES, "style": "color1"},
                     {"name": _("Shutdown"), "response": Gtk.ResponseType.OK, "style": "color2"},
@@ -241,28 +242,21 @@ class BasePanel(ScreenPanel):
         box.add(grid)
         box.add(button_grid)
         # grid.attach(button, 0, 1, 1, 1)
-        dialog = self._gtk.Dialog([], box, _("Power Manager"), self.close_power_modal, width = 1, height = 1)
+        self.power_dialog = self._gtk.Dialog([], box, _("Power Manager"), self.close_power_dialog, width = 1, height = 1)
         for i, button in enumerate(b):
-          button.connect("clicked", self.close_power_modal, dialog, buttons[i]['response'])
-        last_btn.connect("clicked", self.close_power_modal, dialog, Gtk.ResponseType.APPLY)
+          button.connect("clicked", self.close_power_dialog, self.power_dialog, buttons[i]['response'])
+        last_btn.connect("clicked", self.close_power_dialog, self.power_dialog, Gtk.ResponseType.APPLY)
         
-    def close_power_modal(self, widget, dialog, response_id):
+    def close_power_dialog(self, widget, dialog, response_id):
         if response_id == Gtk.ResponseType.OK:
             os.system("systemctl poweroff")
         elif response_id == Gtk.ResponseType.YES: 
             os.system("systemctl reboot")
         elif response_id == Gtk.ResponseType.APPLY: 
           self._screen.show_popup_message(_("Shutdown on cooling"), level=1, timeout=0)
-          GLib.timeout_add_seconds(1, self.shutdown_on_cooling)
-          self.create_timer_to_shutdown
-        self._gtk.remove_dialog(dialog)
+        self._gtk.remove_dialog(self.power_dialog)
+        self.power_dialog = None
     
-    
-    def shutdown_on_cooling(self, widget=None):
-      if int(self._printer.get_dev_stat("extruder", "temperature")) < 90:
-        os.system("systemctl poweroff")
-        return False
-      return True
     # def on_properties_changed_callback(self, ap_status):
     #     # Update status only for connected ssid
     #     if ap_status['ssid'] == self.wifi.get_connected_ssid():
@@ -490,6 +484,12 @@ class BasePanel(ScreenPanel):
             return
         if action != "notify_status_update" or self._screen.printer is None:
             return
+        if 'power_button' in data:
+          if 'state' in data['power_button']:
+            if data['power_button']['state']:
+                if not self.power_dialog:
+                  self.show_power_dialog()
+          
         if 'configfile' in data:
                 if 'save_config_pending' in data['configfile']:
                     # logging.info(f"show config pending is {data['configfile']['save_config_pending']}")
