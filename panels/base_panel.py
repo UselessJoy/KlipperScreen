@@ -27,6 +27,7 @@ class BasePanel(ScreenPanel):
         self.autooff_dialog = None
         self.power_dialog = None
         self.titlebar_items = []
+        self.check_temp = False
         self.titlebar_name_type = None
         self.last_time_message = None
         self.hours = None
@@ -254,6 +255,7 @@ class BasePanel(ScreenPanel):
             os.system("systemctl reboot")
         elif response_id == Gtk.ResponseType.APPLY: 
           self._screen.show_popup_message(_("Shutdown on cooling"), level=1, timeout=0)
+          self.check_temp = True
         self._gtk.remove_dialog(self.power_dialog)
         self.power_dialog = None
     
@@ -489,7 +491,7 @@ class BasePanel(ScreenPanel):
             if data['power_button']['state']:
                 if not self.power_dialog:
                   self.show_power_dialog()
-          
+
         if 'configfile' in data:
                 if 'save_config_pending' in data['configfile']:
                     # logging.info(f"show config pending is {data['configfile']['save_config_pending']}")
@@ -513,6 +515,9 @@ class BasePanel(ScreenPanel):
                         name = device.split()[1] if len(device.split()) > 1 else device
                         name = f"{name[:1].upper()}: "
                 self.labels[device].set_label(f"{name}{int(temp)}°")
+                if self.check_temp:
+                  if device.startswith("extruder") and temp < 90:
+                    os.system("systemctl poweroff")
 
         if (self.current_extruder and 'toolhead' in data and 'extruder' in data['toolhead']
                 and data["toolhead"]["extruder"] != self.current_extruder):

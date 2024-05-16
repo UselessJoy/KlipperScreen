@@ -368,8 +368,9 @@ class KlipperScreen(Gtk.Window):
         self.process_update("notify_log", log_entry)
         
     def show_popup_message(self, message, level=3, just_popup=False, timeout=5):
-        if (datetime.now() - self.last_popup_time).seconds < 1:
-            return
+        # if (datetime.now() - self.last_popup_time).seconds < 1:
+        # Можно создать таймаут на повторный заход в функцию спустя секунду
+        #     return
         self.last_popup_time = datetime.now()
         self.close_screensaver()
         self.close_popup_message()
@@ -414,7 +415,7 @@ class KlipperScreen(Gtk.Window):
             if self.popup_timeout is not None:
                 GLib.source_remove(self.popup_timeout)
                 self.popup_timeout = None
-            if timeout:
+            if timeout != 0:
               self.popup_timeout = GLib.timeout_add_seconds(timeout, self.close_popup_message)
         return False
     
