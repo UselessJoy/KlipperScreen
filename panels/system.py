@@ -11,10 +11,10 @@ class Panel(ScreenPanel):
         self.update_status = None
         self.system_info = self._screen.apiclient.send_request("machine/system_info")
 
-        self.update_all = self._gtk.Button('arrow-up', _('Full Update'), 'color1', self.bts, Gtk.PositionType.LEFT, 1)
+        self.update_all = self._gtk.Button(None, _('Full Update'), 'color1', self.bts, Gtk.PositionType.LEFT, 1)
         self.update_all.connect("clicked", self.show_update_info, "full")
         self.update_all.set_vexpand(False)
-        self.refresh = self._gtk.Button('arrow-down', _('Refresh'), 'color3', self.bts, Gtk.PositionType.LEFT, 1)
+        self.refresh = self._gtk.Button(None, _('Refresh'), 'color3', self.bts, Gtk.PositionType.LEFT, 1)
         self.refresh.connect("clicked", self.refresh_updates)
         self.refresh.set_vexpand(False)
 
