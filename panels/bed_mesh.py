@@ -283,20 +283,20 @@ class Panel(ScreenPanel):
 
     def saving_profile(self, unsaved_profiles):
         for pr in self.profiles:
-            if pr not in unsaved_profiles:
-                if self.active_mesh == pr:
-                    self.buttons['save'].hide()
-                if "save" in self.profiles[pr]:
-                    self.profiles[pr]["button_grid"].remove_column(1)
-                    del self.profiles[pr]["save"]
-        locale_name = pr
-        result = self.default_re.search(pr)
-        if result:
-            result = result.groupdict()
-            locale_name = _("profile_%d") % int(result['i'])
-        self.profiles[pr]["name"].set_markup("<b>%s</b>" % (locale_name))
-        self.profiles[pr]["name"].show_all()
-        self.profiles[pr]["button_grid"].show_all()
+          if pr not in unsaved_profiles:
+              if self.active_mesh == pr:
+                  self.buttons['save'].hide()
+              if "save" in self.profiles[pr]:
+                  self.profiles[pr]["button_grid"].remove_column(1)
+                  del self.profiles[pr]["save"]
+          locale_name = pr
+          result = self.default_re.search(pr)
+          if result:
+              result = result.groupdict()
+              locale_name = _("profile_%d") % int(result['i'])
+          self.profiles[pr]["name"].set_markup("<b>%s</b>" % (locale_name))
+          self.profiles[pr]["name"].show_all()
+          self.profiles[pr]["button_grid"].show_all()
             
     def process_busy(self, busy):
         for button in self.buttons:
