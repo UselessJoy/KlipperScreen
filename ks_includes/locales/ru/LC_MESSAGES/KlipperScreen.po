@@ -686,7 +686,7 @@ msgid "Last Print Time"
 msgstr "Последняя печать"
 
 msgid "Refresh"
-msgstr "Обновить"
+msgstr "Проверить обновления"
 
 msgid "Rename/Move:"
 msgstr "Переименовать:"
