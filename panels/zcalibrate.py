@@ -225,9 +225,9 @@ class Panel(ScreenPanel):
             self.buttons[button].set_sensitive(not busy)
 
     def process_update(self, action, data):
-        if action == "notify_busy":
-            self.process_busy(data)
-            return
+        # if action == "notify_busy":
+        #     self.process_busy(data)
+        #     return
         if action == "notify_status_update":
             if self._printer.get_stat("toolhead", "homed_axes") != "xyz":
                 self.widgets['zposition'].set_text("Z: ?")
@@ -288,12 +288,12 @@ class Panel(ScreenPanel):
     def abort(self, widget):
         logging.info("Aborting calibration")
         self._screen._ws.klippy.gcode_script(KlippyGcodes.ABORT)
-        self.buttons_not_calibrating()
+        # self.buttons_not_calibrating()
         self._screen._menu_go_back()
 
     def accept(self, widget):
         logging.info("Accepting Z position")
-        self.buttons_calibrating()
+        # self.buttons_calibrating()
         self._screen._ws.klippy.gcode_script(KlippyGcodes.ACCEPT)
 
     def save_config(self):
