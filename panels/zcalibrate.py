@@ -293,6 +293,7 @@ class Panel(ScreenPanel):
 
     def accept(self, widget):
         logging.info("Accepting Z position")
+        self.buttons_calibrating()
         self._screen._ws.klippy.gcode_script(KlippyGcodes.ACCEPT)
 
     def save_config(self):
