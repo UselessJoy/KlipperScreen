@@ -33,7 +33,7 @@ class Panel(ScreenPanel):
         self.buttons['clear'].set_no_show_all(True)
         self.buttons['save'].set_vexpand(False)
         self.buttons['save'].set_halign(Gtk.Align.END)
-        self.buttons['save'].connect("clicked", self.send_save_mesh, self.active_mesh)
+        self.buttons['save'].connect("clicked", self.send_save_active_mesh)
         
         self.buttons['clear'].connect("clicked", self.send_clear_mesh)
         self.buttons['clear'].connect("size-allocate", self.on_allocate_clear_button)
@@ -479,6 +479,12 @@ class Panel(ScreenPanel):
 
     def send_save_mesh(self, widget, profile):
         self._screen._ws.klippy.gcode_script(KlippyGcodes.bed_mesh_save(profile))
+    
+    def send_save_active_mesh(self, widget):
+        if not self.active_mesh:
+          logging.info("Active mesh is none")
+          return
+        self._screen._ws.klippy.gcode_script(KlippyGcodes.bed_mesh_save(self.active_mesh))
 
     def send_remove_mesh(self, widget, profile):
         self._screen._ws.klippy.gcode_script(KlippyGcodes.bed_mesh_remove(profile))
