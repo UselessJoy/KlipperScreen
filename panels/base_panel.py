@@ -486,6 +486,7 @@ class BasePanel(ScreenPanel):
             return
         if action != "notify_status_update" or self._screen.printer is None:
             return
+
         if 'power_button' in data:
           if 'state' in data['power_button']:
             if data['power_button']['state']:

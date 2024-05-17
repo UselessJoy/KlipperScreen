@@ -203,6 +203,7 @@ class KlipperScreen(Gtk.Window):
             "error": self.state_error,
             "paused": self.state_paused,
             "printing": self.state_printing,
+            "interrupt": self.state_interrupt,
             "ready": self.state_ready,
             "startup": self.state_startup,
             "shutdown": self.state_shutdown
@@ -774,7 +775,7 @@ class KlipperScreen(Gtk.Window):
     def state_interrupt(self):
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         self.base_panel.main_grid.get_style_context().add_class("window-interrupt")
-        self.show_panel('main_panel', "main_menu", None, 2, items=self._config.get_menu_items("__main"))
+        self.show_panel("main_menu", None, remove_all=True, items=self._config.get_menu_items("__main"))
         self.base_panel.show_interrupt_dialog()
     ####    END NEW    ####
 
