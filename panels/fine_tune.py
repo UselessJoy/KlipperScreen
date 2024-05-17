@@ -168,7 +168,7 @@ class Panel(ScreenPanel):
         if direction == "+":
             self.speed += int(self.s_delta)
         elif direction == "-":
-            self.speed += int(self.s_delta)
+            self.speed -= int(self.s_delta)
         elif direction == "reset":
             self.speed = 100
 
