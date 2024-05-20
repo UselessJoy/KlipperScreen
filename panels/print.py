@@ -7,7 +7,7 @@ from datetime import datetime
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.KlippyGtk import find_widget
 from ks_includes.widgets.flowboxchild_extended import PrintListItem
-
+from ks_includes.widgets.typed_entry import TypedEntry
 
 def format_label(widget):
     label = find_widget(widget, Gtk.Label)
@@ -518,7 +518,7 @@ class Panel(ScreenPanel):
     
     def _create_rename_box(self, fullpath):
         lbl = Gtk.Label(label=_("Rename/Move:"), halign=Gtk.Align.START, hexpand=False)
-        self.labels['new_name'] = Gtk.Entry()
+        self.labels['new_name'] = TypedEntry()
         self.labels['new_name'].set_text(fullpath)
         self.labels['new_name'].set_hexpand(True)
         self.labels['new_name'].connect("activate", self.rename)
