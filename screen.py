@@ -358,6 +358,7 @@ class KlipperScreen(Gtk.Window):
         if hasattr(self.panels[panel], "activate"):
             self.panels[panel].activate()
         self.base_panel.content.show_all()
+        self.close_popup_message()
         
         
     def log_notification(self, message, level=0):
