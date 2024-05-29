@@ -1,11 +1,10 @@
 import logging
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, GLib, Gdk
+from gi.repository import Gtk
 from ks_includes.KlippyGcodes import KlippyGcodes
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.movement_area import MovementArea
-import time
 
 class Panel(ScreenPanel):
     distances = ['.1', '.5', '1', '5', '10', '25', '50']
@@ -13,10 +12,6 @@ class Panel(ScreenPanel):
     
     def __init__(self, screen, title):
         super().__init__(screen, title)
-        
-        # Параметры для вложенного меню
-        self.settings = {}
-        self.menu = ['move_menu']
         
         # Флаги состояния
         self.is_homing = False
@@ -217,12 +212,6 @@ class Panel(ScreenPanel):
 
         if self._printer.get_stat("gcode_move", "absolute_coordinates"):
             self._screen._ws.klippy.gcode_script("G90")
-
-    def back(self):
-        if len(self.menu) > 1:
-            self.unload_menu()
-            return True
-        return False
 
     def home(self, widget):
         self._screen._ws.klippy.gcode_script(KlippyGcodes.HOME)

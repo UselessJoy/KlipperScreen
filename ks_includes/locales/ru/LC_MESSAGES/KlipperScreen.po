@@ -331,6 +331,9 @@ msgstr "Размер шрифта"
 msgid "Full Update"
 msgstr "Обновить все"
 
+msgid "Magnet Probe"
+msgstr "Магнитная проба"
+
 msgid "Fullscreen"
 msgstr "Полный экран"
 
@@ -1154,6 +1157,18 @@ msgstr "Выберите действие"
 
 msgid "Set new time"
 msgstr "Установите время"
+
+msgid "magnet_x"
+msgstr "Х координата"
+
+msgid "magnet_y"
+msgstr "Y координата"
+
+msgid "Start adjustment"
+msgstr "Начать регулировку"
+
+msgid "New coord"
+msgstr "Новая"
 
 # ###    END NEW    ####
 #~ msgid "Decrease"

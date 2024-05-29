@@ -12,6 +12,13 @@ window {
     /* margin: 16px; */
 }
 
+
+.label_chars {
+  font-size: 1.2em;
+  font-weight: 700;
+  font-family: Roboto, sans-serif;
+  letter-spacing: 1.5px;
+}
 .content > * > * {
     padding-right: 8px;
 }
