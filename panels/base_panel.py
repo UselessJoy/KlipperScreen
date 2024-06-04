@@ -228,16 +228,15 @@ class BasePanel(ScreenPanel):
                     {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color3"},
                 ]
         grid = self._gtk.HomogeneousGrid()
-        grid.attach(Gtk.Label(label=_("Select action")), 0, 0, 1, 1)
         button_grid = self._gtk.HomogeneousGrid()
         button_grid.set_margin_top(20)
         b = []
         for i, button in enumerate(buttons):
-          b.append(self._gtk.Button(None, button['name'], button['style'], self.bts))
+          b.append(self._gtk.Button(None, button['name'], button['style']))
           
           button_grid.attach(b[i], i, 0, 1, 1)
-        last_btn = self._gtk.Button(None, _("Shutdown on cooling"), "color2", self.bts)
-        
+        last_btn = self._gtk.Button(None, _("Shutdown on cooling"), "color2")
+        last_btn.set_size_request(1, self._screen.height / 4)
         button_grid.attach(last_btn, 1, 1, 1, 1)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         box.add(grid)
@@ -539,17 +538,12 @@ class BasePanel(ScreenPanel):
                 self._gtk.remove_dialog(self.interrupt_dialog)
                 self.interrupt_dialog = None
         with contextlib.suppress(Exception):
-            if "is_open" in data["messages"]:
-                if data["messages"]["is_open"]:
-                    msg = self._printer.get_message()
-                    if msg["message"] != "":
-                        lvl = 1 if msg['message_type'] == 'success' else 2 if msg['message_type'] != 'error' else 3
-                        self._screen.show_popup_message(msg['message'], level=lvl, just_popup=True)
-            elif "last_message_eventtime" in data["messages"]:
-                msg = self._printer.get_message()
-                if msg["is_open"] and  msg["message"] != "":
-                    lvl = 1 if msg['message_type'] == 'success' else 2 if msg['message_type'] != 'error' else 3
-                    self._screen.show_popup_message(msg['message'], level=lvl, just_popup=True)
+          if 'messages' in data:
+            msg = data['messages']
+            if msg['is_open']:
+              if msg["message"] != "" and msg['message_type'] != "":
+                  lvl = 1 if msg['message_type'] == 'success' else 2 if msg['message_type'] != 'error' else 3
+                  self._screen.show_popup_message(msg['message'], level=lvl, just_popup=True)
         return False
                     
     def show_autooff_dialog(self):

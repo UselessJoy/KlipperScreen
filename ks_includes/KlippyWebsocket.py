@@ -514,6 +514,15 @@ class MoonrakerApi:
             callback,
             *args
     )
+    
+    def close_message(self, callback=None, *args):
+        logging.debug(f"Sending printer.close_message")
+        return self._ws.send_method(
+            "printer.close_message",
+            {},
+            callback,
+            *args
+    )
         
     def run_async_command(self, command, callback=None, *args):
         return self._ws.send_method(
