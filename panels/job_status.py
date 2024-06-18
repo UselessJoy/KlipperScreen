@@ -469,11 +469,9 @@ class Panel(ScreenPanel):
             self.menu_item_clicked(None, {"panel": "exclude", "name": _("Exclude Object")})
             return
         if response_id == Gtk.ResponseType.CANCEL:
-            self.enable_button("pause")
             return
         logging.debug("Canceling print")
         self.set_state("cancelling")
-        self.disable_button("pause", "resume")
         self._screen._ws.klippy.print_cancel()
 
     def close_panel(self, widget=None):
@@ -504,17 +502,9 @@ class Panel(ScreenPanel):
                     self.disable_button("resume")
                 else:
                     self.enable_button("resume")
-            elif self.state not in ['complete', 'printing', 'error', 'cancelled']:
-                self.enable_button("resume")
-        if action == "notify_gcode_response":
-            if "action:cancel" in data:
-                self.set_state("cancelled")
-            elif "action:paused" in data:
-                self.set_state("paused")
-            elif "action:resumed" in data:
-                self.set_state("printing")
-            return
-        elif action == "notify_metadata_update" and data['filename'] == self.filename:
+            # else:
+            #     self.enable_button("resume")
+        if action == "notify_metadata_update" and data['filename'] == self.filename:
             self.update_file_metadata()
         elif action != "notify_status_update":
             return
@@ -707,21 +697,28 @@ class Panel(ScreenPanel):
         if state == "printing":
             self.labels["status"].set_label(_("Printing"))
         elif state == "complete":
+            self.disable_button("resume", "pause")
             self.update_progress(1)
             self.labels["status"].set_label(_("Complete"))
             self.buttons['left'].set_label("-")
             self._add_timeout(self._config.get_main_config().getint("job_complete_timeout", 0))
         elif state == "error":
+            self.disable_button("resume", "pause")
             self._screen.show_popup_message(msg)
             self._add_timeout(self._config.get_main_config().getint("job_error_timeout", 0))
         elif state == "cancelling":
+            self.disable_button("resume", "pause")
             self.labels["status"].set_label(_("Cancelling"))
         elif state == "cancelled" or (state == "standby" and self.state == "cancelled"):
             self.labels["status"].set_label(_("Cancelled"))
             self._add_timeout(self._config.get_main_config().getint("job_cancelled_timeout", 0))
         elif state == "paused":
+            self.enable_button("resume")
+            self.disable_button("pause")
             self.labels["status"].set_label(_("Paused"))
         elif state == "standby":
+            self.enable_button("resume")
+            self.disable_button("pause")
             self.labels["status"].set_label(_("Standby"))
         if self.state != state:
             logging.debug(f"Changing job_status state from '{self.state}' to '{state}'")
@@ -741,16 +738,12 @@ class Panel(ScreenPanel):
             self.buttons['button_grid'].attach(self.buttons['cancel'], 1, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['fine_tune'], 2, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['control'], 3, 0, 1, 1)
-            self.disable_button("resume")
-            self.enable_button("pause")
             self.can_close = False
         elif self.state == "paused":
             self.buttons['button_grid'].attach(self.buttons['resume'], 0, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['cancel'], 1, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['fine_tune'], 2, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['control'], 3, 0, 1, 1)
-            self.disable_button("pause")
-            self.enable_button("resume")
             self.can_close = False
         else:
             offset = self._printer.get_stat("gcode_move", "homing_origin")
