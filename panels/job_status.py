@@ -504,7 +504,7 @@ class Panel(ScreenPanel):
                     self.disable_button("resume")
                 else:
                     self.enable_button("resume")
-            else:
+            elif self.state not in ['complete', 'printing', 'error', 'cancelled']:
                 self.enable_button("resume")
         if action == "notify_gcode_response":
             if "action:cancel" in data:
