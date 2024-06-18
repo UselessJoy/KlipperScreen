@@ -695,6 +695,8 @@ class Panel(ScreenPanel):
 
     def set_state(self, state, msg=""):
         if state == "printing":
+            self.disable_button("resume")
+            self.enable_button("pause")
             self.labels["status"].set_label(_("Printing"))
         elif state == "complete":
             self.disable_button("resume", "pause")
@@ -710,6 +712,7 @@ class Panel(ScreenPanel):
             self.disable_button("resume", "pause")
             self.labels["status"].set_label(_("Cancelling"))
         elif state == "cancelled" or (state == "standby" and self.state == "cancelled"):
+            self.disable_button("resume", "pause")
             self.labels["status"].set_label(_("Cancelled"))
             self._add_timeout(self._config.get_main_config().getint("job_cancelled_timeout", 0))
         elif state == "paused":
