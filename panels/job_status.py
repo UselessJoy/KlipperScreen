@@ -640,6 +640,7 @@ class Panel(ScreenPanel):
         self.labels["duration"].set_label(self.format_time(total_duration))
         elapsed_label = f"{self.labels['elapsed'].get_text()}  {self.labels['duration'].get_text()}"
         self.buttons['elapsed'].set_label(elapsed_label)
+        find_widget(self.buttons['elapsed'], Gtk.Label).set_ellipsize(Pango.EllipsizeMode.END)
         estimated = slicer_time = filament_time = file_time = 0
         timeleft_type = self._config.get_config()['main'].get('print_estimate_method', 'auto')
 
@@ -680,12 +681,13 @@ class Panel(ScreenPanel):
                 estimated = (filament_time + file_time) / 2
             elif file_time > 1:
                 estimated = file_time
-        if estimated > 1:   
+        if estimated > 1:
             progress = min(max(print_duration / estimated, 0), 1)
             self.labels["est_time"].set_label(self.format_time(estimated))
             self.labels["time_left"].set_label(self.format_eta(estimated, print_duration))
             remaining_label = f"{self.labels['left'].get_text()}  {self.labels['time_left'].get_text()}"
             self.buttons['left'].set_label(remaining_label)
+            find_widget(self.buttons['left'], Gtk.Label).set_ellipsize(Pango.EllipsizeMode.END)
         self.update_progress(progress)
 
     def update_progress(self, progress: float):
