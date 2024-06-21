@@ -352,6 +352,9 @@ msgstr "Скрыть"
 msgid "Hide sensors in Temp."
 msgstr "Скрыть датчики в Temp."
 
+msgid "Nozzle Diameter"
+msgstr "Диаметр сопла"
+
 msgid "Hide temp."
 msgstr "Скрыть температуру."
 

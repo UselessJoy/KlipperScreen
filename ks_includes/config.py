@@ -162,7 +162,7 @@ class KlipperScreenConfig:
                     'show_heater_power', "show_scroll_steppers", "auto_open_extrude"
                 )
                 strs = (
-                    'default_printer', 'language', 'print_sort_dir', 'theme', 'screen_blanking', 'font_size',
+                    'default_printer', 'language', 'print_sort_dir', 'theme', 'nozzle_diameter', 'screen_blanking', 'font_size',
                     'print_estimate_method', 'screen_blanking', "screen_on_devices", "screen_off_devices", 'print_view',
                 )
                 numbers = (
@@ -245,6 +245,16 @@ class KlipperScreenConfig:
                 "section": "main", "name": _("Icon Theme"), "type": "dropdown",
                 "value": "gelios", "callback": screen.restart_ks, "options": [
                     {"name": _("gelios") + " " + _("(default)"), "value": "gelios"}]}},
+
+            {"nozzle_diameter": {
+                "section": "main", "name": _("Nozzle Diameter"), "type": "dropdown",
+                "value": "0.25", "options": [
+                    {"name": "0.25" + " " + _("(default)"), "value": "0.25"},
+                    {"name": "0.4", "value": "0.25"},
+                    {"name": "0.6", "value": "0.6"},
+                    {"name": "0.8", "value": "0.8"},
+                    {"name": "1.0", "value": "1.0"},
+                    ]}},
             {"print_estimate_method": {
                 "section": "main", "name": _("Estimated Time Method"), "type": "dropdown",
                 "value": "auto", "options": [
