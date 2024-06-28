@@ -121,7 +121,7 @@ class KlipperScreen(Gtk.Window):
         self.dialogs = []
         self.confirm = None
         self.last_popup_time = datetime.now()
-
+        #self.set_interactive_debugging(True)
         configfile = os.path.normpath(os.path.expanduser(args.configfile))
 
         self._config = KlipperScreenConfig(configfile, self)
@@ -294,7 +294,8 @@ class KlipperScreen(Gtk.Window):
                 "heaters": ["is_waiting"],
                 "probe": ["is_using_magnet_probe", "last_z_result", "is_adjusting"],
                 "screws_tilt_adjust": ["results", "base_screw", "calibrating_screw", "is_calibrating"],
-                "manual_probe": ["is_active", "command"]
+                "manual_probe": ["is_active", "command"],
+                "pid_calibrate": ["is_calibrating"]
             }
         }
         for extruder in self.printer.get_tools():

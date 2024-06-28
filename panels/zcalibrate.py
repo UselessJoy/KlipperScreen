@@ -332,6 +332,6 @@ class Panel(ScreenPanel):
         self.buttons['cancel'].set_sensitive(False)
         self.buttons['cancel'].get_style_context().remove_class('color2')
 
-    def activate(self):
-        # This is only here because klipper doesn't provide a method to detect if it's calibrating
-        self._screen._ws.klippy.gcode_script(KlippyGcodes.testz_move("+0.001"))
+    # def activate(self):
+    #     # This is only here because klipper doesn't provide a method to detect if it's calibrating
+    #     self._screen._ws.klippy.gcode_script(KlippyGcodes.testz_move("+0.001"))

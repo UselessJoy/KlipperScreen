@@ -155,8 +155,14 @@ msgstr "Невозможно установить ниже минимума:"
 msgid "Temperature already exist"
 msgstr "Температура уже в списке:"
 
-msgid "Initiate a PID calibration for:"
-msgstr "Инициализация PID-калибровки для:"
+msgid "Initiate a PID calibration for"
+msgstr "Инициализация PID-калибровки для"
+
+msgid "а."
+msgstr "а."
+
+msgid "Choosen temps:"
+msgstr "Выбранные температуры:"
 
 msgid "It may take more than 5 minutes depending on the heater power."
 msgstr "Это может занять длительное время"
@@ -935,7 +941,7 @@ msgid "Z Speed"
 msgstr "Скорость оси Z"
 
 msgid "Z Calibrate"
-msgstr "Калибр. Z"
+msgstr "Калибровка Z"
 
 msgid "Z Move Speed (mm/s)"
 msgstr "Скорость перемещения по оси Z (мм/с)"
@@ -1006,6 +1012,14 @@ msgstr "Не удалось подключиться к запрашиваемо
 msgid "No mesh profile has been loaded"
 msgstr "Ни один профиль не был загружен"
 
+msgid "Preheat"
+msgstr "Преднагрев"
+
+msgid "Set temperature"
+msgstr "Укажите температуру"
+
+msgid "Save after calibrate"
+msgstr "Сохранить после калибровки"
 #, python-format
 msgid "profile_%d"
 msgstr "Профиль_%d"
@@ -1293,9 +1307,6 @@ msgstr "Новая"
 
 #~ msgid "Number Pad"
 #~ msgstr "Клавиатура"
-
-#~ msgid "Preheat"
-#~ msgstr "Разогрев"
 
 #~ msgid "Screen will show in less than one second"
 #~ msgstr "Экран отобразится через одну секунду"

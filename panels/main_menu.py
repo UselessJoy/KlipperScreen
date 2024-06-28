@@ -28,6 +28,11 @@ class Panel(MenuPanel):
         scroll = self._gtk.ScrolledWindow()
         self.numpad_visible = False
         self.labels['print_interrupt'] = None
+
+        self.calibrate_button = self._gtk.Button("heat-up", _("Calibrate"), "color3")
+        self.calibrate_button.connect("clicked", self.pid_calibrate)
+        self.calibrate_button.set_vexpand(False)
+        self.calibrate_button.set_hexpand(False)
         
         logging.info("### Making MainMenu")
 
@@ -233,12 +238,12 @@ class Panel(MenuPanel):
         
     def pid_calibrate(self, widget=None):
         self.temperatures.sort()
-        str_temps = re.compile('[\[\]]').sub('', str(self.temperatures))
+        str_temps = re.compile('[\[\]]').sub('', re.sub(' ', '', str(self.temperatures)))
         script = {"script": f"CALIBRATE_HEATER_PID HEATER={self.active_heater} TEMPERATURES={str_temps}"}
         self._screen._confirm_send_action(
             None,
-            _("Initiate a PID calibration for:") + f" {self.active_heater} @ {self.temperatures} ºC"
-            + "\n\n" + _("It may take more than 5 minutes depending on the heater power."), 
+            _("Initiate a PID calibration for") + f" {_(self.active_heater)}{_('а.')} {_('Choosen temps:')} {str_temps} °C" 
+            + "\n\n" + _("It may take more than 5 minutes depending on the heater power."),
             "printer.gcode.script",
             script
         )
@@ -256,17 +261,13 @@ class Panel(MenuPanel):
     
     def create_left_pid_panel(self):
         temps = [215, 235, 240]
-        self.rows_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing = 10)
+        self.rows_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing = 15)
         for temp in temps:
             row_temp = self.add_tempearture(temp)
             self.rows_box.add(row_temp)
         pid_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing = 15)
         pid_box.add(self.rows_box)
-        calibrate_button = self._gtk.Button("heat-up", _("Calibrate"), "color3")
-        calibrate_button.connect("clicked", self.pid_calibrate)
-        calibrate_button.set_vexpand(False)
-        calibrate_button.set_hexpand(False)
-        pid_box.add(calibrate_button)
+        pid_box.add(self.calibrate_button)
         self.pid_scroll.add(pid_box)
         self.main_menu.remove(self.left_panel)
         self.main_menu.attach(self.pid_scroll, 0, 0, 1, 1)
@@ -294,7 +295,7 @@ class Panel(MenuPanel):
         delete_button.set_hexpand(False)
         delete_button.set_vexpand(False)
         # self._gtk.Button(image, _(devname), None, self.bts, Gtk.PositionType.LEFT, 1)
-        row_temp = Gtk.Box(spacing = 5)
+        row_temp = Gtk.Box(spacing = 15)
         row_temp.pack_start(label, False, False, 0)
         row_temp.pack_end(delete_button, False, False, 0)
         delete_button.connect("clicked", self.delete_temperature, row_temp, temp)
@@ -360,6 +361,8 @@ class Panel(MenuPanel):
                     self._printer.get_dev_stat(x, "target"),
                     self._printer.get_dev_stat(x, "power"),
                 )
+        with contextlib.suppress(KeyError):
+          self.calibrate_button.set_sensitive(data['pid_calibrate']['is_calibrating'])
         with contextlib.suppress(Exception):
             if data['virtual_sdcard']['has_interrupted_file'] == True:
                 if 'print' in self.labels:

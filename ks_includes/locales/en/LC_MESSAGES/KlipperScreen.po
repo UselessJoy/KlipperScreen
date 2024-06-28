@@ -17,6 +17,9 @@ msgstr ""
 msgid "%s will be updated to version"
 msgstr ""
 
+msgid "а."
+msgstr ""
+
 msgid "(default)"
 msgstr ""
 

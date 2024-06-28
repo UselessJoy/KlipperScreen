@@ -32,6 +32,11 @@ class Panel(ScreenPanel):
         self._gtk.reset_temp_color()
         self.grid.attach(self.create_left_panel(), 0, 0, 1, 1)
 
+        self.calibrate_button = self._gtk.Button("heat-up", _("Calibrate"), "color3")
+        self.calibrate_button.connect("clicked", self.pid_calibrate)
+        self.calibrate_button.set_vexpand(False)
+        self.calibrate_button.set_hexpand(False)
+
         # When printing start in temp_delta mode and only select tools
         selection = []
         if self._printer.state not in ("printing", "paused"):
@@ -444,11 +449,11 @@ class Panel(ScreenPanel):
 
     def pid_calibrate(self, widget=None):
         self.temperatures.sort()
-        str_temps = re.compile('[\[\]]').sub('', str(self.temperatures))
+        str_temps = re.compile('[\[\]]').sub('', re.sub(' ', '', str(self.temperatures)))
         script = {"script": f"CALIBRATE_HEATER_PID HEATER={self.active_heater} TEMPERATURES={str_temps}"}
         self._screen._confirm_send_action(
             None,
-            _("Initiate a PID calibration for:") + f" {self.active_heater} @ {self.temperatures} ºC" 
+            _("Initiate a PID calibration for") + f" {_(self.active_heater)}{_('а.')} {_('Choosen temps:')} {str_temps} °C" 
             + "\n\n" + _("It may take more than 5 minutes depending on the heater power."),
             "printer.gcode.script",
             script
@@ -466,17 +471,13 @@ class Panel(ScreenPanel):
     
     def create_left_pid_panel(self):
         temps = [215, 235, 240]
-        self.rows_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing = 10)
+        self.rows_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing = 15)
         for temp in temps:
             row_temp = self.add_tempearture(temp)
             self.rows_box.add(row_temp)
         pid_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing = 15)
         pid_box.add(self.rows_box)
-        calibrate_button = self._gtk.Button("heat-up", _("Calibrate"), "color3")
-        calibrate_button.connect("clicked", self.pid_calibrate)
-        calibrate_button.set_vexpand(False)
-        calibrate_button.set_hexpand(False)
-        pid_box.add(calibrate_button)
+        pid_box.add(self.calibrate_button)
         self.pid_scroll.add(pid_box)
         self.grid.remove(self.left_panel)
         self.grid.attach(self.pid_scroll, 0, 0, 1, 1)
@@ -584,6 +585,8 @@ class Panel(ScreenPanel):
     def process_update(self, action, data):
         if action != "notify_status_update":
             return
+        with contextlib.suppress(KeyError):
+          self.calibrate_button.set_sensitive(data['pid_calibrate']['is_calibrating'])
         for x in self._printer.get_temp_devices():
             if x in data:
                 self.update_temp(

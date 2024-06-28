@@ -1,6 +1,6 @@
 import logging
 import os
-
+import re
 import gi
 
 gi.require_version("Gtk", "3.0")
@@ -44,7 +44,7 @@ class InterfaceRule(BaseRule):
         text = entry.get_text()
         value = InterfaceRule.value_between_points(entry)
 
-        if key in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
+        if re.match(r"[0-9]", key):
             # left_point_position = position - (left_point_index+1 if left_point_index != -1 else 0)
             result_value = value + key
             # value_char_array = [char for char in value]
@@ -68,7 +68,7 @@ class NetmaskRule(BaseRule):
         text = entry.get_text()
         position = entry.get_position()
         value = text[1:len(text)]
-        if key in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
+        if re.match(r"[0-9]", key):
             value_char_array = [char for char in value]
             value_char_array.insert(position, key)
             result_value = ''.join(char for char in value_char_array)
@@ -76,15 +76,31 @@ class NetmaskRule(BaseRule):
         elif key == "⌫":
             return True if text[position - 1] != '/' else False
         return False
+
+class NumberRule(BaseRule):
+    @staticmethod
+    def is_valid(entry, key:str):
+        if key == "⌫":
+          return True
+        if key == '0' and not entry.get_text():
+            return False
+        if entry.max:
+          return ( re.match(r"[0-9]", key) and (int(entry.get_text() + key) < int(entry.max)))
+        return re.match(r"[0-9]", key)
+
+
     
 class TypedEntry(Gtk.Entry):
-    def __init__(self, entry_type="base"):
+    def __init__(self, entry_type="base", update_callback=None, max=None):
         super().__init__()
         rules = {
             "base": BaseRule,
             "interface": InterfaceRule,
-            "netmask": NetmaskRule
+            "netmask": NetmaskRule,
+            "number": NumberRule
         }
+        self.update_callback = update_callback
+        self.max = max
         ruleClass = BaseRule
         if entry_type not in rules:
             ruleClass = BaseRule
@@ -113,7 +129,7 @@ class TypedEntry(Gtk.Entry):
     
     
     def check_rules(self, key):
-        return self.rule.is_valid(self, key)
+      return self.rule.is_valid(self, key)
         
     def update_entry(self, key):
         if self.check_rules(key):
@@ -126,5 +142,7 @@ class TypedEntry(Gtk.Entry):
                     logging.info(value)
                     if len(value) == 3 and self.get_text().count('.') < 3:
                         self.automatic_insert('.')
+            if self.update_callback:
+                self.update_callback(self)
                 
                     

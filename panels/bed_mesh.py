@@ -28,7 +28,7 @@ class Panel(ScreenPanel):
             'clear': self._gtk.Button("cancel", " " + _("Clear bed mesh"), "color2", self.bts, Gtk.PositionType.LEFT, 1),
             'save': self._gtk.Button("increase", _("Save profile"), "color3", self.bts, Gtk.PositionType.LEFT, 1)
         }
-        
+
         self.buttons['save'].set_no_show_all(True)
         self.buttons['clear'].set_no_show_all(True)
         self.buttons['save'].set_vexpand(False)
@@ -40,7 +40,7 @@ class Panel(ScreenPanel):
         self.buttons['clear'].set_vexpand(False)
         self.buttons['clear'].set_halign(Gtk.Align.END)
         
-        self.buttons['calib'].connect("clicked", self.show_create_profile)
+        self.buttons['calib'].connect("clicked", self.show_create_profile_menu)
         self.buttons['calib'].set_hexpand(True)
         
         self.buttons['show_profiles'].connect("clicked", self.show_loaded_mesh)
@@ -303,10 +303,6 @@ class Panel(ScreenPanel):
             if button != 'show_profiles':
                 self.buttons[button].set_sensitive((not busy))
         self.labels['profiles'].set_sensitive((not busy))
-        if self.show_create is True:
-            for child in self.labels['create_profile']:
-                if type(child) is Gtk.Button:
-                    child.set_sensitive((not busy))
                 
     
     def process_update(self, action, data):
@@ -360,51 +356,173 @@ class Panel(ScreenPanel):
             self.active_mesh = None
             self.update_graph()
 
-    def show_create_profile(self, widget=None):
-
+    def show_create_profile_menu(self, widget=None):
         for child in self.content.get_children():
             self.content.remove(child)
-
-        pl = Gtk.Label(label=_("Profile Name:"), hexpand=True)
-        self.labels['profile_name'] = TypedEntry()
-        i = 0
-        # self.profiles may be not updated before click
         
-        while ("profile_%d" % i) in self._printer.get_stat("bed_mesh", "profiles"):
-            i = i + 1
-        self.new_default_profile_name = f"profile_{i}"
-        locale_name = _("profile_%d") % i
-        self.labels['profile_name'].set_placeholder_text(_(locale_name))
-        self.labels['profile_name'].set_text('')
-        self.labels['profile_name'].set_hexpand(True)
-        self.labels['profile_name'].set_vexpand(False)
-        self.labels['profile_name'].connect("focus-in-event", self.on_focus_in_event)
-        self.labels['profile_name'].connect("focus-out-event", self.on_focus_out_event)
-        self.labels['profile_name'].connect("button_release_event", self.click_to_entry)
-        save = self._gtk.Button(None, _("Start calibrate"), "color3", self.bts)
-        save.set_hexpand(False)
-        save.connect("clicked", self.create_profile)
 
-        box = Gtk.Box()
-        box.pack_start(self.labels['profile_name'], True, True, 5)
-        box.pack_start(save, False, False, 5)
-
-        self.labels['create_profile'] = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, 
-                                                hexpand=True, 
-                                                vexpand=True, 
-                                                valign=Gtk.Align.CENTER, 
-                                                spacing=5)
-        self.labels['create_profile'].pack_start(pl, True, True, 5)
-        self.labels['create_profile'].pack_start(box, True, True, 5)
+        scroll = self._screen.gtk.ScrolledWindow()
+        scroll.set_vexpand(True)
+        scroll.set_hexpand(True)
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.new_profiles_grid = Gtk.Grid()
+        new_profile_row = self.create_new_profile_row()
+        self.new_profiles_grid.add(new_profile_row)
+        plusButton = self._screen.gtk.Button("plus", None, "round_button")
+        plusButton.connect("clicked", self.add_profile_row)
+        plusButton.set_hexpand(True)
+        plusButton.set_halign(Gtk.Align.CENTER)
+        plusButton.set_vexpand(True)
+        plusButton.set_valign(Gtk.Align.START)
+        box.add(self.new_profiles_grid)
+        box.add(plusButton)
         
+        scroll.add(box)
+
+        startCalibrateButton = self._gtk.Button(None, _("Start calibrate"), "color3", self.bts)
+        startCalibrateButton.set_hexpand(True)
+        startCalibrateButton.set_halign(Gtk.Align.END)
+        startCalibrateButton.set_vexpand(True)
+        startCalibrateButton.set_valign(Gtk.Align.END)
+        startCalibrateButton.set_size_request((self._screen.width - 30) / 4, self._screen.height / 5)
+        startCalibrateButton.connect("clicked", self.start_calibrate)
+
+        box.add(startCalibrateButton)
+
         eventBox = Gtk.EventBox()
         eventBox.set_can_focus(True)
         eventBox.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
         eventBox.connect("button_release_event", self.click_to_eventbox)
-        eventBox.add(self.labels['create_profile'])
+        eventBox.add(scroll)
+
+        
+
         self.content.add(eventBox)
         self.content.show_all()
         self.show_create = True
+    
+    def count_default_profiles(self):
+        i = 0
+        while ("profile_%d" % i) in self._printer.get_stat("bed_mesh", "profiles"):
+            i = i + 1
+        return i
+
+    def add_profile_row(self, widget):
+        new_row = self.create_new_profile_row()
+        self.new_profiles_grid.attach(new_row, 0, len(self.new_profiles_grid), 1, 1)
+        self.content.show_all()
+
+    def delete_profile_row(self, widget, number):
+        self.new_profiles_grid.remove_row(number)
+        self.content.show_all()
+    
+    def count_new_default_profiles(self):
+        new_profiles = []
+        for row in self.new_profiles_grid:
+            found_first_entry = False
+            for box in row:
+                if isinstance(box, Gtk.Box):
+                    for child in box:
+                        if isinstance(child, TypedEntry):
+                            found_first_entry = True
+                            new_profiles.append(child.get_placeholder_text())
+                            break
+                if found_first_entry:
+                    break
+        i = self.count_default_profiles()
+        while (_("profile_%d") % i) in new_profiles:
+            i = i + 1
+        return i
+
+    def get_new_profiles_grid_parameters_as_dict(self):
+        new_profiles_dict = {}
+        for i,row in enumerate(self.new_profiles_grid):
+            new_profiles_dict[i] = {}
+            for box in row:
+                if isinstance(box, Gtk.Box):
+                    for child in box:
+                        if isinstance(child, TypedEntry):
+                            if 'profile_name' not in new_profiles_dict[i]:
+                              text = child.get_text()
+                              if not text:
+                                new_profiles_dict[i]['locale_name'] = child.get_placeholder_text()
+                                new_profiles_dict[i]['profile_name'] = f"profile_{child.get_placeholder_text().partition('_')[2]}"
+                              else:
+                                new_profiles_dict[i]['profile_name'] = text
+                            else:
+                                new_profiles_dict[i]['preheat_temp'] = child.get_text()
+                        if isinstance(child, Gtk.Box):
+                            for ch in child:
+                                if isinstance(ch, Gtk.Switch):
+                                    if 'preheat' not in new_profiles_dict[i]:
+                                        new_profiles_dict[i]['preheat'] = ch.get_active()
+                        if isinstance(child, Gtk.Switch):
+                            if 'save' not in new_profiles_dict[i]:
+                              new_profiles_dict[i]['save'] = child.get_active()
+        return new_profiles_dict       
+            
+    def create_new_profile_row(self):
+        profile_label = Gtk.Label(label=_("Profile Name:"), hexpand=True, halign=Gtk.Align.START)
+        profile_entry = TypedEntry()
+
+        i = self.count_new_default_profiles()
+        
+        self.new_default_profile_name = f"profile_{i}"
+        locale_name = _("profile_%d") % i
+        profile_entry.set_placeholder_text(_(locale_name))
+        profile_entry.set_text('')
+        profile_entry.set_hexpand(True)
+        profile_entry.set_vexpand(False)
+        profile_entry.connect("focus-in-event", self.on_focus_in_event)
+        profile_entry.connect("focus-out-event", self.on_focus_out_event)
+        profile_entry.connect("button_release_event", self.click_to_entry)
+        
+        preheat_entry = TypedEntry("number", max=self._printer.get_config_section('heater_bed')['max_temp'])
+        preheat_entry.connect("focus-in-event", self.on_focus_in_event)
+        preheat_entry.connect("focus-out-event", self.on_focus_out_event)
+        preheat_entry.connect("button_release_event", self.click_to_entry)
+        preheat_entry.set_no_show_all(True)
+        preheat_entry.hide()
+        locale_preheat_placeholder = _("Set temperature")
+        preheat_entry.set_placeholder_text(_(locale_preheat_placeholder))
+
+        preheat_switch = Gtk.Switch()
+        preheat_switch.connect("notify::active", self.on_switch_preheat, preheat_entry)
+
+        preheat_switch_box = Gtk.Box()
+        preheat_switch_box.add(Gtk.Label(label=_("Preheat")))
+        preheat_switch_box.add(preheat_switch)
+
+        preheat_box = Gtk.Box()
+        preheat_box.pack_start(preheat_switch_box, True, True, 10)
+        preheat_box.pack_end(preheat_entry, True, True, 10)
+        
+
+        minusButton = self._screen.gtk.Button("minus", None, "round_button")
+        minusButton.connect("clicked", self.delete_profile_row, len(self.new_profiles_grid) - 1)
+
+        save_box = Gtk.Box()
+        save_box.add(Gtk.Label(label=_("Save after calibrate")))
+        save_box.add(Gtk.Switch())
+
+        profile_box = Gtk.Box()
+        profile_box.add(profile_entry)
+        profile_box.pack_end(minusButton, False, False, 5)
+
+        main_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, 
+                                                hexpand=True, 
+                                                vexpand=True, 
+                                                valign=Gtk.Align.CENTER, 
+                                                spacing=5)
+        main_row.pack_start(profile_label, True, True, 5)
+        main_row.pack_start(profile_box, True, True, 5)
+        main_row.add(preheat_box)
+        main_row.add(save_box)
+        return main_row
+
+    def on_switch_preheat(self, switch, gdata, entry):
+        entry.show() if switch.get_active() else entry.hide()
     
     def click_to_eventbox(self, eventBox, event):
         eventBox.grab_focus()
@@ -419,16 +537,29 @@ class Panel(ScreenPanel):
         self._screen.show_keyboard(entry=entry)
         self._screen.keyboard.change_entry(entry=entry)
     
-    def create_profile(self, widget=None):
-        name = self.labels['profile_name'].get_text()
-        if not name:
-            name = self.new_default_profile_name
-        self.calibrate_mesh(None, name)
-        self.remove_create()
+    def start_calibrate(self, widget=None):
+        profiles_dict = self.get_new_profiles_grid_parameters_as_dict()
+        logging.info(f"profiles dict {profiles_dict}")
+        cmd = ""
+        for profile_i in profiles_dict:
+            cmd = cmd + f"BED_MESH_CALIBRATE PROFILE={profiles_dict[profile_i]['profile_name']} SAVE_PERMANENTLY={profiles_dict[profile_i]['save']}\n"
+            if profiles_dict[profile_i]['preheat']:
+                prh_t = profiles_dict[profile_i]['preheat_temp']
+                cmd = cmd + f"M190 S{0 if prh_t == '' else prh_t}\n"
+        cmd_array = cmd.split('\n')
+        cmd_array.reverse()
+        cmd = "\n".join(cmd_array)
+        self._screen._ws.klippy.gcode_script(cmd)
+        # logging.info(cmd)
+        # name = self.labels['profile_name'].get_text()
+        # if not name:
+        #     name = self.new_default_profile_name
+        # self.calibrate_mesh(None, name)
+        # self.remove_create()
 
-    def calibrate_mesh(self, widget, profile):
-        self._screen.show_popup_message(_("Calibrating"), level=1)
-        self._screen._ws.klippy.gcode_script(f"BED_MESH_CALIBRATE PROFILE='{profile}'")
+    # def calibrate_mesh(self, widget, profile):
+    #     self._screen.show_popup_message(_("Calibrating"), level=1)
+    #     self._screen._ws.klippy.gcode_script(f"BED_MESH_CALIBRATE PROFILE='{profile}'")
 
     def show_loaded_mesh(self, widget):
         self.overlayBox = Gtk.Box()

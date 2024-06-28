@@ -113,11 +113,8 @@ class APConfiguration(Gtk.Box):
         for btn in self.button:
             self.button[btn].set_size_request((self._screen.width - 30) / 4, self._screen.height / 5)
         #self.button['save_changes'].set_sensitive(False)
-        self.button_box =  Gtk.Box()
-        self.button_box =  Gtk.Box()
+        self.button_box =  Gtk.Box(valign=Gtk.Align.END, halign=Gtk.Align.END)
         self.button_box.pack_start(self.button['change'], False, False, 0)    
-        self.button_box.set_valign(Gtk.Align.END)
-        self.button_box.set_halign(Gtk.Align.END)
         self.button['save_changes'].connect('clicked', self.save_changes)
         self.button['change'].connect('clicked', self.change_fields)
         self.button['disable'].connect('clicked', self.disable_changes)

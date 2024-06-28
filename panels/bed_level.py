@@ -331,9 +331,6 @@ class Panel(ScreenPanel):
             self.buttons[button].set_sensitive((not busy))
 
     def process_update(self, action, data):
-        if 'idle_timeout' in data:
-            self.process_busy(data['idle_timeout']['state'].lower() == "printing")
-            return
         if action == "notify_status_update":
             if 'probe' in data:
                 if 'is_using_magnet_probe' in data['probe']:
@@ -348,7 +345,7 @@ class Panel(ScreenPanel):
                         for screw in data['screws_tilt_adjust']['results']:
                             screw_res = data['screws_tilt_adjust']['results'][screw]
                             for key, value in self.screw_dict.items():
-                                if value[3] == screw:#value[0] == screw_res['x'] and value[1] == screw_res['y']:
+                                if value[3] == screw:
                                     if screw_res['is_base']:
                                         self.buttons[key].set_label(_("Reference"))
                                     elif screw_res['adjust'] == "00:00":

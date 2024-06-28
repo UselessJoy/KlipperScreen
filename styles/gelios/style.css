@@ -84,7 +84,7 @@ button {
     padding-right: 20px;
     padding-bottom: 10px;
 }
-button:active {
+button:active, .round_button:active {
     background-color: #cb4b16; /*solarized-orange*/
 }
 
@@ -137,6 +137,13 @@ button.color4 {
     border-radius: 1em;
 }
 
+button.round_button {
+  background-color: inherit;
+  box-shadow: -8px 11px 10px 2px rgba(34, 60, 80, 0.2) inset;
+  border-width: .3em;
+  border-radius: 50%;
+  border-color: #d33682;
+}
 button.extruder {
     background-color: inherit;/*#073642; base02*/
     box-shadow: -8px 11px 10px 2px rgba(34, 60, 80, 0.2) inset;
@@ -145,7 +152,7 @@ button.extruder {
 }
 
 
-button.color1:active, button.color2:active, button.color3:active, button.color4:active, button.update:active, button.invalid:active {
+button.color1:active, button.color2:active, button.color3:active, button.color4:active, button.update:active, button.invalid:active, button.round_button:active {
     border-style: none;
     margin-top: .5em;
 }
