@@ -587,7 +587,8 @@ class Panel(ScreenPanel):
         if action != "notify_status_update":
             return
         with contextlib.suppress(KeyError):
-          self.calibrate_button.set_sensitive(data['pid_calibrate']['is_calibrating'])
+          if self.calibrate_button:
+            self.calibrate_button.set_sensitive(data['pid_calibrate']['is_calibrating'])
         for x in self._printer.get_temp_devices():
             if x in data:
                 self.update_temp(

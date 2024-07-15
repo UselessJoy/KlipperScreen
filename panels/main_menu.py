@@ -365,7 +365,8 @@ class Panel(MenuPanel):
                     self._printer.get_dev_stat(x, "power"),
                 )
         with contextlib.suppress(KeyError):
-          self.calibrate_button.set_sensitive(data['pid_calibrate']['is_calibrating'])
+          if self.calibrate_button:
+            self.calibrate_button.set_sensitive(data['pid_calibrate']['is_calibrating'])
         with contextlib.suppress(Exception):
             if data['virtual_sdcard']['has_interrupted_file'] == True:
                 if 'print' in self.labels:
