@@ -28,11 +28,6 @@ class Panel(MenuPanel):
         scroll = self._gtk.ScrolledWindow()
         self.numpad_visible = False
         self.labels['print_interrupt'] = None
-
-        self.calibrate_button = self._gtk.Button("heat-up", _("Calibrate"), "color3")
-        self.calibrate_button.connect("clicked", self.pid_calibrate)
-        self.calibrate_button.set_vexpand(False)
-        self.calibrate_button.set_hexpand(False)
         
         logging.info("### Making MainMenu")
 
@@ -267,7 +262,13 @@ class Panel(MenuPanel):
             self.rows_box.add(row_temp)
         pid_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing = 15)
         pid_box.add(self.rows_box)
-        pid_box.add(self.calibrate_button)
+
+        calibrate_button = self._gtk.Button("heat-up", _("Calibrate"), "color3")
+        calibrate_button.connect("clicked", self.pid_calibrate)
+        calibrate_button.set_vexpand(False)
+        calibrate_button.set_hexpand(False)
+
+        pid_box.add(calibrate_button)
         self.pid_scroll.add(pid_box)
         self.main_menu.remove(self.left_panel)
         self.main_menu.attach(self.pid_scroll, 0, 0, 1, 1)
