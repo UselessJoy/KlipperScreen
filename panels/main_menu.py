@@ -14,6 +14,7 @@ class Panel(MenuPanel):
         self.left_panel = None
         self.is_active = False
         self.rows_box = None
+        self.calibrate_button = None
         self.temperatures = []
         self.pid_scroll = self._screen.gtk.ScrolledWindow()
         self.pid_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL)
@@ -263,12 +264,12 @@ class Panel(MenuPanel):
         pid_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing = 15)
         pid_box.add(self.rows_box)
 
-        calibrate_button = self._gtk.Button("heat-up", _("Calibrate"), "color3")
-        calibrate_button.connect("clicked", self.pid_calibrate)
-        calibrate_button.set_vexpand(False)
-        calibrate_button.set_hexpand(False)
-
-        pid_box.add(calibrate_button)
+        self.calibrate_button = self._gtk.Button("heat-up", _("Calibrate"), "color3")
+        self.calibrate_button.connect("clicked", self.pid_calibrate)
+        self.calibrate_button.set_vexpand(False)
+        self.calibrate_button.set_hexpand(False)
+        
+        pid_box.add(self.calibrate_button)
         self.pid_scroll.add(pid_box)
         self.main_menu.remove(self.left_panel)
         self.main_menu.attach(self.pid_scroll, 0, 0, 1, 1)
@@ -282,6 +283,7 @@ class Panel(MenuPanel):
             for child in self.rows_box.get_children():
                 self.rows_box.remove(child)
             self.rows_box = None
+            self.calibrate_button = None
             for child in self.pid_scroll.get_children():
                 self.pid_scroll.remove(child)
             self.main_menu.remove(self.pid_scroll)
