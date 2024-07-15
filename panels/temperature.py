@@ -32,11 +32,6 @@ class Panel(ScreenPanel):
         self._gtk.reset_temp_color()
         self.grid.attach(self.create_left_panel(), 0, 0, 1, 1)
 
-        self.calibrate_button = self._gtk.Button("heat-up", _("Calibrate"), "color3")
-        self.calibrate_button.connect("clicked", self.pid_calibrate)
-        self.calibrate_button.set_vexpand(False)
-        self.calibrate_button.set_hexpand(False)
-
         # When printing start in temp_delta mode and only select tools
         selection = []
         if self._printer.state not in ("printing", "paused"):
@@ -477,7 +472,11 @@ class Panel(ScreenPanel):
             self.rows_box.add(row_temp)
         pid_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing = 15)
         pid_box.add(self.rows_box)
-        pid_box.add(self.calibrate_button)
+        calibrate_button = self._gtk.Button("heat-up", _("Calibrate"), "color3")
+        calibrate_button.connect("clicked", self.pid_calibrate)
+        calibrate_button.set_vexpand(False)
+        calibrate_button.set_hexpand(False)
+        pid_box.add(calibrate_button)
         self.pid_scroll.add(pid_box)
         self.grid.remove(self.left_panel)
         self.grid.attach(self.pid_scroll, 0, 0, 1, 1)
