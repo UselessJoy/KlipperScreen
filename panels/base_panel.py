@@ -114,16 +114,21 @@ class BasePanel(ScreenPanel):
         self.action_bar.add(self.control['power'])
         self.show_printer_select(len(self._config.get_printers()) > 1)
         # Titlebar
-
+        self.img_titlebar_size = self._gtk.img_scale * self.bts
         # This box will be populated by show_heaters
         self.control['temp_box'] = Gtk.Box(spacing=10)
         
         self.network_status_image = self._gtk.Image()
         self.network_status_image.set_margin_left(15)
         self.network_status_image.hide()
-        self.img_network_size = self._gtk.img_scale * self.bts
+
+        self.magnet_probe_image = self._gtk.Image()
+        self.magnet_probe_image.set_margin_left(15)
+        self.magnet_probe_image.hide()
+
+        
         self.on_connecting_spinner = Gtk.Spinner()
-        self.on_connecting_spinner.set_size_request(self.img_network_size, self.img_network_size)
+        self.on_connecting_spinner.set_size_request(self.img_titlebar_size, self.img_titlebar_size)
         self.on_connecting_spinner.hide()
         
         self.unsaved_config_box = Gtk.EventBox()
@@ -156,6 +161,7 @@ class BasePanel(ScreenPanel):
         self.titlebar.add(self.network_status_image)
         self.titlebar.add(self.on_connecting_spinner)
         self.titlebar.add(self.unsaved_config_box)
+        self.titlebar.add(self.magnet_probe_image)
         self.titlebar.add(self.titlelbl)
         self.titlebar.add(self.control['time_box'])
         self.set_title(title)
@@ -181,8 +187,8 @@ class BasePanel(ScreenPanel):
     def create_time_modal(self, widget, event):
         
         buttons = [
-                    {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL},
-                    {"name": _("Resume"), "response": Gtk.ResponseType.OK}
+                    {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color2"},
+                    {"name": _("Resume"), "response": Gtk.ResponseType.OK, "style": "color4"}
                 ]
         now = datetime.now()
         self.hours = int(f'{now:%H}')
@@ -300,7 +306,7 @@ class BasePanel(ScreenPanel):
                     # connectivity в объекте нетворк манагера херово работает (он показывает 4, а команда напрямую показывает full)
                     data: bytes = subprocess.check_output(["nmcli", "networking", "connectivity"])
                     data = data.decode("utf-8").strip()
-                    self._screen.gtk.update_image(self.network_status_image, f"lan_status_{data}", self.img_network_size, self.img_network_size)
+                    self._screen.gtk.update_image(self.network_status_image, f"lan_status_{data}", self.img_titlebar_size, self.img_titlebar_size)
                     #logging.info(f"showing lan_status_{data}")
                 else:
                     netinfo: dict = self.wifi.get_network_info(connected_ssid)
@@ -311,10 +317,10 @@ class BasePanel(ScreenPanel):
                         netinfo["signal_level_dBm"] = 0
                         logging.warning("Cannot get signal strehgth info")
                     if netinfo["is_hotspot"]:
-                        self._screen.gtk.update_image(self.network_status_image, "access_point", self.img_network_size, self.img_network_size)
+                        self._screen.gtk.update_image(self.network_status_image, "access_point", self.img_titlebar_size, self.img_titlebar_size)
                         #logging.info("showing access_point")
                     else:
-                        self._screen.gtk.update_image(self.network_status_image, self.signal_strength(netinfo["signal_level_dBm"]), self.img_network_size, self.img_network_size)
+                        self._screen.gtk.update_image(self.network_status_image, self.signal_strength(netinfo["signal_level_dBm"]), self.img_titlebar_size, self.img_titlebar_size)
                         #logging.info("showing wifi with signal")     
             else:
                 if self.network_status_image.get_visible():
@@ -491,18 +497,22 @@ class BasePanel(ScreenPanel):
             if data['power_button']['state']:
                 if not self.power_dialog:
                   self.show_power_dialog()
-
+        if 'probe' in data:
+            if 'is_using_magnet_probe' in data['probe']:
+                if data['probe']['is_using_magnet_probe']:
+                    if not self.magnet_probe_image.get_pixbuf():
+                      self._screen.gtk.update_image(self.magnet_probe_image, "magnetOn", self.img_titlebar_size, self.img_titlebar_size)
+                    self.magnet_probe_image.show()
+                else:
+                    self.magnet_probe_image.hide()
         if 'configfile' in data:
                 if 'save_config_pending' in data['configfile']:
-                    # logging.info(f"show config pending is {data['configfile']['save_config_pending']}")
                     if data['configfile']['save_config_pending'] == True:
                         if not self.on_unsaved_config.get_pixbuf():
-                            self._screen.gtk.update_image(self.on_unsaved_config, "unsaved_config", self.img_network_size, self.img_network_size)
+                            self._screen.gtk.update_image(self.on_unsaved_config, "unsaved_config", self.img_titlebar_size, self.img_titlebar_size)
                         self.on_unsaved_config.show()
-                        # logging.info("show unsaved")
                     else:
                         self.on_unsaved_config.hide()
-                        # logging.info("hide unsaved")
         for device in self._printer.get_temp_devices():
             temp = self._printer.get_dev_stat(device, "temperature")
             if temp is not None and device in self.labels:

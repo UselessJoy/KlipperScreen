@@ -365,8 +365,8 @@ class Panel(ScreenPanel):
     def confirm_print(self, widget, filename):
 
         buttons = [
-            {"name": _("Print"), "response": Gtk.ResponseType.OK},
-            {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL}
+            {"name": _("Print"), "response": Gtk.ResponseType.OK, "style": "color4"},
+            {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color2"}
         ]
 
         label = Gtk.Label()

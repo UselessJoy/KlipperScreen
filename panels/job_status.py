@@ -409,8 +409,8 @@ class Panel(ScreenPanel):
         grid = self._gtk.HomogeneousGrid()
         grid.attach(label, 0, 0, 1, 1)
         buttons = [
-            {"name": _("Apply"), "response": Gtk.ResponseType.APPLY},
-            {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL}
+            {"name": _("Apply"), "response": Gtk.ResponseType.APPLY, "style": "color4"},
+            {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color2"}
         ]
         self._gtk.Dialog(buttons, grid, _("Save Z"), self.save_confirm, device)
 
@@ -447,8 +447,8 @@ class Panel(ScreenPanel):
 
     def cancel(self, widget):
         buttons = [
-            {"name": _("Cancel Print"), "response": Gtk.ResponseType.OK},
-            {"name": _("Go Back"), "response": Gtk.ResponseType.CANCEL}
+            {"name": _("Cancel Print"), "response": Gtk.ResponseType.OK, "style": "color2"},
+            {"name": _("Go Back"), "response": Gtk.ResponseType.CANCEL, "style": "color4"}
         ]
         if len(self._printer.get_stat("exclude_object", "objects")) > 1:
             buttons.insert(0, {"name": _("Exclude Object"), "response": Gtk.ResponseType.APPLY})
@@ -794,7 +794,7 @@ class Panel(ScreenPanel):
 
     def show_fullscreen_thumbnail(self, widget):
         buttons = [
-            {"name": _("Close"), "response": Gtk.ResponseType.CANCEL}
+            {"name": _("Close"), "response": Gtk.ResponseType.CANCEL, "style": "color4"}
         ]
         height = self._screen.height * .9 - self._gtk.font_size * 7.5
         pixbuf = self.get_file_image(self.filename, self._screen.width * .9, height)

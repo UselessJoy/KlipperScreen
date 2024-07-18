@@ -469,7 +469,7 @@ class KlipperScreen(Gtk.Window):
         grid.attach(Gtk.Separator(), 0, 1, 2, 1)
         grid.attach(scroll, 0, 2, 2, 1)
         buttons = [
-            {"name": _("Go Back"), "response": Gtk.ResponseType.CANCEL}
+            {"name": _("Go Back"), "response": Gtk.ResponseType.CANCEL, "style": "color2"}
         ]
         self.gtk.Dialog(buttons, grid, _("Error"), self.error_modal_response, style="dialog-error")
 
@@ -969,8 +969,8 @@ class KlipperScreen(Gtk.Window):
             
     def _confirm_send_action(self, widget, text, method, params=None):
         buttons = [
-            {"name": _("Continue"), "response": Gtk.ResponseType.OK},
-            {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL}
+            {"name": _("Continue"), "response": Gtk.ResponseType.OK, "style": "color4"},
+            {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color2"}
         ]
 
         try:

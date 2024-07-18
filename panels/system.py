@@ -118,9 +118,9 @@ class Panel(ScreenPanel):
                 vbox.add(label)
                 scroll.add(vbox)
                 recoverybuttons = [
-                    {"name": _("Recover Hard"), "response": Gtk.ResponseType.OK},
-                    {"name": _("Recover Soft"), "response": Gtk.ResponseType.APPLY},
-                    {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL}
+                    {"name": _("Recover Hard"), "response": Gtk.ResponseType.OK, "style": "color1"},
+                    {"name": _("Recover Soft"), "response": Gtk.ResponseType.APPLY, "style": "color2"},
+                    {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color3"}
                 ]
                 self._gtk.Dialog(recoverybuttons, scroll, _("Recover"), self.reset_confirm, program)
                 return
@@ -176,8 +176,8 @@ class Panel(ScreenPanel):
         scroll.add(vbox)
 
         buttons = [
-            {"name": _("Update"), "response": Gtk.ResponseType.OK},
-            {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL}
+            {"name": _("Update"), "response": Gtk.ResponseType.OK, "style": "color4"},
+            {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color2"}
         ]
         self._gtk.Dialog(buttons, scroll, _("Update"), self.update_confirm, program)
 
