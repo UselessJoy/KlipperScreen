@@ -110,8 +110,9 @@ class Panel(ScreenPanel):
             locale_name = fan.split()[1] if len(fan.split()) > 1 else fan
             if locale_name.startswith("_"):
                 continue
-            if 'locale' in fans_dict[fan]:
-                locale_name = fans_dict[fan]['locale']
+            lang = self._config.get_main_config().get("language", "en")
+            if f"locale_{lang}" in fans_dict[fan]:
+                locale_name = fans_dict[fan][f"locale_{lang}"]
             self.add_fan(fan, locale_name)
 
     def set_fan_speed(self, widget, event, fan):

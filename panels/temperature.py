@@ -323,8 +323,9 @@ class Panel(ScreenPanel):
         else:
             self.h += 1
             image = "heat-up"
-            if "locale" in self._printer.config[device]:
-                devname = self._printer.config[device]['locale']
+            lang = self._config.get_main_config().get("language", "en")
+            if f"locale_{lang}" in self._printer.config[device]:
+                devname = self._printer.config[device][f"locale_{lang}"]
             class_name = f"graph_label_sensor_{self.h}"
             dev_type = "sensor"
 
