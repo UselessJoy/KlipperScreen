@@ -464,7 +464,7 @@ class Panel(ScreenPanel):
             
     def create_new_profile_row(self):
         profile_label = Gtk.Label(label=_("Profile Name:"), hexpand=True, halign=Gtk.Align.START)
-        profile_entry = TypedEntry()
+        profile_entry = TypedEntry("no_space")
 
         i = self.count_new_default_profiles()
         
@@ -534,7 +534,7 @@ class Panel(ScreenPanel):
         return True
         
     def on_focus_in_event(self, entry, event):
-        self._screen.show_keyboard(entry=entry)
+        self._screen.show_keyboard(entry=entry, accept_function=self._screen.remove_keyboard())
         self._screen.keyboard.change_entry(entry=entry)
     
     def start_calibrate(self, widget=None):
@@ -545,7 +545,11 @@ class Panel(ScreenPanel):
             cmd = cmd + f"BED_MESH_CALIBRATE PROFILE={profiles_dict[profile_i]['profile_name']} SAVE_PERMANENTLY={profiles_dict[profile_i]['save']}\n"
             if profiles_dict[profile_i]['preheat']:
                 prh_t = profiles_dict[profile_i]['preheat_temp']
-                cmd = cmd + f"M190 S{0 if prh_t == '' else prh_t}\n"
+                if prh_t == '':
+                    self._screen.show_popup_message(_("Not set temperature to profile %s") % profiles_dict[profile_i]['profile_name'], just_popup=True)
+                    return
+                else:
+                  cmd = cmd + f"M190 S{0 if prh_t == '' else prh_t}\n"
         cmd_array = cmd.split('\n')
         cmd_array.reverse()
         cmd = "\n".join(cmd_array)

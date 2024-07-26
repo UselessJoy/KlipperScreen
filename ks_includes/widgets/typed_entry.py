@@ -88,6 +88,12 @@ class NumberRule(BaseRule):
           return ( re.match(r"[0-9]", key) and (int(entry.get_text() + key) < int(entry.max)))
         return re.match(r"[0-9]", key)
 
+class SpaceRule(BaseRule):
+    @staticmethod
+    def is_valid(entry, key:str):
+        if key == " ":
+          return False
+
 
     
 class TypedEntry(Gtk.Entry):
@@ -97,7 +103,8 @@ class TypedEntry(Gtk.Entry):
             "base": BaseRule,
             "interface": InterfaceRule,
             "netmask": NetmaskRule,
-            "number": NumberRule
+            "number": NumberRule,
+            "no_space": SpaceRule
         }
         self.update_callback = update_callback
         self.max = max

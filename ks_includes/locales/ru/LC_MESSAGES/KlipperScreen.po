@@ -911,10 +911,10 @@ msgid "Unload\nfull"
 msgstr "Извлечь\nполностью"
 
 msgid "Unretract Extra Length"
-msgstr "Дополнительная длина подачи перед возобновлением печати"
+msgstr "Дополнительная длина деретракта"
 
 msgid "Unretract Speed"
-msgstr "Скорость дополнительной подачи"
+msgstr "Скорость деретракта"
 
 msgid "Up To Date"
 msgstr "Обновлено"
@@ -1011,6 +1011,10 @@ msgstr "Не удалось подключиться к запрашиваемо
 
 msgid "No mesh profile has been loaded"
 msgstr "Ни один профиль не был загружен"
+
+#, python-format
+msgid "Not set temperature to profile %s"
+msgstr "Не установлена температура для профиля %s" 
 
 msgid "Preheat"
 msgstr "Преднагрев"
