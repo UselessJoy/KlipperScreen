@@ -423,7 +423,6 @@ class Panel(ScreenPanel):
     def screws_tilt_calculate(self, widget):
         if self._printer.get_stat("toolhead", "homed_axes") != "xyz":
             self._screen._ws.klippy.gcode_script(KlippyGcodes.HOME)
-        self.buttons['screws_tilt_calculate'].set_sensitive(False)
         self._screen._ws.klippy.gcode_script("SCREWS_TILT_CALCULATE")
 
     def return_magnet(self, widget):

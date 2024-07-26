@@ -222,6 +222,8 @@ class MovementArea(Gtk.EventBox):
            
     def stop_moving(self, widget, args):
         self.clicked = False
+        correct_x, correct_y = self.correcting_coordinates(args.x, args.y)
+        self.start_moving(correct_x, correct_y)
         gcode = '\n'.join(str(g_command) for g_command in self.main_gcode)
         self.screen._ws.klippy.gcode_script(gcode)
         self.main_gcode = []
@@ -241,8 +243,8 @@ class MovementArea(Gtk.EventBox):
               center_width = correct_x - self.image_width/2 
               center_height = correct_y - self.image_height/2
           self.movement_area.move(self.image, center_width, center_height)
-          if self.clicked:
-              self.start_moving(correct_x, correct_y)
+          # if self.clicked:
+          #     self.start_moving(correct_x, correct_y)
       except Exception as e:
           logging.error(f"Error in load coordinates:\n{e}")
     
@@ -372,10 +374,12 @@ class MovementArea(Gtk.EventBox):
         self.movement_area.remove(self.buffer_image)
         if self.is_z_axes:
             self.is_z_axes = False
+            widget.set_image(self._gtk.Image("Z-axis"))
             self.image = self.screen.gtk.Image("big_extruder", self.screen.width*2, self.screen.height*2)
             self.buffer_image = self.screen.gtk.Image("big_extruder_opacity", self.screen.width*2, self.screen.height*2)
         else:
             self.is_z_axes = True
+            widget.set_image(self._gtk.Image("XY-axis"))
             self.image = self.screen.gtk.Image("heater_bed_lines", self.screen.width/4, self.screen.height*2)
             self.buffer_image = self.screen.gtk.Image("heater_bed_outlines", self.screen.width/4, self.screen.height*2)
         self.movement_area.put(self.image, self.area_w/2 - self.image_width/2, self.area_h/2 - self.image_height/2)
