@@ -374,12 +374,12 @@ class MovementArea(Gtk.EventBox):
         self.movement_area.remove(self.buffer_image)
         if self.is_z_axes:
             self.is_z_axes = False
-            widget.set_image(self._gtk.Image("Z-axis"))
+            widget.set_image(self.screen.gtk.Image("Z-axis"))
             self.image = self.screen.gtk.Image("big_extruder", self.screen.width*2, self.screen.height*2)
             self.buffer_image = self.screen.gtk.Image("big_extruder_opacity", self.screen.width*2, self.screen.height*2)
         else:
             self.is_z_axes = True
-            widget.set_image(self._gtk.Image("XY-axis"))
+            widget.set_image(self.screen.gtk.Image("XY-axis"))
             self.image = self.screen.gtk.Image("heater_bed_lines", self.screen.width/4, self.screen.height*2)
             self.buffer_image = self.screen.gtk.Image("heater_bed_outlines", self.screen.width/4, self.screen.height*2)
         self.movement_area.put(self.image, self.area_w/2 - self.image_width/2, self.area_h/2 - self.image_height/2)
