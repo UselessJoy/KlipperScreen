@@ -734,7 +734,7 @@ msgid "Save"
 msgstr "Сохранить"
 
 msgid "Save Config"
-msgstr "Сохранить конфиг"
+msgstr "Сохранить конфигурацию"
 
 msgid "Have unsaved options"
 msgstr "Есть несохраненные данные"
