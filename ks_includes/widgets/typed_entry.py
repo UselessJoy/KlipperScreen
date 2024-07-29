@@ -93,6 +93,7 @@ class SpaceRule(BaseRule):
     def is_valid(entry, key:str):
         if key == " ":
           return False
+        return True
 
 
     

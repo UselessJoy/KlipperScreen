@@ -534,7 +534,7 @@ class Panel(ScreenPanel):
         return True
         
     def on_focus_in_event(self, entry, event):
-        self._screen.show_keyboard(entry=entry, accept_function=self._screen.remove_keyboard())
+        self._screen.show_keyboard(entry=entry, accept_function=self._screen.remove_keyboard)
         self._screen.keyboard.change_entry(entry=entry)
     
     def start_calibrate(self, widget=None):
