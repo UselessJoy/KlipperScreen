@@ -3,6 +3,7 @@
 
 import contextlib
 import logging
+import traceback
 import uuid
 import os
 from ks_includes import NetworkManager
@@ -152,8 +153,9 @@ class WifiManager:
             for cb in self._callbacks['scan_results']:
                 args = (cb, [ssid], [])
                 GLib.idle_add(*args)
-        except:
+        except Exception as e:
             logging.error("Error in _ap_added")
+            logging.exception(f"{e}\n\n{traceback.format_exc()}")
 
     def _ap_removed(self, dev, interface, signal, access_point):
         try:
@@ -164,8 +166,9 @@ class WifiManager:
                 for cb in self._callbacks['scan_results']:
                     args = (cb, [ssid], [])
                     GLib.idle_add(*args)
-        except:
+        except Exception as e:
             logging.error("Error in _ap_removed")
+            logging.exception(f"{e}\n\n{traceback.format_exc()}")
 
     def _ap_state_changed(self, nm, interface, signal, old_state, new_state, reason):
         if new_state in NM_STATE:

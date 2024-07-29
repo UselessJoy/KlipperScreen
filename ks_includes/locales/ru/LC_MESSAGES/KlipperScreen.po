@@ -1114,6 +1114,12 @@ msgstr "Проводное\nподключение"
 msgid "Access Point"
 msgstr "Точка доступа"
 
+msgid "Password must contains minimum 8 sumbols"
+msgstr "Пароль должен содержать минимум 8 символов"
+
+msgid "SSID cannot be null"
+msgstr "SSID не может быть пустым"
+
 msgid "Autoconnect"
 msgstr "Автоподключение"
 

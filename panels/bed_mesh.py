@@ -546,7 +546,7 @@ class Panel(ScreenPanel):
             if profiles_dict[profile_i]['preheat']:
                 prh_t = profiles_dict[profile_i]['preheat_temp']
                 if prh_t == '':
-                    self._screen.show_popup_message(_("Not set temperature to profile %s") % profiles_dict[profile_i]['profile_name'], just_popup=True)
+                    self._screen.show_popup_message(_("Not set temperature to profile %s") % profiles_dict[profile_i]['profile_name'])
                     return
                 else:
                   cmd = cmd + f"M190 S{0 if prh_t == '' else prh_t}\n"
