@@ -38,6 +38,7 @@ class APConfiguration(Gtk.Box):
             #'netmask': TypedEntry('netmask'),
             # 'ipv4.gateway': Gtk.Entry(),
         }
+        #self.labels['AP'][property].connect("notify::active", self.on_switch_autoconnect) 
         self.connect_switch = Gtk.Switch()
         self.connect_switch.connect("notify::active", self.change_wifi_mode)
         self.connect_switch.connect("button-press-event", self.on_click_switch)
@@ -130,6 +131,14 @@ class APConfiguration(Gtk.Box):
             else:
                 self._screen._ws.klippy.change_wifi_mode('Default')
     
+    # def on_switch_autoconnect(self, switch, gdata):
+    #     active = switch.get_active()
+    #     if active:
+    #       self.connect_switch.set_active(active)
+    #       self.connect_switch.set_sensitive(not active)
+    #     else:
+    #         self.connect_switch.set_active(not active)
+    #         self.connect_switch.set_sensitive(active)
     
     def change_fields(self, button):
         self.button_box.remove(self.button['change'])

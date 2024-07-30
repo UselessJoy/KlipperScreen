@@ -120,13 +120,13 @@ class Panel(ScreenPanel):
             f'SHAPER_TYPE_Y={shaper_type_y}'
         )
 
-    def activate(self):
-        # This will return the current values
-        self._screen._ws.klippy.gcode_script('SET_INPUT_SHAPER')
-        # Check for the accelerometer
-        self._screen._ws.klippy.gcode_script('ACCELEROMETER_QUERY')
-        # Send at least two commands, with my accelerometer the first command after a reboot will fail
-        self._screen._ws.klippy.gcode_script('MEASURE_AXES_NOISE')
+    # def activate(self):
+    #     # This will return the current values
+    #     self._screen._ws.klippy.gcode_script('SET_INPUT_SHAPER')
+    #     # Check for the accelerometer
+    #     self._screen._ws.klippy.gcode_script('ACCELEROMETER_QUERY')
+    #     # Send at least two commands, with my accelerometer the first command after a reboot will fail
+    #     self._screen._ws.klippy.gcode_script('MEASURE_AXES_NOISE')
 
     
     def _autoscroll(self, *args):
