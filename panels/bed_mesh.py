@@ -446,6 +446,7 @@ class Panel(ScreenPanel):
                             if 'profile_name' not in new_profiles_dict[i]:
                               text = child.get_text()
                               if not text:
+                                new_profiles_dict[i]['locale_name'] = child.get_placeholder_text()
                                 new_profiles_dict[i]['profile_name'] = f"profile_{child.get_placeholder_text().partition('_')[2]}"
                               else:
                                 new_profiles_dict[i]['profile_name'] = text
@@ -550,7 +551,11 @@ class Panel(ScreenPanel):
                     popup.get_style_context().add_class("message_popup_error")
                     popup.set_position(Gtk.PositionType.BOTTOM)
                     popup.set_halign(Gtk.Align.CENTER)
-                    msg = Gtk.Button(label=_("Not set temperature to profile %s") % profiles_dict[profile_i]['profile_name'])
+                    if 'locale_name' in profiles_dict[profile_i]:
+                      pr_name = profiles_dict[profile_i]['locale_name']
+                    else:
+                      pr_name = profiles_dict[profile_i]['profile_name']
+                    msg = Gtk.Button(label=_("Not set temperature to profile %s") % pr_name)
                     msg.set_hexpand(True)
                     msg.set_vexpand(True)
                     msg.get_child().set_line_wrap(True)
