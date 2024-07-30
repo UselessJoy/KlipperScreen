@@ -30,6 +30,7 @@ class BasePanel(ScreenPanel):
         self.check_temp = False
         self.titlebar_name_type = None
         self.last_time_message = None
+        self.wifi_mode = None
         self.hours = None
         self.minutes = None
         self.current_extruder = None
@@ -316,7 +317,7 @@ class BasePanel(ScreenPanel):
                     if not "signal_level_dBm" in netinfo:
                         netinfo["signal_level_dBm"] = 0
                         logging.warning("Cannot get signal strehgth info")
-                    if netinfo["is_hotspot"]:
+                    if self.wifi_mode:
                         self._screen.gtk.update_image(self.network_status_image, "access_point", self.img_titlebar_size, self.img_titlebar_size)
                         #logging.info("showing access_point")
                     else:
@@ -513,6 +514,8 @@ class BasePanel(ScreenPanel):
                         self.on_unsaved_config.show()
                     else:
                         self.on_unsaved_config.hide()
+        if 'wifi_mode' in data and 'wifiMode' in data['wifi_mode']:
+            self.wifi_mode = True if data['wifi_mode']['wifiMode'] == 'AP' else False
         for device in self._printer.get_temp_devices():
             temp = self._printer.get_dev_stat(device, "temperature")
             if temp is not None and device in self.labels:

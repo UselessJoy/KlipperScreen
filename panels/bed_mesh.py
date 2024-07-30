@@ -4,7 +4,7 @@ import profile
 import re 
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Gdk, Pango
+from gi.repository import Gtk, Gdk, Pango, GLib
 from ks_includes.KlippyGcodes import KlippyGcodes
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.bedmap import BedMap
@@ -22,6 +22,7 @@ class Panel(ScreenPanel):
         self.overlayBox = None
         self.new_default_profile_name = ""
         self.profiles = {}
+        self.preheat_popups = []
         self.buttons = {
             'calib': self._gtk.Button("resume", " " + _("Calibrate"), "color3", self.bts, Gtk.PositionType.LEFT, 1),
             'show_profiles': self._gtk.Button(None, " " + _("Profile manager"), "color1", self.bts, Gtk.PositionType.LEFT, 1),
@@ -359,8 +360,6 @@ class Panel(ScreenPanel):
     def show_create_profile_menu(self, widget=None):
         for child in self.content.get_children():
             self.content.remove(child)
-        
-
         scroll = self._screen.gtk.ScrolledWindow()
         scroll.set_vexpand(True)
         scroll.set_hexpand(True)
@@ -381,12 +380,13 @@ class Panel(ScreenPanel):
         scroll.add(box)
 
         startCalibrateButton = self._gtk.Button(None, _("Start calibrate"), "color3", self.bts)
+        startCalibrateButton.set_can_focus(False)
         startCalibrateButton.set_hexpand(True)
         startCalibrateButton.set_halign(Gtk.Align.END)
         startCalibrateButton.set_vexpand(True)
         startCalibrateButton.set_valign(Gtk.Align.END)
         startCalibrateButton.set_size_request((self._screen.width - 30) / 4, self._screen.height / 5)
-        startCalibrateButton.connect("clicked", self.start_calibrate)
+        startCalibrateButton.connect("button_release_event", self.start_calibrate)
 
         box.add(startCalibrateButton)
 
@@ -446,12 +446,12 @@ class Panel(ScreenPanel):
                             if 'profile_name' not in new_profiles_dict[i]:
                               text = child.get_text()
                               if not text:
-                                new_profiles_dict[i]['locale_name'] = child.get_placeholder_text()
                                 new_profiles_dict[i]['profile_name'] = f"profile_{child.get_placeholder_text().partition('_')[2]}"
                               else:
                                 new_profiles_dict[i]['profile_name'] = text
                             else:
                                 new_profiles_dict[i]['preheat_temp'] = child.get_text()
+                                new_profiles_dict[i]['preheat_widget'] = child
                         if isinstance(child, Gtk.Box):
                             for ch in child:
                                 if isinstance(ch, Gtk.Switch):
@@ -537,33 +537,47 @@ class Panel(ScreenPanel):
         self._screen.show_keyboard(entry=entry, accept_function=self._screen.remove_keyboard)
         self._screen.keyboard.change_entry(entry=entry)
     
-    def start_calibrate(self, widget=None):
+    def start_calibrate(self, widget=None, event=None):
         profiles_dict = self.get_new_profiles_grid_parameters_as_dict()
-        logging.info(f"profiles dict {profiles_dict}")
         cmd = ""
+        has_incorrect_data = False
         for profile_i in profiles_dict:
             cmd = cmd + f"BED_MESH_CALIBRATE PROFILE={profiles_dict[profile_i]['profile_name']} SAVE_PERMANENTLY={profiles_dict[profile_i]['save']}\n"
             if profiles_dict[profile_i]['preheat']:
                 prh_t = profiles_dict[profile_i]['preheat_temp']
                 if prh_t == '':
-                    self._screen.show_popup_message(_("Not set temperature to profile %s") % profiles_dict[profile_i]['profile_name'])
-                    return
+                    popup = Gtk.Popover.new(profiles_dict[profile_i]['preheat_widget'])
+                    popup.get_style_context().add_class("message_popup_error")
+                    popup.set_position(Gtk.PositionType.BOTTOM)
+                    popup.set_halign(Gtk.Align.CENTER)
+                    msg = Gtk.Button(label=_("Not set temperature to profile %s") % profiles_dict[profile_i]['profile_name'])
+                    msg.set_hexpand(True)
+                    msg.set_vexpand(True)
+                    msg.get_child().set_line_wrap(True)
+                    msg.get_child().set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
+                    popup.add(msg)
+                    msg.connect("clicked", self.popup_popdown, popup)
+                    popup.popup()
+                    popup.show_all()
+                    self.preheat_popups.append(popup)
+                    has_incorrect_data = True
                 else:
-                  cmd = cmd + f"M190 S{0 if prh_t == '' else prh_t}\n"
+                  cmd = cmd + f"M190 S{prh_t}\n"
+        if has_incorrect_data:
+            GLib.timeout_add_seconds(5, self.close_preheat_popups)
+            return Gdk.EVENT_STOP
         cmd_array = cmd.split('\n')
         cmd_array.reverse()
         cmd = "\n".join(cmd_array)
         self._screen._ws.klippy.gcode_script(cmd)
-        # logging.info(cmd)
-        # name = self.labels['profile_name'].get_text()
-        # if not name:
-        #     name = self.new_default_profile_name
-        # self.calibrate_mesh(None, name)
-        # self.remove_create()
 
-    # def calibrate_mesh(self, widget, profile):
-    #     self._screen.show_popup_message(_("Calibrating"), level=1)
-    #     self._screen._ws.klippy.gcode_script(f"BED_MESH_CALIBRATE PROFILE='{profile}'")
+    def popup_popdown(self, widget, popup):
+        popup.popdown()
+
+    def close_preheat_popups(self):
+        for child in self.preheat_popups:
+            child.popdown()   
+        self.preheat_popups.clear() 
 
     def show_loaded_mesh(self, widget):
         self.overlayBox = Gtk.Box()
