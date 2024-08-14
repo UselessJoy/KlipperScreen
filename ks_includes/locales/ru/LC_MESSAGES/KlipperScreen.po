@@ -1013,8 +1013,8 @@ msgid "No mesh profile has been loaded"
 msgstr "Ни один профиль не был загружен"
 
 #, python-format
-msgid "Not set temperature to profile %s"
-msgstr "Не установлена температура для профиля %s" 
+msgid "Not set temperature"
+msgstr "Температура не установлена" 
 
 msgid "Preheat"
 msgstr "Преднагрев"

@@ -555,7 +555,7 @@ class Panel(ScreenPanel):
                       pr_name = profiles_dict[profile_i]['locale_name']
                     else:
                       pr_name = profiles_dict[profile_i]['profile_name']
-                    msg = Gtk.Button(label=_("Not set temperature to profile %s") % pr_name)
+                    msg = Gtk.Button(label=_("Not set temperature"))
                     msg.set_hexpand(True)
                     msg.set_vexpand(True)
                     msg.get_child().set_line_wrap(True)
