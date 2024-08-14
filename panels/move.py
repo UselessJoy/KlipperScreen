@@ -15,8 +15,7 @@ class Panel(ScreenPanel):
         
         # Флаги состояния
         self.is_homing = False
-        self.busy = False
-        
+        self.is_using_magnet_probe = False
         # Заполнение панели
         self.labels['move_menu'] = Gtk.Grid()
         self.movement_area = MovementArea(screen, self._printer)
@@ -117,24 +116,25 @@ class Panel(ScreenPanel):
         self.content.add(self.labels['move_menu'])
            
     def process_busy(self, busy):
-        buttons = ("home", "home_xy", "home_z", "mode")
-        self.busy = bool(busy)
-        for button in buttons:
-                self.buttons[button].set_sensitive(not busy)
+      buttons = ("home", "home_xy", "home_z", "mode")
+      for button in buttons:
+              self.buttons[button].set_sensitive((not busy))
     
-    def sensitive_axis(self, axes, sensitive):
-        buttons = ("x+", "x-", "y+", "y-", "z+", "z-")
-        for button in buttons:
-            if button.startswith(axes):
-                self.buttons[button].set_sensitive(sensitive)
+    def sensitive_axes(self, axes, sensitive):
+      for button in [f"{axes}+", f"{axes}-"]:
+          if axes == "z":
+            if self.is_using_magnet_probe and button == 'z+':
+              continue
+          self.buttons[button].set_sensitive(sensitive)
+                
 
-    def update_axis(self, axis: str, new_position: list):
+    def update_axes(self, axes: str, new_position: list):
         AXIS = {'X': 0, 'Y': 1, 'Z': 2}
-        axis_up = axis.upper()
-        self.labels[axis_up].set_text(f"{axis_up}: {new_position[AXIS[axis_up]]:.2f}")
-        self.sensitive_axis(axis, True)
-        self.movement_area.prev_coord[axis_up] = self.movement_area.last_coord[axis_up]
-        self.movement_area.last_coord[axis_up] = new_position[AXIS[axis_up]]
+        axes_up = axes.upper()
+        self.labels[axes_up].set_text(f"{axes_up}: {new_position[AXIS[axes_up]]:.2f}")
+        self.sensitive_axes(axes, True)
+        self.movement_area.prev_coord[axes_up] = self.movement_area.last_coord[axes_up]
+        self.movement_area.last_coord[axes_up] = new_position[AXIS[axes_up]]
             
     def process_update(self, action, data):
         if action == "notify_busy":
@@ -153,26 +153,35 @@ class Panel(ScreenPanel):
         # При хоуминге, вне зависимости от поля, происходит блокировка. Чтобы блокировка срабатывала только при хоуминге осей,
         # используемых активным полем (т.е., чтобы при хоуминге Z не блокировалось поле XY), 
         # необходимо, чтобы в klipper в поле homed_axes сбрасывались оси, которые хоумятся
+        if 'probe' in data:
+          if 'is_using_magnet_probe' in data['probe']:
+            self.is_using_magnet_probe = data['probe']['is_using_magnet_probe']
+            if self.is_using_magnet_probe:
+              self.buttons["z+"].set_sensitive(False)
+            else:
+              homed_axes = self._printer.get_stat("toolhead", "homed_axes")
+              if 'z' in homed_axes:
+                 self.buttons["z+"].set_sensitive(True) 
         if "toolhead" in data:
             if "is_homing" in data["toolhead"]:
                 self.is_homing = data["toolhead"]["is_homing"]
             if "homed_axes" in data["toolhead"]:
                 if data["toolhead"]["homed_axes"] == "":
-                    for axis in "xyz":
-                        axis_up = axis.upper()
+                    for axes in "xyz":
+                        axes_up = axes.upper()
                         self.labels[axis_up].set_text(f"{axis_up}: ?")
-                        self.sensitive_axis(axis, False)
+                        self.sensitive_axes(axes, False)
                     if self.movement_area.verified:
                         self.movement_area.deactivate_movement_area()
         if "gcode_move" in data and "gcode_position" in data["gcode_move"]:
             homed_axes = self._printer.get_stat("toolhead", "homed_axes")
-            for axis in "xyz":
-                if axis in homed_axes:
-                    self.update_axis(axis, data['gcode_move']['gcode_position'])
+            for axes in "xyz":
+                if axes in homed_axes:
+                    self.update_axes(axes, data['gcode_move']['gcode_position'])
                 else:
-                    axis_up = axis.upper()
+                    axis_up = axes.upper()
                     self.labels[axis_up].set_text(f"{axis_up}: ?")
-                    self.sensitive_axis(axis, False)
+                    self.sensitive_axes(axes, False)
             if self.movement_area.init:  
                 if not self.is_homing:
                     if self.movement_area.verify_movement_area():

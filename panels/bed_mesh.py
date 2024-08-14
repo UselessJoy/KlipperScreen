@@ -368,7 +368,7 @@ class Panel(ScreenPanel):
         self.new_profiles_grid = Gtk.Grid()
         new_profile_row = self.create_new_profile_row()
         self.new_profiles_grid.add(new_profile_row)
-        plusButton = self._screen.gtk.Button("plus", None, "round_button")
+        plusButton = self._screen.gtk.Button("plus", None, "round_button", scale=1)
         plusButton.connect("clicked", self.add_profile_row)
         plusButton.set_hexpand(True)
         plusButton.set_halign(Gtk.Align.CENTER)
@@ -575,6 +575,7 @@ class Panel(ScreenPanel):
         cmd_array.reverse()
         cmd = "\n".join(cmd_array)
         self._screen._ws.klippy.gcode_script(cmd)
+        self.remove_create()
 
     def popup_popdown(self, widget, popup):
         popup.popdown()

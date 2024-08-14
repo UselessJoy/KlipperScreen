@@ -43,13 +43,8 @@ class InterfaceRule(BaseRule):
     def is_valid(entry, key):
         text = entry.get_text()
         value = InterfaceRule.value_between_points(entry)
-
         if re.match(r"[0-9]", key):
-            # left_point_position = position - (left_point_index+1 if left_point_index != -1 else 0)
             result_value = value + key
-            # value_char_array = [char for char in value]
-            # value_char_array.insert(left_point_position, key)
-            # result_value = ''.join(char for char in value_char_array)
             return True if int(result_value) < 256 else False
         elif key == '.':
             if text.count('.') >= 3:
@@ -94,9 +89,7 @@ class SpaceRule(BaseRule):
         if key == " ":
           return False
         return True
-
-
-    
+         
 class TypedEntry(Gtk.Entry):
     def __init__(self, entry_type="base", update_callback=None, max=None):
         super().__init__()
@@ -116,25 +109,10 @@ class TypedEntry(Gtk.Entry):
         else:
             ruleClass = rules.get(entry_type)
         self.rule = ruleClass
-        # self.connect("delete-from-cursor", self.on_delete_text)
-        # self.connect("cut-clipboard", self.on_cut_text)
-        # self.connect("paste-clipboard", self.on_paste_text)
-        
-    
-    # def on_paste_text(self, entry):
-    #     logging.info("on paste")
-    #     return False
-    
-    # def on_cut_text(self, entry):
-    #     logging.info("on cut")
-    #     return False
-    
-    # def on_delete_text(self, entry, type, count, user_data):
-    #     logging.info("on delete")
+
     def automatic_insert(self, key):
         self.do_insert_at_cursor(self, key)
         self.set_position(self.get_position()+1)
-    
     
     def check_rules(self, key):
       return self.rule.is_valid(self, key)
@@ -152,5 +130,4 @@ class TypedEntry(Gtk.Entry):
                         self.automatic_insert('.')
             if self.update_callback:
                 self.update_callback(self)
-                
                     
