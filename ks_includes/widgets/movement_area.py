@@ -5,6 +5,7 @@ from ks_includes.KlippyGcodes import KlippyGcodes
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, GLib
 
+# Надо создать общий класс MovementArea и создать наследуемые от него классы XY и Z
 
 class MovementArea(Gtk.EventBox):
     def __init__(self, screen, printer):
@@ -18,7 +19,6 @@ class MovementArea(Gtk.EventBox):
         self.is_z_axes = False
         self.clicked = False
         self.move_to_coordinate = False
-        
         # Заполнение поля передвижения
         self.image = self.screen.gtk.Image("big_extruder", self.screen.width*2, self.screen.height*2)
         self.buffer_image = self.screen.gtk.Image("big_extruder_opacity", self.screen.width*2, self.screen.height*2)
@@ -167,6 +167,11 @@ class MovementArea(Gtk.EventBox):
         return
     
     def deactivate_movement_area(self):
+        if self.move_to_coordinate:
+            self.remove_moving_timer()
+            self.query_points.clear()
+            self.point_parameters.clear()
+            self.move_to_coordinate = False
         self.verified = False
         field_center = self.area_w/2 - self.image_width/2, self.area_h/2 - self.image_height/2
         self.movement_area.move(self.image, field_center[0], field_center[1])
@@ -372,6 +377,11 @@ class MovementArea(Gtk.EventBox):
     def change_axis(self, widget):
         self.movement_area.remove(self.image)
         self.movement_area.remove(self.buffer_image)
+        if self.move_to_coordinate:
+            self.remove_moving_timer()
+            self.query_points.clear()
+            self.point_parameters.clear()
+            self.move_to_coordinate = False
         if self.is_z_axes:
             self.is_z_axes = False
             widget.set_image(self.screen.gtk.Image("Z-axis"))
@@ -387,19 +397,14 @@ class MovementArea(Gtk.EventBox):
         self.movement_area.show_all()
         GLib.timeout_add(100, self.init_sizes)  
         
-    def print_to_cursor(self):
+    def print_to_cursor(self, finish_cb):
         self.move_to_coordinate = True
         if len(self.point_parameters) == 0:
             try:
                 self.point_parameters = self.query_points.pop(0)
-                # logging.info(f"query len {len(self.query_points)}")
-                #logging.info(f"point parameters {str(self.point_parameters)}")
-                
                 self.hypot = ((self.old_x - self.point_parameters["to_x"])**2 + (self.old_y - self.point_parameters["to_y"])**2)**0.5
-                #logging.info(f"self.hypot {str(self.hypot)}")
                 if not self.is_z_axes:
                     Ghypot = ((self.point_parameters["Gx"])**2 + (self.point_parameters["Gy"]**2))**0.5
-                    #logging.info(f"hypot for sinus {str(Ghypot)}")
                     sin_Gx = (self.point_parameters["Gx"])/(Ghypot)
                     sin_Gy = -1*(self.point_parameters["Gy"])/(Ghypot)
                     self.speed_x, self.speed_y = self.speed_mm_to_speed_pixel(self.point_parameters["speed"], sin_Gx, sin_Gy)
@@ -433,6 +438,7 @@ class MovementArea(Gtk.EventBox):
             self.movement_area.move(self.buffer_image, center_width, center_height)
         elif len(self.query_points) == 0:
             self.remove_moving_timer()
+            finish_cb()
         return True
       
     def remove_moving_timer(self):
@@ -455,7 +461,7 @@ class MovementArea(Gtk.EventBox):
             speed_pixel_y = ((mm_speed_y)*(self.area_h - self.cursor_button_height))/(self.max["Y"] - self.min["Y"])
         return speed_pixel_x, speed_pixel_y
             
-    def onExternalMove(self, new_position):
+    def onExternalMove(self, new_position, finish_cb):
         new_x, new_y, new_position_w, new_position_h = self.mm_coordinates_to_pixel_coordinates(
             new_position[0], 
             new_position[1],
@@ -479,4 +485,4 @@ class MovementArea(Gtk.EventBox):
             if not abs(point_tuple['Gx']) + abs(point_tuple['Gy']) == 0:
                 self.query_points.append(point_tuple)
                 if self.printing_timer is None:
-                    self.printing_timer = GLib.idle_add(self.print_to_cursor)    
+                    self.printing_timer = GLib.idle_add(self.print_to_cursor, finish_cb)    

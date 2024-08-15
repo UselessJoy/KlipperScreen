@@ -114,11 +114,6 @@ class Panel(ScreenPanel):
         self.labels['move_menu'].get_style_context().add_class("move_menu")
         self.labels['move_menu'].attach(positions_grid, 0, 0, 2, 1)
         self.content.add(self.labels['move_menu'])
-           
-    def process_busy(self, busy):
-      buttons = ("home", "home_xy", "home_z", "mode")
-      for button in buttons:
-              self.buttons[button].set_sensitive((not busy))
     
     def sensitive_axes(self, axes, sensitive):
       for button in [f"{axes}+", f"{axes}-"]:
@@ -137,9 +132,6 @@ class Panel(ScreenPanel):
         self.movement_area.last_coord[axes_up] = new_position[AXIS[axes_up]]
             
     def process_update(self, action, data):
-        if action == "notify_busy":
-            self.process_busy(data)
-            return
         if action != "notify_status_update":
             return
         
@@ -169,7 +161,7 @@ class Panel(ScreenPanel):
                 if data["toolhead"]["homed_axes"] == "":
                     for axes in "xyz":
                         axes_up = axes.upper()
-                        self.labels[axis_up].set_text(f"{axis_up}: ?")
+                        self.labels[axes_up].set_text(f"{axes_up}: ?")
                         self.sensitive_axes(axes, False)
                     if self.movement_area.verified:
                         self.movement_area.deactivate_movement_area()
@@ -179,18 +171,26 @@ class Panel(ScreenPanel):
                 if axes in homed_axes:
                     self.update_axes(axes, data['gcode_move']['gcode_position'])
                 else:
-                    axis_up = axes.upper()
-                    self.labels[axis_up].set_text(f"{axis_up}: ?")
+                    axes_up = axes.upper()
+                    self.labels[axes_up].set_text(f"{axes_up}: ?")
                     self.sensitive_axes(axes, False)
             if self.movement_area.init:  
                 if not self.is_homing:
                     if self.movement_area.verify_movement_area():
                         if not self.movement_area.verified:
                             self.movement_area.activate_movement_area()
-                        self.movement_area.onExternalMove(data['gcode_move']['gcode_position'])
+                        # self.buttons['mode'].set_sensitive(False)
+                        # for axes in 'xyz':
+                        #   self.sensitive_axes(axes, False)
+                        self.movement_area.onExternalMove(data['gcode_move']['gcode_position'], self.on_finish_move)
                 elif self.movement_area.verified:
                     self.movement_area.deactivate_movement_area()
     
+    def on_finish_move(self):
+        return
+        # self.buttons['mode'].set_sensitive(True)
+        # for axes in 'xyz':
+        #   self.sensitive_axes(axes, True)
     def change_distance(self, widget, distance):
         logging.info(f"### Distance {distance}")
         self.labels[f"{self.distance}"].get_style_context().remove_class("distbutton_active")

@@ -40,8 +40,6 @@ class Panel(ScreenPanel):
             
             
     def process_update(self, action, data):
-        if action == "notify_busy":
-            return
         if action == "notify_status_update":
             if 'wifi_mode' in data and 'wifiMode' in data['wifi_mode']:
                 self.wifi_mode = data['wifi_mode']['wifiMode']

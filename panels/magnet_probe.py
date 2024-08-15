@@ -149,9 +149,6 @@ class Panel(ScreenPanel):
       return
 
     def process_update(self, action, data):
-        if action == "notify_busy":
-            # self.process_busy(data)
-            return
         if action != "notify_status_update":
             return
         if "probe" in data:

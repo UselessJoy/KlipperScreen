@@ -225,9 +225,6 @@ class Panel(ScreenPanel):
             self.buttons[button].set_sensitive((not busy))
 
     def process_update(self, action, data):
-        # if action == "notify_busy":
-        #     self.process_busy(data)
-        #     return
         if action == "notify_status_update":
             if self._printer.get_stat("toolhead", "homed_axes") != "xyz":
                 self.widgets['zposition'].set_text("Z: ?")

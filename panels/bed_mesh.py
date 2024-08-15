@@ -307,9 +307,6 @@ class Panel(ScreenPanel):
                 
     
     def process_update(self, action, data):
-        if action == "notify_busy":
-            self.process_busy(data)
-            return
         if action == "notify_status_update":
             if 'bed_mesh' in data and 'profiles' in data['bed_mesh']:
                 delete_profiles = [del_prof for del_prof in self.profiles if del_prof not in data['bed_mesh']['profiles']]
