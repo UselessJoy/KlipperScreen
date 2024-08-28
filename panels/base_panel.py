@@ -198,6 +198,7 @@ class BasePanel(ScreenPanel):
         self.is_timesync = True if stat == 0 else False
         timepicker = Timepicker(self._screen, self.on_change_value, self.on_change_timesync)
         dialog = self._gtk.Dialog(buttons, timepicker, _("Time"), self.close_time_modal, width=1, height=1)
+        dialog.get_action_area().set_layout(Gtk.ButtonBoxStyle.EXPAND)
         dialog.show_all()
     
     def close_time_modal(self, dialog, response_id):
