@@ -57,7 +57,8 @@ PRINTER_BASE_STATUS_OBJECTS = [
     'heaters',
     'probe',
     'screws_tilt_adjust',
-    'manual_probe'
+    'manual_probe',
+    'filament_watcher'
 ]
 
 klipperscreendir = pathlib.Path(__file__).parent.resolve()
@@ -107,6 +108,7 @@ class KlipperScreen(Gtk.Window):
     windowed = False
     notification_log = []
     prompt = None
+    can_close_message = True
 
     def __init__(self, args):
         try:
@@ -295,7 +297,8 @@ class KlipperScreen(Gtk.Window):
                 "probe": ["is_using_magnet_probe", "last_z_result", "is_adjusting"],
                 "screws_tilt_adjust": ["results", "base_screw", "calibrating_screw", "is_calibrating"],
                 "manual_probe": ["is_active", "command"],
-                "pid_calibrate": ["is_calibrating"]
+                "pid_calibrate": ["is_calibrating"],
+                "filament_watcher": ['filament_type', 'show_message']
             }
         }
         for extruder in self.printer.get_tools():
@@ -352,6 +355,7 @@ class KlipperScreen(Gtk.Window):
             logging.exception(f"Error attaching panel:\n{e}\n\n{traceback.format_exc()}")
     
     def attach_panel(self, panel):
+        self.set_can_close_message(True)
         self.base_panel.add_content(self.panels[panel])
         logging.debug(f"Current panel hierarchy: {' > '.join(self._cur_panels)}")
         if hasattr(self.panels[panel], "process_update"):
@@ -417,7 +421,7 @@ class KlipperScreen(Gtk.Window):
             if self.popup_timeout is not None:
                 GLib.source_remove(self.popup_timeout)
                 self.popup_timeout = None
-            if timeout != 0:
+            if timeout != -1:
               self.popup_timeout = GLib.timeout_add_seconds(timeout, self.close_popup_message)
         return False
     
@@ -431,10 +435,14 @@ class KlipperScreen(Gtk.Window):
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         self.base_panel.main_grid.get_style_context().add_class(self.last_window_class if self.last_window_class is not None else "window-ready")
         
-        
+
+    def set_can_close_message(self, can_close):
+        self.can_close_message = can_close
+
     def close_popup_message(self, widget=None):
-        if self.popup_message is not None:
-            self.popup_message.popdown()
+        if self.can_close_message:
+          if self.popup_message is not None:
+              self.popup_message.popdown()
         return False
 
     def show_error_modal(self, err, e=""):

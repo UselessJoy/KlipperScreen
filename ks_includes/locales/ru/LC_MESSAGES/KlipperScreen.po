@@ -1197,6 +1197,8 @@ msgstr "Начать регулировку"
 msgid "New coord"
 msgstr "Новая"
 
+msgid "Printing with PLA filament. Please, turn on camera fan or disable safety printing and open doors or hood"
+msgstr "Печать с PLA филаментом. Пожалуйста, либо включите вентиляцию камеру, либо отключите безопасную печать при ее активации и откройте либо крышку, либо дверцы"
 # ###    END NEW    ####
 #~ msgid "Decrease"
 #~ msgstr "Уменьшить"

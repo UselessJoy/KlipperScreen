@@ -521,6 +521,15 @@ class Panel(ScreenPanel):
                 elif x in self.buttons['heater']:
                     self.buttons['heater'][x].set_label(self.labels[x].get_text())
 
+        with contextlib.suppress(Exception):
+          if data['filament_watcher']['show_message']:
+              self._screen.close_popup_message()
+              self._screen.show_popup_message(_("Printing with PLA filament. Please, turn on camera fan or disable safety printing and open doors or hood"), 2, True, -1)
+              self._screen.set_can_close_message(False)
+          else:
+              self._screen.set_can_close_message(True)
+              self._screen.close_popup_message()
+
         if "display_status" in data and "message" in data["display_status"]:
             self.labels['lcdmessage'].set_label(
                 f"{data['display_status']['message'] if data['display_status']['message'] is not None else ''}"

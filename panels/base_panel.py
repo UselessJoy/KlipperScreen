@@ -307,7 +307,8 @@ class BasePanel(ScreenPanel):
                     # connectivity в объекте нетворк манагера херово работает (он показывает 4, а команда напрямую показывает full)
                     data: bytes = subprocess.check_output(["nmcli", "networking", "connectivity"])
                     data = data.decode("utf-8").strip()
-                    self._screen.gtk.update_image(self.network_status_image, f"lan_status_{data}", self.img_titlebar_size, self.img_titlebar_size)
+                    if data != 'none':
+                      self._screen.gtk.update_image(self.network_status_image, f"lan_status_{data}", self.img_titlebar_size, self.img_titlebar_size)
                     #logging.info(f"showing lan_status_{data}")
                 else:
                     netinfo: dict = self.wifi.get_network_info(connected_ssid)
@@ -492,7 +493,6 @@ class BasePanel(ScreenPanel):
             return
         if action != "notify_status_update" or self._screen.printer is None:
             return
-
         if 'power_button' in data:
           if 'state' in data['power_button']:
             if data['power_button']['state']:
