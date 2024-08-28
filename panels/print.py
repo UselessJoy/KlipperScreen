@@ -230,7 +230,7 @@ class Panel(ScreenPanel):
         else:  # Thumbnail view
             icon = self._gtk.Button(label=basename)
             if 'filename' in item:
-                icon.connect("clicked", self.confirm_print, fullpath)
+                icon.connect("clicked", self.confirm_print, path)
                 if fullpath.startswith('media'):
                     image_args = (path, icon, self.thumbsize, False, "file_media")
                 else:
