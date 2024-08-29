@@ -74,12 +74,7 @@ class MovementArea(Gtk.EventBox):
         self.min =  {    
                         "X": float(self.printer.get_config_section("stepper_x")['position_min']),
                         "Y": float(self.printer.get_config_section("stepper_y")['position_min']),
-                        "Z": float(self.printer.get_config_section("stepper_z")['position_min'])
-        }
-        self.stepper_endstop = {
-                                    "X" : float(self.printer.get_config_section("stepper_x")['position_endstop']), 
-                                    "Y" : float(self.printer.get_config_section("stepper_y")['position_endstop']), 
-                                    "Z" : float(self.printer.get_config_section("stepper_z")['position_endstop']),
+                        "Z": 0
         }
         self.old_x, self.old_y = 0,0
         self.speed_x, self.speed_y = 0,0
