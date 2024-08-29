@@ -257,7 +257,10 @@ class Panel(MenuPanel):
         
     
     def create_left_pid_panel(self):
-        temps = [215, 235, 240]
+        if self.active_heater == "extruder":
+          temps = [215, 235, 240]
+        elif self.active_heater == "heater_bed":
+          temps = [65, 85, 90, 110]
         self.rows_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing = 15)
         for temp in temps:
             row_temp = self.add_tempearture(temp)
