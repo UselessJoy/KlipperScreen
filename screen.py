@@ -712,12 +712,6 @@ class KlipperScreen(Gtk.Window):
       
     def set_autoload_bed_mesh(self, autoload_bed_mesh):
         self._ws.klippy.set_autoload_bed_mesh(autoload_bed_mesh)
-      
-    def get_autooff(self):
-        return self.printer.get_autooff()
-    
-    def get_safety(self):
-        return self.printer.get_safety_printing()
     
     # def get_stat(self, stat, substat=None):
     #     if self.data is None or stat not in self.data:

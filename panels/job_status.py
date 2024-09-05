@@ -495,15 +495,13 @@ class Panel(ScreenPanel):
         self.update_progress(0.0)
     
     def process_update(self, action, data):
-        with contextlib.suppress(KeyError):
-            safety_printing_data = self._printer.get_safety_printing()
-            if safety_printing_data['safety_enabled']:
-                if safety_printing_data['luft_overload']:
-                    self.disable_button("resume")
-                else:
-                    self.enable_button("resume")
-            # else:
-            #     self.enable_button("resume")
+        safety_printing_data = self._printer.get('safety_printing')
+        if safety_printing_data:
+          if safety_printing_data['safety_enabled']:
+              if safety_printing_data['luft_overload']:
+                  self.disable_button("resume")
+              else:
+                  self.enable_button("resume")
         if action == "notify_metadata_update" and data['filename'] == self.filename:
             self.update_file_metadata()
         elif action != "notify_status_update":

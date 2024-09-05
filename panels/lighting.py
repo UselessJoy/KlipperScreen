@@ -12,7 +12,7 @@ class Panel(ScreenPanel):
         self.colors = self.get_default_color()
         hsv = Gtk.rgb_to_hsv(self.colors[0], self.colors[1], self.colors[2])
         self.colorWheel.set_color(hsv[0], hsv[1], hsv[2])
-        self.enabled: bool = self._printer.get_led_enabled()
+        self.enabled: bool = self._printer.get('led_control', 'enabled', False)
         self.colorWheel.set_sensitive(self.enabled)
         self.labels['set_default'] = self._gtk.Button("complete", _("Set Default"), "color1")
         self.labels['set_default'].set_sensitive(self.enabled)

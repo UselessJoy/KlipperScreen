@@ -332,34 +332,13 @@ class Printer:
         return speed
     
     ####      NEW      ####
-    # Любой вызов функции, которая возвращает self.data[field]..., будет вызывать Exception до события "notify_klippy_ready"
-    # Можно всегда повесить условия, а при невыполнении возвращать None
-    def get_autooff(self) -> bool:
-        return self.data['autooff']['autoOff_enable']
-    
-    def get_has_interrupted_file(self) -> bool:
-        return self.data['virtual_sdcard']['has_interrupted_file']
-    
-    def get_led_enabled(self) -> bool:
-        return self.data['led_control']['enabled']
-    
-    def get_safety_printing(self) -> dict:
-        return self.data['safety_printing']
-    
-    def get_watch_bed_mesh(self) -> bool:
-        return self.data['virtual_sdcard']['watch_bed_mesh']
-    
-    def get_autoload_bed_mesh(self) -> bool:
-      return self.data['virtual_sdcard']['autoload_bed_mesh']
-    
-    def get_wifi_hotspot(self) -> str:
-        return self.data['wifi_mode']['hotspot']
-    
-    def get_message(self) -> dict:
-        return self.data['messages']
-    
-    def get_screws_tilt_adjust(self) -> dict:
-        return self.data['screws_tilt_adjust']
+    def get(self, section, option=None, default=None):
+        if section in self.data:
+            if not option:
+              return self.data[section]
+            if option in self.data[section]:
+              return self.data[section][option] 
+        return default
     ####    END NEW    ####
     
     def get_pin_value(self, pin) -> int:
