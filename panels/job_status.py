@@ -27,6 +27,7 @@ class Panel(ScreenPanel):
         self.fila_section = pi * ((1.75 / 2) ** 2)
         self.filename_label = self.filename = self.prev_pos = self.prev_gpos = None
         self.can_close = False
+        self.retries = 0
         self.flow_timeout = self.animation_timeout = None
         self.file_metadata = self.fans = {}
         self.state = "standby"
@@ -503,7 +504,8 @@ class Panel(ScreenPanel):
               else:
                   self.enable_button("resume")
         if action == "notify_metadata_update" and data['filename'] == self.filename:
-            self.update_file_metadata()
+            if self.retries < 5:
+              self.update_file_metadata()
         elif action != "notify_status_update":
             return
         for x in self._printer.get_temp_devices():
@@ -523,9 +525,9 @@ class Panel(ScreenPanel):
           if data['filament_watcher']['show_message'] == True:
               self._screen.close_popup_message()
               self._screen.show_popup_message(_("Printing with PLA filament. Please, turn on camera fan or disable safety printing and open doors or hood"), 2, True, -1)
-              self._screen.set_can_close_message(False)
+              #self._screen.set_can_close_message(False)
           else:
-              self._screen.set_can_close_message(True)
+              #self._screen.set_can_close_message(True)
               self._screen.close_popup_message()
 
         if "display_status" in data and "message" in data["display_status"]:
@@ -708,19 +710,23 @@ class Panel(ScreenPanel):
             self.enable_button("pause")
             self.labels["status"].set_label(_("Printing"))
         elif state == "complete":
+            self.retries = 0
             self.disable_button("resume", "pause")
             self.update_progress(1)
             self.labels["status"].set_label(_("Complete"))
             self.buttons['left'].set_label("-")
             self._add_timeout(self._config.get_main_config().getint("job_complete_timeout", 0))
         elif state == "error":
+            self.retries = 0
             self.disable_button("resume", "pause")
             self._screen.show_popup_message(msg)
             self._add_timeout(self._config.get_main_config().getint("job_error_timeout", 0))
         elif state == "cancelling":
+            self.retries = 0
             self.disable_button("resume", "pause")
             self.labels["status"].set_label(_("Cancelling"))
         elif state == "cancelled" or (state == "standby" and self.state == "cancelled"):
+            self.retries = 0
             self.disable_button("resume", "pause")
             self.labels["status"].set_label(_("Cancelled"))
             self._add_timeout(self._config.get_main_config().getint("job_cancelled_timeout", 0))
@@ -729,6 +735,7 @@ class Panel(ScreenPanel):
             self.disable_button("pause")
             self.labels["status"].set_label(_("Paused"))
         elif state == "standby":
+            self.retries = 0
             self.enable_button("resume")
             self.disable_button("pause")
             self.labels["status"].set_label(_("Standby"))
@@ -832,7 +839,8 @@ class Panel(ScreenPanel):
         }
         if self.animation_timeout is None and (self.filename_label['length'] - self.filename_label['limit']) > 0:
             self.animation_timeout = GLib.timeout_add_seconds(1, self.animate_label)
-        self.update_file_metadata()
+        if self.retries < 5:
+          self.update_file_metadata()
 
     def animate_label(self):
         pos = self.filename_label['position']
@@ -864,5 +872,6 @@ class Panel(ScreenPanel):
                 self.labels['filament_total'].set_label(f"{float(self.file_metadata['filament_total']) / 1000:.1f} m")
         else:
             logging.debug("Cannot find file metadata. Listening for updated metadata")
+            self.retries += + 1
             self._files.request_metadata(self.filename)
         self.show_file_thumbnail()
