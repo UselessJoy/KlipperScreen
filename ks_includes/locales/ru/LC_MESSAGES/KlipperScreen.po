@@ -189,7 +189,10 @@ msgid "Check ADXL Wiring"
 msgstr "Проверьте проводку ADXL"
 
 msgid "Checking for updates, please wait..."
-msgstr "Проверка обновлений, подождите..."
+msgstr "Проверка обновлений. Пожалуйста, подождите..."
+
+msgid "Checking for internet connection, please wait..."
+msgstr "Проверка интернет-соединения. Пожалуйста, подождите..."
 
 msgid "Clear bed mesh"
 msgstr "Очистить сетку стола"
@@ -323,7 +326,10 @@ msgid "Finish"
 msgstr "Конец"
 
 msgid "Firmware Restart"
-msgstr "Перезапуск прошивки"
+msgstr "Перезапустить прошивку"
+
+msgid "Services"
+msgstr "Службы"
 
 msgid "Flow:"
 msgstr "Поток:"
@@ -443,8 +449,8 @@ msgstr "Инверстировать Y"
 msgid "Invert Z"
 msgstr "Инверстировать Z"
 
-msgid "Klipper Restart"
-msgstr "Перезагрузить Klipper"
+msgid "Klipper Service Restart"
+msgstr "Перезапустить службу Klipper"
 
 msgid "Klipper has disconnected"
 msgstr "Нет связи с Klipper"
@@ -660,12 +666,6 @@ msgstr "Поднять стол"
 
 msgid "Recover"
 msgstr "Восстановить"
-
-msgid "Recover Hard"
-msgstr "Восстановить hardware"
-
-msgid "Recover Soft"
-msgstr "Восстановить software"
 
 msgid "Reference"
 msgstr "Базовая точка"
@@ -1199,6 +1199,28 @@ msgstr "Новая"
 
 msgid "Printing with PLA filament. Please, turn on camera fan or disable safety printing and open doors or hood"
 msgstr "Печать с PLA филаментом. Пожалуйста, либо включите вентиляцию камеру, либо отключите безопасную печать при ее активации и откройте либо крышку, либо дверцы"
+
+msgid "Error on load LAN interface"
+msgstr "Ошибка при загрузке параметров проводного подключения"
+
+msgid "Error on load access point.\nAccess point is not present"
+msgstr "Ошибка при загрузке параметров точки доступа.\nНе найдено ни одной сконфигурированной точки доступа"
+
+msgid "Cannot connect to github.com. Please, check your internet connection"
+msgstr "Не удается соединиться с github. Пожалуйста, проверьте ваше интернет-соединение"
+
+msgid "Stop service"
+msgstr "Остановить службу"
+
+msgid "Start service"
+msgstr "Запустить службу"
+
+msgid "Restart service"
+msgstr "Перезапустить службу"
+
+msgid "Are you sure?"
+msgstr "Вы уверены?"
+
 # ###    END NEW    ####
 #~ msgid "Decrease"
 #~ msgstr "Уменьшить"

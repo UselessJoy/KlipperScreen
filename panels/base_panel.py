@@ -310,7 +310,8 @@ class BasePanel(ScreenPanel):
                     data = data.decode("utf-8").strip()
                     if data != 'none':
                       self._screen.gtk.update_image(self.network_status_image, f"lan_status_{data}", self.img_titlebar_size, self.img_titlebar_size)
-                    #logging.info(f"showing lan_status_{data}")
+                    else:
+                      self.network_status_image.set_from_pixbuf(None)
                 else:
                     netinfo: dict = self.wifi.get_network_info(connected_ssid)
                     if not "is_hotspot" in netinfo:

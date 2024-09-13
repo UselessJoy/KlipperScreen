@@ -157,7 +157,7 @@ class InterfaceConfiguration(Gtk.Box):
         err_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         
         title = Gtk.Label()
-        title.set_markup(_("<b>Error on load LAN interface</b>\n"))
+        title.set_markup(_("Error on load LAN interface"))
         title.set_line_wrap(True)
         title.set_halign(Gtk.Align.CENTER)
         title.set_hexpand(True)

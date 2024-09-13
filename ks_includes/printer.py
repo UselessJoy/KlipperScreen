@@ -26,6 +26,7 @@ class Printer:
         self.tempstore_size = 1200
         self.cameras = []
         self.available_commands = {}
+        self.system_info = {}
         self.spoolman = False
         self.temp_devices = self.sensors = None
 
@@ -42,6 +43,7 @@ class Printer:
         self.tempstore.clear()
         self.tempstore_size = 1200
         self.available_commands.clear()
+        self.system_info.clear()
         self.temp_devices = self.sensors = None
         self.stop_tempstore_updates()
 

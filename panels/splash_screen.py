@@ -2,7 +2,7 @@ import logging
 import os
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Pango
+from gi.repository import Gtk, Pango, GLib
 from ks_includes.screen_panel import ScreenPanel
 
 class Panel(ScreenPanel):
@@ -17,7 +17,7 @@ class Panel(ScreenPanel):
 
         self.labels['menu'] = self._gtk.Button("settings", _("Menu"), "color4")
         self.labels['menu'].connect("clicked", self._screen._go_to_submenu, "")
-        self.labels['restart'] = self._gtk.Button("refresh", _("Klipper Restart"), "color1")
+        self.labels['restart'] = self._gtk.Button("refresh", _("Klipper Service Restart"), "color1")
         self.labels['restart'].connect("clicked", self.restart_klipper)
         self.labels['firmware_restart'] = self._gtk.Button("refresh", _("Firmware Restart"), "color2")
         self.labels['firmware_restart'].connect("clicked", self.firmware_restart)
@@ -61,7 +61,8 @@ class Panel(ScreenPanel):
             self.labels['actions'].remove(child)
 
     def show_restart_buttons(self):
-
+        self._screen.gtk.Button_busy(self.labels['restart'], False)
+        self._screen.gtk.Button_busy(self.labels['firmware_restart'], False)
         self.clear_action_bar()
         if self.ks_printer_cfg is not None and self._screen._ws.connected:
             power_devices = self.ks_printer_cfg.get("power_devices", "")
@@ -103,9 +104,13 @@ class Panel(ScreenPanel):
 
     def firmware_restart(self, widget):
         self._screen._ws.klippy.restart_firmware()
+        self._screen.gtk.Button_busy(widget, True)
+        GLib.timeout_add_seconds(10, lambda: self._screen.gtk.Button_busy(widget, False))
 
     def restart_klipper(self, widget):
-        self._screen._ws.klippy.restart()
+        self._screen._ws.send_method("machine.services.restart", {"service": "klipper"})
+        self._screen.gtk.Button_busy(widget, True)
+        GLib.timeout_add_seconds(10, lambda: self._screen.gtk.Button_busy(widget, False))
 
     def retry(self, widget):
         if self._screen._ws and not self._screen._ws.connecting:

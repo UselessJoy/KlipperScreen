@@ -20,14 +20,17 @@ class APConfiguration(Gtk.Box):
         for connection in nmcli.connection():
             if connection.conn_type == 'wifi':
                 try:
-                #logging.info(connection)
                     connectionData = nmcli.connection.show(connection.name)
                     if connectionData['802-11-wireless.mode'] == 'ap':
                         self.ap_connection = connectionData
                         data = subprocess.check_output("nmcli -f 802-11-wireless-security.psk  connection show -s %s | awk '{print $2}'" % (connection.name), universal_newlines=True, shell=True)
                         self.ap_connection['802-11-wireless-security.psk'] = data[:-1]
                 except Exception as e:
-                    logging.info(e)
+                  logging.info(e)
+                  
+        if not self.ap_connection:
+            self.add(self.create_error_page())
+            return      
         self.labels = {}
         
         self.labels['AP'] = {
@@ -123,6 +126,35 @@ class APConfiguration(Gtk.Box):
         self.scroll.add(box)
         self.add(self.scroll)
     
+
+    def create_error_page(self):
+        err_scroll = self._screen.gtk.ScrolledWindow()
+        err_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL) 
+        err_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        
+        title = Gtk.Label()
+        title.set_markup(_("Access Point"))
+        title.set_line_wrap(True)
+        title.set_halign(Gtk.Align.CENTER)
+        title.set_hexpand(True)
+        
+        message = Gtk.Label(_("Error on load access point.\nAccess point is not present"))
+        message.set_line_wrap(True)
+        
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_vexpand(True)
+        scroll.set_valign(Gtk.Align.CENTER)
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroll.add(message)
+        
+        grid = Gtk.Grid()
+        grid.attach(title, 0, 0, 1, 1)
+        grid.attach(Gtk.Separator(), 0, 1, 2, 1)
+        grid.attach(scroll, 0, 2, 2, 1)
+        
+        err_box.pack_start(grid, True, True, 0)
+        err_scroll.add(err_box)
+        return err_scroll
 
     def change_wifi_mode(self, switch, gdata):
         if not self.from_according:
