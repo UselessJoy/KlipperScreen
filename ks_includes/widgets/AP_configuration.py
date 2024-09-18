@@ -212,7 +212,7 @@ class APConfiguration(Gtk.Box):
             # if self.wifi_mode == 'AP':
             #     os.system(f"nmcli connection down {self.ap_connection['connection.id']}")
             proc = subprocess.run([ "nmcli", "connection", "modify", self.ap_connection['connection.id'], 
-                                    "connection.id", ssid,
+                                    # "connection.id", ssid,
                                     "802-11-wireless.ssid", ssid,
                                     "802-11-wireless-security.psk", psk, 
                                     "connection.autoconnect", autoconnect], 

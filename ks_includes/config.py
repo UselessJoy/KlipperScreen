@@ -548,7 +548,6 @@ class KlipperScreenConfig:
                     logging.error(e)
                     filepath = klipperscreendir
             logging.info(f'Creating a new config file in {filepath}')
-
         try:
             with open(filepath, 'w') as file:
                 file.write(contents)

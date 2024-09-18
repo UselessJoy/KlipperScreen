@@ -5,6 +5,10 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib, Pango
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.typed_entry import TypedEntry
+HIDDEN_MACROS = ["GET_TIMELAPSE_SETUP", "_SET_TIMELAPSE_SETUP", "TIMELAPSE_TAKE_FRAME", 
+                 "_TIMELAPSE_NEW_FRAME", "_WAIT_TIMELAPSE_TAKE_FRAME", "HYPERLAPSE", 
+                 "_HYPERLAPSE_LOOP", "TIMELAPSE_RENDER", "_WAIT_TIMELAPSE_RENDER", 
+                 "TEST_STREAM_DELAY", "SET_PAUSE_AT_LAYER", "SET_PAUSE_NEXT_LAYER"]
 
 class Panel(ScreenPanel):
     def __init__(self, screen, title):
@@ -163,7 +167,9 @@ class Panel(ScreenPanel):
                 "name": macro,
                 "section": f"displayed_macros {self._screen.connected_printer}",
             }
-            show = self._config.get_config().getboolean(self.options[macro]["section"], macro.lower(), fallback=True)
+            show = self._config.get_config().getboolean(self.options[macro]["section"], macro.lower(), fallback=None)
+            if not show:
+                show = macro not in HIDDEN_MACROS
             if macro not in self.macros and show:
                 self.add_gcode_macro(macro, macro_locale, param_locale_dict)
 
@@ -185,10 +191,14 @@ class Panel(ScreenPanel):
         name.set_markup(f"<big><b>{option['name']}</b></big>")
 
         box = Gtk.Box(vexpand=False)
+
+        active = self._config.get_config().getboolean(option['section'], opt_name, fallback=None)
+        if not active:
+            active = opt_name not in HIDDEN_MACROS
         switch = Gtk.Switch(hexpand=False, vexpand=False,
                             width_request=round(self._gtk.font_size * 7),
                             height_request=round(self._gtk.font_size * 3.5),
-                            active=self._config.get_config().getboolean(option['section'], opt_name, fallback=True))
+                            active=active)
         switch.connect("notify::active", self.switch_config_option, option['section'], opt_name)
         box.add(switch)
 

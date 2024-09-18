@@ -19,6 +19,7 @@ class Panel(ScreenPanel):
         self.show_create = False
         self.active_mesh = None
         self.scroll = None
+        self.was_child_scrolled = False
         self.overlayBox = None
         self.new_default_profile_name = ""
         self.profiles = {}
@@ -358,6 +359,9 @@ class Panel(ScreenPanel):
         for child in self.content.get_children():
             self.content.remove(child)
         scroll = self._screen.gtk.ScrolledWindow()
+        adj = Gtk.Adjustment()
+        adj.connect("value-changed", self.on_scrolling)
+        scroll.set_vadjustment(adj)
         scroll.set_vexpand(True)
         scroll.set_hexpand(True)
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -399,6 +403,9 @@ class Panel(ScreenPanel):
         self.content.show_all()
         self.show_create = True
     
+    def on_scrolling(self, *args):
+        self.was_child_scrolled = True
+        
     def count_default_profiles(self):
         i = 0
         while ("profile_%d" % i) in self._printer.get_stat("bed_mesh", "profiles"):
@@ -523,7 +530,10 @@ class Panel(ScreenPanel):
         entry.show() if switch.get_active() else entry.hide()
     
     def click_to_eventbox(self, eventBox, event):
-        eventBox.grab_focus()
+        if not self.was_child_scrolled:
+          eventBox.grab_focus()
+        else:
+            self.was_child_scrolled = False
         
     def on_focus_out_event(self, entry, event):
         self._screen.remove_keyboard()
