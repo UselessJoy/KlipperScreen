@@ -77,7 +77,6 @@ class InterfaceConfiguration(Gtk.Box):
         self.add(self.scroll)
         self.realize = True
     
-     
     def create_content(self):
         grid = Gtk.Grid()
         plugLeft = Gtk.Label()
@@ -149,8 +148,6 @@ class InterfaceConfiguration(Gtk.Box):
             addr_split = self.nmcliData['DHCP4.OPTION[5]'].partition('=')
             self.nmcliData.update({'DHCP4.OPTION[5]' : addr_split[2].lstrip()})
      
-     
-        
     def create_error_page(self, error):
         err_scroll = self._screen.gtk.ScrolledWindow()
         err_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL) 
@@ -180,7 +177,6 @@ class InterfaceConfiguration(Gtk.Box):
         err_scroll.add(err_box)
         return err_scroll
       
-    
     def change_fields(self, button):
         self.button_box.remove(self.button['change'])
         self.button_box.pack_start(self.button['disable'], False, False, 0) 
@@ -214,11 +210,9 @@ class InterfaceConfiguration(Gtk.Box):
             self._screen.show_popup_message(_("DHCP selected. Set parameters will be deleted after saving"), level=2, just_popup = True)
         for property in self.labels['lan_static']:
                 self.labels['lan_static'][property].set_sensitive((not switch.get_active()))
-    
-    
+
     def validate(self):
         return True
-    
     
     def save_changes(self, widget):
         if not self.validate():

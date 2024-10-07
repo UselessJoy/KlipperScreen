@@ -27,7 +27,6 @@ class APConfiguration(Gtk.Box):
                         self.ap_connection['802-11-wireless-security.psk'] = data[:-1]
                 except Exception as e:
                   logging.info(e)
-                  
         if not self.ap_connection:
             self.add(self.create_error_page())
             return      
@@ -116,9 +115,8 @@ class APConfiguration(Gtk.Box):
                        'disable': self._screen.gtk.Button("cancel", _("Cancel Change"), "color2")}
         for btn in self.button:
             self.button[btn].set_size_request((self._screen.width - 30) / 4, self._screen.height / 5)
-        #self.button['save_changes'].set_sensitive(False)
         self.button_box =  Gtk.Box(valign=Gtk.Align.END, halign=Gtk.Align.END)
-        self.button_box.pack_start(self.button['change'], False, False, 0)    
+        self.button_box.pack_start(self.button['change'], False, False, 0)
         self.button['save_changes'].connect('clicked', self.save_changes)
         self.button['change'].connect('clicked', self.change_fields)
         self.button['disable'].connect('clicked', self.disable_changes)
@@ -163,15 +161,6 @@ class APConfiguration(Gtk.Box):
             else:
                 self._screen._ws.klippy.change_wifi_mode('Default')
     
-    # def on_switch_autoconnect(self, switch, gdata):
-    #     active = switch.get_active()
-    #     if active:
-    #       self.connect_switch.set_active(active)
-    #       self.connect_switch.set_sensitive(not active)
-    #     else:
-    #         self.connect_switch.set_active(not active)
-    #         self.connect_switch.set_sensitive(active)
-    
     def change_fields(self, button):
         self.button_box.remove(self.button['change'])
         self.button_box.pack_start(self.button['disable'], False, False, 0) 
@@ -209,10 +198,7 @@ class APConfiguration(Gtk.Box):
         autoconnect = 'yes' if self.labels['AP']['connection.autoconnect'].get_active() else 'no'
         self._screen.remove_keyboard()
         try:
-            # if self.wifi_mode == 'AP':
-            #     os.system(f"nmcli connection down {self.ap_connection['connection.id']}")
-            proc = subprocess.run([ "nmcli", "connection", "modify", self.ap_connection['connection.id'], 
-                                    # "connection.id", ssid,
+            proc = subprocess.run([ "nmcli", "connection", "modify", self.ap_connection['connection.id'],
                                     "802-11-wireless.ssid", ssid,
                                     "802-11-wireless-security.psk", psk, 
                                     "connection.autoconnect", autoconnect], 
