@@ -9,7 +9,7 @@ from gi.repository import Gtk, GLib, GObject
 
 class Keyboard(Gtk.Box):
     langs = ["de", "en", "fr", "es"]
-    def __init__(self, screen, reject_cb, accept_cb, entry=None):
+    def __init__(self, screen, reject_cb = None, accept_cb = None, entry = None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
         self.get_style_context().add_class("keyboard")
         self.reject_cb = reject_cb
@@ -162,11 +162,15 @@ class Keyboard(Gtk.Box):
                
     def update_entry(self, widget, key):
         if key == "✔":
-            self.accept_cb()
+            if self.accept_cb:
+              self.accept_cb()
+            else:
+              self.get_parent().remove(self)
         elif key == "✕":
-            self.reject_cb()
-            #self.reject_cb()
-            return
+            if self.reject_cb:
+              self.reject_cb()
+            else:
+              self.get_parent().remove(self)
         elif key == "⇧":
             self.isLowerCase = True
             if self.lang == 'en':
@@ -208,9 +212,3 @@ class Keyboard(Gtk.Box):
             self.set_pallet(1)
         else:
             self.entry.update_entry(key)
-            # result = self.change_cb(self.entry, key) if self.change_cb != None else True
-            # if result:
-            #     if key == "⌫":
-            #         Gtk.Entry.do_backspace(self.entry)
-            #     else:
-            #         Gtk.Entry.do_insert_at_cursor(self.entry, key)

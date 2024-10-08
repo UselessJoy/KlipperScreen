@@ -3,6 +3,7 @@ import contextlib
 import profile
 import re 
 import gi
+from ks_includes.widgets.keyboard import Keyboard
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, Pango, GLib
 from ks_includes.KlippyGcodes import KlippyGcodes
@@ -10,6 +11,7 @@ from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.bedmap import BedMap
 from ks_includes.widgets.typed_entry import TypedEntry
 
+RESOLUTION_K = {(800, 480): 0.43}
 class Panel(ScreenPanel):
     default_re = re.compile('^profile_(?P<i>\d+)$')
     
@@ -18,6 +20,7 @@ class Panel(ScreenPanel):
         self.overlayBoxWidth = self._gtk.content_width / 1.2
         self.show_create = False
         self.active_mesh = None
+        self.keyboard = None
         self.scroll = None
         self.was_child_scrolled = False
         self.overlayBox = None
@@ -96,12 +99,8 @@ class Panel(ScreenPanel):
 
     
     def on_allocate_clear_button(self, widget=None, allocation=None, gdata=None):
-        # Это очень смешно, но этот сраный сигнал показывает все виджеты, как минимум, находящиеся в родительском контейнере
         buttonHeight = allocation.height
         self.bedMapBox.set_size_request(self.baseBedMapW, self.baseBedMapH - buttonHeight)
-        # self.labels['control_mesh_box'].set_size_request(self.baseBedMapW, buttonHeight)
-        # w = self.labels['active_profile_name'].get_allocation().width
-        # self.labels['active_profile_name'].set_size_request(w, buttonHeight)
         
     def activate_mesh(self, profile, unsaved_profiles):
         if profile == "":
@@ -536,15 +535,23 @@ class Panel(ScreenPanel):
             self.was_child_scrolled = False
         
     def on_focus_out_event(self, entry, event):
-        self._screen.remove_keyboard()
+        if self.keyboard:
+          self.content.remove(self.keyboard)
+        self.keyboard = None
 
     def click_to_entry(self, entry, event):
         return True
         
     def on_focus_in_event(self, entry, event):
-        self._screen.show_keyboard(entry=entry, accept_function=self._screen.remove_keyboard)
-        self._screen.keyboard.change_entry(entry=entry)
-    
+        self.keyboard = Keyboard(self._screen, entry=entry)
+        self.keyboard.change_entry(entry=entry)
+        self.keyboard.set_vexpand(False)
+        self.keyboard.set_hexpand(True)
+        if (self._screen.width, self._screen.height) in RESOLUTION_K:
+          self.keyboard.set_size_request(1, self._screen.height * RESOLUTION_K[(self._screen.width, self._screen.height)])
+        self.content.add(self.keyboard)
+        self.content.show_all()
+
     def start_calibrate(self, widget=None, event=None):
         profiles_dict = self.get_new_profiles_grid_parameters_as_dict()
         cmd = ""

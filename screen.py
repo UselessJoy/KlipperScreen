@@ -123,7 +123,7 @@ class KlipperScreen(Gtk.Window):
         self.dialogs = []
         self.confirm = None
         self.last_popup_time = datetime.now()
-        #self.set_interactive_debugging(True)
+        # self.set_interactive_debugging(True)
         configfile = os.path.normpath(os.path.expanduser(args.configfile))
 
         self._config = KlipperScreenConfig(configfile, self)

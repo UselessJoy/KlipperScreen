@@ -467,7 +467,7 @@ class MovementArea(Gtk.EventBox):
             cathet_x = new_position[0] - self.prev_coord["X"]
             cathet_y = new_position[1] - self.prev_coord["Y"]
             point_tuple = {"to_x" : new_x, "to_y" : new_y, 
-                            "speed" : self.printer.data['gcode_move']['speed'], "Gy": cathet_y, "Gx": cathet_x}      
+                           "speed" : self.printer.data['gcode_move']['speed'] * self.printer.data['gcode_move']['speed_factor'], "Gy": cathet_y, "Gx": cathet_x}      
         elif self.is_z_axes and self.prev_coord['Z']:
             speed = self.printer.data['gcode_move']['speed']
             cathet_z = new_position[2] - self.prev_coord["Z"]
