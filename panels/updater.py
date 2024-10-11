@@ -3,6 +3,7 @@ import socket
 from gettext import ngettext
 
 import gi
+from ks_includes.callback_thread import CallbackThread
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Pango, GLib
@@ -28,7 +29,6 @@ class Panel(ScreenPanel):
         }
         self.buttons["refresh"].connect("clicked", self.refresh_updates)
         self.buttons["refresh"].set_vexpand(False)
-
         top_box = Gtk.Box(vexpand=False)
         top_box.pack_start(self.buttons["refresh"], True, True, 0)
           
@@ -45,23 +45,6 @@ class Panel(ScreenPanel):
 
     def activate(self):
         self.refresh_updates()
-          
-    def has_internet_access(self):
-        try:
-          host = socket.gethostbyname("one.one.one.one")
-          s = socket.create_connection((host, 80), 2)
-          s.close()
-          return True
-        except Exception as e:
-          logging.exception(f"Exception on internet_access: {e}")
-        try:
-          host = socket.gethostbyname("github.com")
-          s = socket.create_connection((host, 80), 2)
-          s.close()
-          return True
-        except Exception as e:
-          logging.exception(f"Exception on internet_access: {e}")
-        return False
         
     def create_info_grid(self):
         infogrid = Gtk.Grid()
@@ -109,15 +92,52 @@ class Panel(ScreenPanel):
         self.clear_scroll()
         self.scroll.add(self.check_internet_msg)
         self.scroll.show_all()
-        self._screen._ws.send_method("machine.internet.connection", callback=self.on_get_connection)
+        thread = CallbackThread(
+          name='connection_check',
+          target=self.inner_has_connection,
+          callback=self.show_on_connection_result,
+        )
+        thread.start()
+        # Смысла чекать через moonraker сейчас нет
+        # self._screen._ws.send_method("machine.internet.connection", callback=self.on_get_connection)
         
-    def on_get_connection(self, result, method, params):
-      if not result['result']:
-        self.clear_scroll()
-        self.scroll.add(self.no_internet_access_msg)
-        self.scroll.show_all()
-        self._gtk.Button_busy(self.buttons["refresh"], False)
-        return
+    # def on_get_connection(self, result, method, params):
+    #   is_method_done = 'result' in result
+    #   if is_method_done:
+    #     has_connection = result['result']
+    #     self.show_on_connection_result(has_connection)
+    #   else:
+        
+    def show_on_connection_result(self, has_connection):
+        if has_connection:
+          self.check_updates()
+        else:
+          self.show_no_connection_message()
+
+    def inner_has_connection(self):
+        try:
+          host = socket.gethostbyname("one.one.one.one")
+          s = socket.create_connection((host, 80), 2)
+          s.close()
+          return True
+        except Exception as e:
+          logging.exception(f"Exception on internet_access: {e}")
+        try:
+          host = socket.gethostbyname("github.com")
+          s = socket.create_connection((host, 80), 2)
+          s.close()
+          return True
+        except Exception as e:
+          logging.exception(f"Exception on internet_access: {e}")
+        return False
+    
+    def show_no_connection_message(self):
+      self.clear_scroll()
+      self.scroll.add(self.no_internet_access_msg)
+      self.scroll.show_all()
+      self._gtk.Button_busy(self.buttons["refresh"], False)  
+
+    def check_updates(self):
       self.clear_scroll()
       self.scroll.add(self.update_msg)
       self.scroll.show_all()
@@ -274,7 +294,7 @@ class Panel(ScreenPanel):
 
     def reset_confirm(self, dialog, response_id, program, valid, dirty):
         self._gtk.remove_dialog(dialog)
-        if self.has_internet_access():
+        if self.inner_has_connection():
           if response_id == Gtk.ResponseType.OK:
               if dirty:
                 self.reset_repo(self, program, False)
