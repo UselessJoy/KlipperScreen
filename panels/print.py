@@ -360,7 +360,18 @@ class Panel(ScreenPanel):
     def sort_print_start_time(a: PrintListItem, b: PrintListItem, reverse):
         if a.get_is_dir() - b.get_is_dir() != 0:
             return a.get_is_dir() - b.get_is_dir()
-        return b.get_print_start_time() - a.get_print_start_time() if reverse else a.get_print_start_time() - b.get_print_start_time()
+        if b.get_print_start_time() and a.get_print_start_time():
+          return b.get_print_start_time() - a.get_print_start_time() if reverse else a.get_print_start_time() - b.get_print_start_time()
+        else:
+            if reverse:
+                if a.get_print_start_time():
+                  return -2147483648
+                return 2147483647
+            else:
+                if a.get_print_start_time():
+                  return 2147483647
+                return -2147483648
+                
 
     def confirm_print(self, widget, filename):
 
