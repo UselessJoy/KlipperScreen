@@ -1198,7 +1198,7 @@ msgid "New coord"
 msgstr "Новая"
 
 msgid "Printing with PLA filament. Please, turn on camera fan or disable safety printing and open doors or hood"
-msgstr "Печать с PLA филаментом. Пожалуйста, либо включите вентиляцию камеру, либо отключите безопасную печать при ее активации и откройте либо крышку, либо дверцы"
+msgstr "Печать с PLA филаментом. Пожалуйста, включите вентиляцию камеры или откройте дверцы либо крышку, предварительно отключив безопасную печать (если она включена)"
 
 msgid "Error on load LAN interface"
 msgstr "Ошибка при загрузке параметров проводного подключения"
