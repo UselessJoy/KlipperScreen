@@ -543,3 +543,11 @@ class MoonrakerApi:
             callback,
             *args
         )
+
+    def stop_pid_calibrate(self, callback=None, *args):
+        return self._ws.send_method(
+            "printer.pid_calibrate.stop_pid_calibrate",
+            {},
+            callback,
+            *args
+        )

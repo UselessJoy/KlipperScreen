@@ -15,7 +15,6 @@ class Panel(ScreenPanel):
         
         # Флаги состояния
         self.is_homing = False
-        self.is_using_magnet_probe = False
         # Заполнение панели
         self.labels['move_menu'] = Gtk.Grid()
         self.movement_area = MovementArea(screen, self._printer)
@@ -117,9 +116,6 @@ class Panel(ScreenPanel):
     
     def sensitive_axes(self, axes, sensitive):
       for button in [f"{axes}+", f"{axes}-"]:
-          if axes == "z":
-            if self.is_using_magnet_probe and button == 'z+':
-              continue
           self.buttons[button].set_sensitive(sensitive)
                 
 
@@ -134,7 +130,6 @@ class Panel(ScreenPanel):
     def process_update(self, action, data):
         if action != "notify_status_update":
             return
-        
         # gcode_position - это координаты последней поступившей команды движения,
         # либо сюда попадают мусорные координаты при парковке принтера по типу X: 400 и т.д.
         # Такие координаты надо как-то отфильтровать
@@ -145,15 +140,6 @@ class Panel(ScreenPanel):
         # При хоуминге, вне зависимости от поля, происходит блокировка. Чтобы блокировка срабатывала только при хоуминге осей,
         # используемых активным полем (т.е., чтобы при хоуминге Z не блокировалось поле XY), 
         # необходимо, чтобы в klipper в поле homed_axes сбрасывались оси, которые хоумятся
-        if 'probe' in data:
-          if 'is_using_magnet_probe' in data['probe']:
-            self.is_using_magnet_probe = data['probe']['is_using_magnet_probe']
-            if self.is_using_magnet_probe:
-              self.buttons["z+"].set_sensitive(False)
-            else:
-              homed_axes = self._printer.get_stat("toolhead", "homed_axes")
-              if 'z' in homed_axes:
-                 self.buttons["z+"].set_sensitive(True) 
         if "toolhead" in data:
             if "is_homing" in data["toolhead"]:
                 self.is_homing = data["toolhead"]["is_homing"]

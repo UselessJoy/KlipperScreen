@@ -149,9 +149,13 @@ class BasePanel(ScreenPanel):
         self.unsaved_config_popover.set_relative_to(self.unsaved_config_box)
         self.unsaved_config_popover.set_position(Gtk.PositionType.BOTTOM)
         
-        
-        self.titlelbl = Gtk.Label(hexpand=True, halign=Gtk.Align.CENTER, ellipsize=Pango.EllipsizeMode.END)
+        self.stop_pid_button = Gtk.Button(label=_("Stop PID"), hexpand=True, halign=Gtk.Align.CENTER)
+        self.stop_pid_button.get_style_context().add_class('stop_pid')
+        self.stop_pid_button.connect('clicked', self.send_stop_pid)
+        self.stop_pid_button.set_no_show_all(True)
+        self.stop_pid_button.hide()
 
+        self.titlelbl = Gtk.Label(hexpand=True, halign=Gtk.Align.CENTER, ellipsize=Pango.EllipsizeMode.END)
         self.control['time'] = Gtk.Label("00:00 AM")
         self.control['time_box'] = Gtk.EventBox(halign=Gtk.Align.END)
         self.control['time_box'].add(self.control['time'])#, True, True, 10
@@ -164,6 +168,7 @@ class BasePanel(ScreenPanel):
         self.titlebar.add(self.unsaved_config_box)
         self.titlebar.add(self.magnet_probe_image)
         self.titlebar.add(self.titlelbl)
+        self.titlebar.add(self.stop_pid_button)
         self.titlebar.add(self.control['time_box'])
         self.set_title(title)
 
@@ -508,6 +513,12 @@ class BasePanel(ScreenPanel):
                     self.magnet_probe_image.show()
                 else:
                     self.magnet_probe_image.hide()
+        if 'pid_calibrate' in data:
+            if 'is_calibrating' in data['pid_calibrate']:
+                if data['pid_calibrate']['is_calibrating']:
+                    self.stop_pid_button.show()
+                else:
+                    self.stop_pid_button.hide()
         if 'configfile' in data:
                 if 'save_config_pending' in data['configfile']:
                     if data['configfile']['save_config_pending'] == True:
@@ -707,3 +718,6 @@ class BasePanel(ScreenPanel):
             self._screen.dialogs.remove(self.update_dialog)
         self.update_dialog = None
         self._screen._menu_go_back(home=True)
+
+    def send_stop_pid(self, widget):
+        self._screen._ws.klippy.stop_pid_calibrate()

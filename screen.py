@@ -58,7 +58,8 @@ PRINTER_BASE_STATUS_OBJECTS = [
     'probe',
     'screws_tilt_adjust',
     'manual_probe',
-    'filament_watcher'
+    'filament_watcher',
+    'pid_calibrate'
 ]
 
 klipperscreendir = pathlib.Path(__file__).parent.resolve()

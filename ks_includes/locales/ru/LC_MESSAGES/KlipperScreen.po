@@ -1221,6 +1221,9 @@ msgstr "Перезапустить службу"
 msgid "Are you sure?"
 msgstr "Вы уверены?"
 
+msgid "Stop PID"
+msgstr "Остановить PID"
+
 # ###    END NEW    ####
 #~ msgid "Decrease"
 #~ msgstr "Уменьшить"
