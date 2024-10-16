@@ -24,7 +24,9 @@ class BasePanel(ScreenPanel):
         self.time_min = -1
         self.time_format = self._config.get_main_config().getboolean("24htime", True)
         self.time_update = None
+        self.interrupt_dialog = None
         self.autooff_dialog = None
+        self.autooff_enable = None
         self.power_dialog = None
         self.titlebar_items = []
         self.check_temp = False
@@ -552,17 +554,21 @@ class BasePanel(ScreenPanel):
             self.control['temp_box'].pack_start(self.labels[f"{self.current_extruder}_box"], True, True, 3)
             self.control['temp_box'].reorder_child(self.labels[f"{self.current_extruder}_box"], 0)
             self.control['temp_box'].show_all()
-                
-        with contextlib.suppress(Exception):
-                if self.autooff_dialog is not None and data['autooff']['autoOff'] == False:
-                    self._gtk.remove_dialog(self.autooff_dialog)
-                    self.autooff_dialog = None
-                elif data['autooff']['autoOff'] == True:
-                    self.show_autooff_dialog()
-        with contextlib.suppress(Exception):
-            if self.interrupt_dialog is not None and data['virtual_sdcard']['show_interrupt'] == False:
-                self._gtk.remove_dialog(self.interrupt_dialog)
-                self.interrupt_dialog = None
+
+        if 'autooff' in data:
+            if 'autoOff_enable' in data['autooff']:
+              self.autooff_enable = data['autooff']['autoOff_enable']
+            if 'autoOff' in data['autooff']:
+                if not self.autooff_dialog and self.autooff_enable and data['autooff']['autoOff']:
+                  self.show_autooff_dialog()
+                elif self.autooff_dialog:
+                  self._gtk.remove_dialog(self.autooff_dialog)
+                  self.autooff_dialog = None 
+        if 'virtual_sdcard' in data:
+            if 'show_interrupt' in data['virtual_sdcard']:
+               if self.interrupt_dialog and not data['virtual_sdcard']['show_interrupt']:
+                  self._gtk.remove_dialog(self.interrupt_dialog)
+                  self.interrupt_dialog = None    
         with contextlib.suppress(Exception):
           if 'messages' in data:
             msg = data['messages']
