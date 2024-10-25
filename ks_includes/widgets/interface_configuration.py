@@ -22,7 +22,7 @@ class InterfaceConfiguration(Gtk.Box):
         self.scroll = self._screen.gtk.ScrolledWindow()
         self.scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL)
         nmcli.disable_use_sudo()
-
+        er = ""
         for connection in nmcli.connection():
           if connection.conn_type == 'ethernet':
             try:
@@ -31,8 +31,9 @@ class InterfaceConfiguration(Gtk.Box):
               logging.info(connectionData)
             except Exception as e:
               logging.info(f"Get connection error:\n{e}\n")
+              er = e
         if not self.connection_id:
-          self.scroll = self.create_error_page()
+          self.scroll = self.create_error_page(er)
           self.scroll.show_all()
           return
 
@@ -152,11 +153,17 @@ class InterfaceConfiguration(Gtk.Box):
         if 'DHCP4.OPTION[5]' not in self.nmcliData:
             self.nmcliData['DHCP4.OPTION[5]'] = None
         if 'ipv4.addresses' in self.nmcliData and self.nmcliData['ipv4.addresses'] != None:
-            addr_split = self.nmcliData['ipv4.addresses'].partition('/')
+            try:
+              addr_split = self.nmcliData['ipv4.addresses'].partition('/')
+            except:
+              addr_split = ["", "", ""]
             self.nmcliData.update({'ipv4.addresses' : addr_split[0]})
             self.nmcliData['netmask'] = addr_split[2]
         if 'DHCP4.OPTION[5]' in self.nmcliData and self.nmcliData['DHCP4.OPTION[5]'] != None:
-            addr_split = self.nmcliData['DHCP4.OPTION[5]'].partition('=')
+            try:
+              addr_split = self.nmcliData['DHCP4.OPTION[5]'].partition('=')
+            except:
+              addr_split = ["", "", ""]
             self.nmcliData.update({'DHCP4.OPTION[5]' : addr_split[2].lstrip()})
      
     def create_error_page(self, error):
