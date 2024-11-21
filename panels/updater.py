@@ -31,10 +31,9 @@ class Panel(ScreenPanel):
         self.buttons["refresh"].set_vexpand(False)
         top_box = Gtk.Box(vexpand=False)
         top_box.pack_start(self.buttons["refresh"], True, True, 0)
-          
         self.update_msg = Gtk.Label(label=_("Checking for updates, please wait..."), vexpand=True)
         self.check_internet_msg = Gtk.Label(label=_("Checking for internet connection, please wait..."), vexpand=True)
-        self.no_internet_access_msg = Gtk.Label(label=_("Cannot connect to github.com. Please, check your internet connection"), vexpand=True)
+        self.no_internet_access_msg = Gtk.Label(label=_("Cannot connect to github.com.\nPlease, check your internet connection"), vexpand=True, max_width_chars=40, wrap=True, wrap_mode = Pango.WrapMode.WORD_CHAR)
         self.scroll = self._gtk.ScrolledWindow()
         self.scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.scroll.add(self.check_internet_msg)
@@ -42,9 +41,7 @@ class Panel(ScreenPanel):
         self.main_box.pack_start(top_box, False, False, 0)
         self.main_box.pack_start(self.scroll, True, True, 0)
         self.content.add(self.main_box)
-
-    def activate(self):
-        self.refresh_updates()
+        GLib.timeout_add(200, self.refresh_updates)
         
     def create_info_grid(self):
         infogrid = Gtk.Grid()
@@ -92,12 +89,13 @@ class Panel(ScreenPanel):
         self.clear_scroll()
         self.scroll.add(self.check_internet_msg)
         self.scroll.show_all()
-        thread = CallbackThread(
-          name='connection_check',
-          target=self.inner_has_connection,
-          callback=self.show_on_connection_result,
-        )
-        thread.start()
+        self.show_on_connection_result(self.inner_has_connection())
+        # thread = CallbackThread(
+        #   name='connection_check',
+        #   target=self.inner_has_connection,
+        #   callback=self.show_on_connection_result,
+        # )
+        # thread.start()
         # Смысла чекать через moonraker сейчас нет
         # self._screen._ws.send_method("machine.internet.connection", callback=self.on_get_connection)
         
@@ -117,14 +115,14 @@ class Panel(ScreenPanel):
     def inner_has_connection(self):
         try:
           host = socket.gethostbyname("one.one.one.one")
-          s = socket.create_connection((host, 80), 2)
+          s = socket.create_connection((host, 80), 3)
           s.close()
           return True
         except Exception as e:
           logging.exception(f"Exception on internet_access: {e}")
         try:
           host = socket.gethostbyname("github.com")
-          s = socket.create_connection((host, 80), 2)
+          s = socket.create_connection((host, 80), 3)
           s.close()
           return True
         except Exception as e:
