@@ -154,6 +154,7 @@ class BasePanel(ScreenPanel):
         self.stop_pid_button = Gtk.Button(label=_("Stop PID"), hexpand=True, halign=Gtk.Align.CENTER)
         self.stop_pid_button.get_style_context().add_class('stop_pid')
         self.stop_pid_button.connect('clicked', self.send_stop_pid)
+        self.stop_pid_button.get_children()[0].get_style_context().add_class('pb-06rem') # Кривое решение выравнивания Label (но остальное не работает)
         self.stop_pid_button.set_no_show_all(True)
         self.stop_pid_button.hide()
 
