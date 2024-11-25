@@ -46,7 +46,6 @@ PRINTER_BASE_STATUS_OBJECTS = [
     'safety_printing',
     'toolhead',
     'virtual_sdcard',
-    'wifi_mode',
     'webhooks',
     'motion_report',
     'messages',
@@ -173,7 +172,6 @@ class KlipperScreen(Gtk.Window):
         self.gtk = KlippyGtk(self)
         self.init_style()
         self.set_icon_from_file(os.path.join(klipperscreendir, "styles", "icon.svg"))
-
         self.base_panel = BasePanel(self, title="Base Panel")
         self.add(self.base_panel.main_grid)
         self.show_all()
@@ -286,7 +284,6 @@ class KlipperScreen(Gtk.Window):
                 "toolhead": ["homed_axes", "estimated_print_time", "print_time", "position", "extruder",
                              "max_accel", "minimum_cruise_ratio", "max_velocity", "square_corner_velocity", "is_homing"],
                 "virtual_sdcard": ["file_position", "is_active", "progress", "interrupted_file", "has_interrupted_file", "show_interrupt", "watch_bed_mesh", "autoload_bed_mesh"],
-                "wifi_mode": ["wifiMode", "hotspot"],
                 "webhooks": ["state", "state_message"],
                 "firmware_retraction": ["retract_length", "retract_speed", "unretract_extra_length", "unretract_speed"],
                 "motion_report": ["live_position", "live_velocity", "live_extruder_velocity"],
@@ -375,9 +372,6 @@ class KlipperScreen(Gtk.Window):
         self.process_update("notify_log", log_entry)
         
     def show_popup_message(self, message, level=3, just_popup=False, timeout=5):
-        # if (datetime.now() - self.last_popup_time).seconds < 1:
-        # Можно создать таймаут на повторный заход в функцию спустя секунду
-        #     return
         self.last_popup_time = datetime.now()
         self.close_screensaver()
         self.close_popup_message()
@@ -922,10 +916,6 @@ class KlipperScreen(Gtk.Window):
             return
         elif action == "notify_status_update" and self.printer.state != "shutdown":
             self.printer.process_update(data)
-            # if 'manual_probe' in data and data['manual_probe']['is_active'] and 'zcalibrate' not in self._cur_panels:
-            #     self.show_panel("zcalibrate", _('Z Calibrate'))
-            # if "screws_tilt_adjust" in data and 'bed_level' not in self._cur_panels:
-            #     self.show_panel("bed_level", _('Bed Level'))
         elif action == "notify_filelist_changed":
             if self.files is not None:
                 self.files.process_update(data)
@@ -954,10 +944,10 @@ class KlipperScreen(Gtk.Window):
                     if self.prompt is None:
                         return
                     self.prompt.decode(action)
-                elif data.startswith("echo: "):
-                    self.show_popup_message(data[6:], 1)
-                elif data.startswith("(suggestion) "):
-                  self.show_popup_message(data[13:], 10)
+                # elif data.startswith("echo: "):
+                #     self.show_popup_message(data[6:], 1)
+                # elif data.startswith("(suggestion) "):
+                #   self.show_popup_message(data[13:], 10)
                 elif data.startswith("!! "):
                     self.show_popup_message(data[3:], 3)
                 elif "unknown" in data.lower() and \

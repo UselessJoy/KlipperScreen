@@ -91,24 +91,11 @@ class SpaceRule(BaseRule):
         return True
          
 class TypedEntry(Gtk.Entry):
-    def __init__(self, entry_type="base", update_callback=None, max=None):
-        super().__init__()
-        rules = {
-            "base": BaseRule,
-            "interface": InterfaceRule,
-            "netmask": NetmaskRule,
-            "number": NumberRule,
-            "no_space": SpaceRule
-        }
+    def __init__(self, entry_rule=BaseRule, update_callback=None, max=None, text="", hexpand=False, sensitive=True):
+        super().__init__(text = text, hexpand = hexpand, sensitive = sensitive)
+        self.rule = entry_rule
         self.update_callback = update_callback
         self.max = max
-        ruleClass = BaseRule
-        if entry_type not in rules:
-            ruleClass = BaseRule
-            logging.error(f"Invalid rule: {entry_type}, using BaseClass")
-        else:
-            ruleClass = rules.get(entry_type)
-        self.rule = ruleClass
 
     def automatic_insert(self, key):
         self.do_insert_at_cursor(self, key)

@@ -20,6 +20,7 @@ class Panel(ScreenPanel):
         self.rows_box = None
         self.calibrate_button = None
         self.temperatures = []
+        self.is_calibrating = False
         self.pid_scroll = self._screen.gtk.ScrolledWindow()
         self.pid_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL)
         self.menu_labels = None
@@ -28,8 +29,8 @@ class Panel(ScreenPanel):
         self.tempdeltas = ["1", "5", "10", "25"]
         self.tempdelta = self.tempdeltas[-2]
         self.show_preheat = False
-        self.preheat_options = self._screen._config.get_preheat_options()
         self.grid = self._gtk.HomogeneousGrid()
+        self.labels["preheat_grid"] = self._gtk.HomogeneousGrid()
         self._gtk.reset_temp_color()
         self.grid.attach(self.create_left_panel(), 0, 0, 1, 1)
 
@@ -62,16 +63,19 @@ class Panel(ScreenPanel):
     def create_right_panel(self):
         cooldown = self._gtk.Button('cool-down', _('Cooldown'), "color4", self.bts, Gtk.PositionType.LEFT, 1)
         adjust = self._gtk.Button('fine-tune', None, "color3", self.bts * 1.4, Gtk.PositionType.LEFT, 1)
+        change_temp = self._gtk.Button('heat-up', None, "color2", self.bts * 1.4, Gtk.PositionType.LEFT, 1)
+        change_temp.connect("clicked", self.menu_item_clicked, {"panel": "preheat_changer", "name": _("Change preheats")})
         cooldown.connect("clicked", self.set_temperature, "cooldown")
         adjust.connect("clicked", self.switch_preheat_adjust)
 
         right = self._gtk.HomogeneousGrid()
         right.attach(cooldown, 0, 0, 2, 1)
         right.attach(adjust, 2, 0, 1, 1)
+        right.attach(change_temp, 3, 0, 1, 1)
         if self.show_preheat:
-            right.attach(self.preheat(), 0, 1, 3, 3)
+            right.attach(self.preheat(), 0, 1, 4, 3)
         else:
-            right.attach(self.delta_adjust(), 0, 1, 3, 3)
+            right.attach(self.delta_adjust(), 0, 1, 4, 3)
         return right
 
     def switch_preheat_adjust(self, widget):
@@ -85,9 +89,8 @@ class Panel(ScreenPanel):
         self.grid.show_all()
 
     def preheat(self):
-        self.labels["preheat_grid"] = self._gtk.HomogeneousGrid()
         i = 0
-        for option in self.preheat_options:
+        for option in self._screen._config.get_default_preheats():
             if option != "cooldown":
                 self.labels[option] = self._gtk.Button(label=option, style=f"color{(i % 4) + 1}")
                 self.labels[option].connect("clicked", self.set_temperature, option)
@@ -149,7 +152,6 @@ class Panel(ScreenPanel):
                     if target > max_temp:
                         target = max_temp
                         self._screen.show_popup_message(_("Can't set above the maximum:") + f' {target}')
-
                 else:
                     target -= int(self.tempdelta)
                     target = max(target, 0)
@@ -224,6 +226,8 @@ class Panel(ScreenPanel):
         return
 
     def set_temperature(self, widget, setting):
+        preheat_options = self._screen._config.get_default_preheats()
+        logging.info(setting)
         if len(self.active_heaters) == 0:
             self._screen.show_popup_message(_("Nothing selected"))
         else:
@@ -232,14 +236,14 @@ class Panel(ScreenPanel):
                 max_temp = float(self._printer.get_config_section(heater)['max_temp'])
                 name = heater.split()[1] if len(heater.split()) > 1 else heater
                 with contextlib.suppress(KeyError):
-                    for i in self.preheat_options[setting]:
-                        logging.info(f"{self.preheat_options[setting]}")
+                    for i in preheat_options[setting]:
+                        logging.info(f"{preheat_options[setting]}")
                         if i == name:
                             # Assign the specific target if available
-                            target = self.preheat_options[setting][name]
+                            target = preheat_options[setting][name]
                             logging.info(f"name match {name}")
                         elif i == heater:
-                            target = self.preheat_options[setting][heater]
+                            target = preheat_options[setting][heater]
                             logging.info(f"heater match {heater}")
                 if target is None and setting == "cooldown" and not heater.startswith('temperature_fan '):
                     target = 0
@@ -249,24 +253,24 @@ class Panel(ScreenPanel):
                 elif heater.startswith('heater_bed'):
                     if target is None:
                         with contextlib.suppress(KeyError):
-                            target = self.preheat_options[setting]["bed"]
+                            target = preheat_options[setting]["bed"]
                     if self.validate(heater, target, max_temp):
                         self._screen._ws.klippy.set_bed_temp(target)
                 elif heater.startswith('heater_generic '):
                     if target is None:
                         with contextlib.suppress(KeyError):
-                            target = self.preheat_options[setting]["heater_generic"]
+                            target = preheat_options[setting]["heater_generic"]
                     if self.validate(heater, target, max_temp):
                         self._screen._ws.klippy.set_heater_temp(name, target)
                 elif heater.startswith('temperature_fan '):
                     if target is None:
                         with contextlib.suppress(KeyError):
-                            target = self.preheat_options[setting]["temperature_fan"]
+                            target = preheat_options[setting]["temperature_fan"]
                     if self.validate(heater, target, max_temp):
                         self._screen._ws.klippy.set_temp_fan_temp(name, target)
             # This small delay is needed to properly update the target if the user configured something above
             # and then changed the target again using preheat gcode
-            GLib.timeout_add(250, self.preheat_gcode, setting)
+            GLib.timeout_add(250, self.preheat_gcode, preheat_options, setting)
 
     def validate(self, heater, target=None, max_temp=None):
         if target is not None and max_temp is not None:
@@ -279,9 +283,9 @@ class Panel(ScreenPanel):
         logging.debug(f"Invalid {heater} Target:{target}/{max_temp}")
         return False
 
-    def preheat_gcode(self, setting):
+    def preheat_gcode(self, preheat_options, setting):
         with contextlib.suppress(KeyError):
-            self._screen._ws.klippy.gcode_script(self.preheat_options[setting]['gcode'])
+            self._screen._ws.klippy.gcode_script(preheat_options[setting]['gcode'])
         return False
 
     def add_device(self, device):
@@ -455,7 +459,7 @@ class Panel(ScreenPanel):
             "printer.gcode.script",
             script
         )
-        self.grid.set_sensititve(True)
+        # self.pid_scroll.set_sensititve(True)
         self.close_left_pid_panel()
         
     def switch_left_pid_panel(self, temper, is_active):
@@ -479,6 +483,7 @@ class Panel(ScreenPanel):
         pid_box.add(self.rows_box)
         self.calibrate_button = self._gtk.Button("heat-up", _("Calibrate"), "color3")
         self.calibrate_button.connect("clicked", self.pid_calibrate)
+        self.calibrate_button.set_sensitive((not self.is_calibrating))
         self.calibrate_button.set_vexpand(False)
         self.calibrate_button.set_hexpand(False)
         pid_box.add(self.calibrate_button)
@@ -591,8 +596,9 @@ class Panel(ScreenPanel):
         if action != "notify_status_update":
             return
         with contextlib.suppress(KeyError):
+          self.is_calibrating = data['pid_calibrate']['is_calibrating']
           if self.calibrate_button:
-            self.calibrate_button.set_sensitive(data['pid_calibrate']['is_calibrating'])
+            self.calibrate_button.set_sensitive((not self.is_calibrating))
         for x in self._printer.get_temp_devices():
             if x in data:
                 self.update_temp(

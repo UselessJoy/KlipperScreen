@@ -41,7 +41,9 @@ class Panel(ScreenPanel):
         self.main_box.pack_start(top_box, False, False, 0)
         self.main_box.pack_start(self.scroll, True, True, 0)
         self.content.add(self.main_box)
-        GLib.timeout_add(200, self.refresh_updates)
+        
+    def activate(self):
+      GLib.timeout_add(200, self.refresh_updates)
         
     def create_info_grid(self):
         infogrid = Gtk.Grid()

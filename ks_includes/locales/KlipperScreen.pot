@@ -466,6 +466,11 @@ msgid_plural "Packages will be updated"
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "Package waiting for update"
+msgid_plural "Packages waiting for update"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Part Fan"
 msgstr ""
 

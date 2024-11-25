@@ -13,17 +13,17 @@ class Panel(ScreenPanel):
         self._screen = screen
         self.pages = [
                 {'content': WiFiConnection(self._screen), 'label': _("WiFi")}, 
-                {'content': InterfaceConfiguration(self._screen, "eth0"), 'label': _("Ethernet")},
+                {'content': InterfaceConfiguration(self._screen), 'label': _("Ethernet")},
                 {'content': APConfiguration(self._screen), 'label': _("Access Point")},
             ]
         self.cur_page = None
+        self.is_access_point_active = False
         self.notebook = self._gtk.VerticalNotebook(self.pages)
-        self.wifi_mode = None
+        wifi_dev = self._screen.base_panel.get_wifi_dev()
+        ssid = wifi_dev.get_connected_ssid()
+        if ssid:
+          self.is_access_point_active = wifi_dev.get_network_info(ssid)['is_hotspot']
         self.notebook.connect("switch-page", self.on_change_page)
-        # self.notebook.connect("button-release-event", self.on_click)
-        # self.notebook.add_events(Gdk.EventMask.POINTER_MOTION_MASK)
-        
-        
         self.content.add(self.notebook)
         self.content.show_all()
     
@@ -32,31 +32,17 @@ class Panel(ScreenPanel):
         self._screen.remove_numpad()
         self.cur_page = page
         notebook.grab_focus()
-        if hasattr(self.cur_page, "reinit"):
-            self.cur_page.reinit()
-        
-        if hasattr(self.cur_page, "show_according_wifi_mode"):
-            self.cur_page.show_according_wifi_mode(self.wifi_mode)
-            
+        if hasattr(self.cur_page, "get_access_point_activity"):
+            self.cur_page.get_access_point_activity(self.is_access_point_active)
             
     def process_update(self, action, data):
         if action == "notify_status_update":
-            if 'wifi_mode' in data and 'wifiMode' in data['wifi_mode']:
-                self.wifi_mode = data['wifi_mode']['wifiMode']
-                if hasattr(self.cur_page, "show_according_wifi_mode"):
-                    self.cur_page.show_according_wifi_mode(data['wifi_mode']['wifiMode'])
-                        
-                        
-    
-    # def on_click(self, event, gdata):
-    #     logging.info(f"this event {event}")
-    #     logging.info(f"this data {gdata}")
-    
-                        
+            if 'access_point' in data and 'is_active' in data['access_point']:
+                self.is_access_point_active = data['access_point']['is_active']
+                if hasattr(self.cur_page, "get_access_point_activity"):
+                    self.cur_page.get_access_point_activity(data['access_point']['is_active'])
+   
     def back(self):
         if hasattr(self.cur_page, "back"):
             return self.cur_page.back()
         return False
-            
-        
-    

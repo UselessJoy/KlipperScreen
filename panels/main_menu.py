@@ -15,6 +15,7 @@ class Panel(MenuPanel):
         self.is_active = False
         self.rows_box = None
         self.calibrate_button = None
+        self.is_calibrating = False
         self.temperatures = []
         self.pid_scroll = self._screen.gtk.ScrolledWindow()
         self.pid_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL)
@@ -244,7 +245,7 @@ class Panel(MenuPanel):
             "printer.gcode.script",
             script
         )
-        self.main_menu.set_sensititve(True)
+        # self.pid_scroll.set_sensititve(True)
         self.close_left_pid_panel()
             
     def switch_left_pid_panel(self, temper, is_active):
@@ -270,6 +271,7 @@ class Panel(MenuPanel):
 
         self.calibrate_button = self._gtk.Button("heat-up", _("Calibrate"), "color3")
         self.calibrate_button.connect("clicked", self.pid_calibrate)
+        self.calibrate_button.set_sensitive((not self.is_calibrating))
         self.calibrate_button.set_vexpand(False)
         self.calibrate_button.set_hexpand(False)
         
@@ -369,8 +371,9 @@ class Panel(MenuPanel):
                     self._printer.get_dev_stat(x, "power"),
                 )
         with contextlib.suppress(KeyError):
+          self.is_calibrating = data['pid_calibrate']['is_calibrating']
           if self.calibrate_button:
-            self.calibrate_button.set_sensitive(data['pid_calibrate']['is_calibrating'])
+            self.calibrate_button.set_sensitive((not self.is_calibrating))
         with contextlib.suppress(Exception):
             if data['virtual_sdcard']['has_interrupted_file'] == True:
                 if 'print' in self.labels:

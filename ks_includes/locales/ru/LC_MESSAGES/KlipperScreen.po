@@ -7,18 +7,16 @@ msgstr ""
 "Project-Id-Version: KlipperScreen\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-01-29 09:28-0600\n"
-"PO-Revision-Date: 2023-05-23 09:33+0300\n"
+"PO-Revision-Date: 2024-10-29 13:08+0300\n"
 "Last-Translator: Jakob Kais <schpuntik@freenet.de>\n"
 "Language-Team: \n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
 "X-Generator: Poedit 3.2.2\n"
 "X-Poedit-Flags-xgettext: --add-comments\n"
-
 
 msgid "Warning"
 msgstr "Предупреждение"
@@ -249,10 +247,6 @@ msgstr "Отключить моторы"
 msgid "Distance (mm)"
 msgstr "Расстояние (мм)"
 
-#, python-format
-msgid "Do you want to recover %s?"
-msgstr "Вы хотите восстановить %s?"
-
 msgid "Elapsed:"
 msgstr "Прошло:"
 
@@ -277,8 +271,12 @@ msgstr "Позже"
 msgid "Print (Interrupt)"
 msgstr "Печать (Прервана)"
 
-msgid "Printing was interrupted\nDid you want to continue print?"
-msgstr "Печать была прервана\nВы хотите продолжить печать?"
+msgid ""
+"Printing was interrupted\n"
+"Did you want to continue print?"
+msgstr ""
+"Печать была прервана\n"
+"Вы хотите продолжить печать?"
 
 msgid "Extrusion +"
 msgstr "Экструзия +"
@@ -381,11 +379,15 @@ msgstr "Выкл."
 
 #, python-format
 msgid "Must home XY"
-msgstr "Необходимо припарковаться\nпо осям XY"
+msgstr ""
+"Необходимо припарковаться\n"
+"по осям XY"
 
 #, python-format
 msgid "Must home Z"
-msgstr "Необходимо припарковаться\nпо оси Z"
+msgstr ""
+"Необходимо припарковаться\n"
+"по оси Z"
 
 msgid "Home X"
 msgstr "Парковать X"
@@ -427,9 +429,7 @@ msgid "Manual Calibration"
 msgstr "Ручная калибровка"
 
 msgid "NOTE: Edit your printer.cfg to save manual calibration changes."
-msgstr ""
-"ПРИМЕЧАНИЕ: Отредактируйте файл printer.cfg, чтобы сохранить изменения калибровки "
-"вручную"
+msgstr "ПРИМЕЧАНИЕ: Отредактируйте файл printer.cfg, чтобы сохранить изменения калибровки вручную"
 
 msgid "Interface"
 msgstr "Интерфейс"
@@ -575,12 +575,8 @@ msgstr "Никогда"
 msgid "New"
 msgstr "Новое"
 
-msgid ""
-"Not supported for auto-detection, it needs to be configured in klipperscreen."
-"conf"
-msgstr ""
-"Не поддерживается для автоматического обнаружения, его необходимо настроить "
-"в klipperscreen.conf"
+msgid "Not supported for auto-detection, it needs to be configured in klipperscreen.conf"
+msgstr "Не поддерживается для автоматического обнаружения, его необходимо настроить в klipperscreen.conf"
 
 msgid "Nothing selected"
 msgstr "Ничего не выбрано"
@@ -592,11 +588,20 @@ msgstr "Устарело на %d"
 msgid "PSK for"
 msgstr "Пароль для"
 
-msgid "Package will be updated"
-msgid_plural "Packages will be updated"
-msgstr[0] "Пакет будет обновлен"
-msgstr[1] "Пакеты будут обновляться"
-msgstr[2] "Пакеты будут обновляться"
+msgid "package will be updated"
+msgid_plural "packages will be updated"
+msgstr[0] "пакет будет обновлен"
+msgstr[1] "пакета будет обновлено"
+msgstr[2] "пакетов будет обновлено"
+
+msgid "package waiting for update"
+msgid_plural "packages waiting for update"
+msgstr[0] "пакет ожидает обновления"
+msgstr[1] "пакета ожидают обновления"
+msgstr[2] "пакетов ожидают обновления"
+
+msgid "Details"
+msgstr "Детали"
 
 msgid "Part Fan"
 msgstr "Вент. экструдера"
@@ -739,7 +744,6 @@ msgstr "Сохранить конфигурацию"
 msgid "Have unsaved options"
 msgstr "Есть несохраненные данные"
 
-
 msgid "Endstop"
 msgstr "Концевик"
 
@@ -775,7 +779,9 @@ msgid "Screen Power Off Time"
 msgstr "Время выключения экрана"
 
 msgid "Screws Adjust"
-msgstr "Полуавтоматическая\nкалибровка"
+msgstr ""
+"Полуавтоматическая\n"
+"калибровка"
 
 msgid "Return Magnet Probe"
 msgstr "Вернуть пробу"
@@ -803,7 +809,6 @@ msgstr "Калибровать следующий винт"
 
 msgid "Calibration Manager"
 msgstr "Менеджер калибровки"
-
 
 msgid "Select"
 msgstr "Выбрать"
@@ -874,6 +879,18 @@ msgstr "Запуск восстановления для"
 msgid "Starting update for"
 msgstr "Запуск обновления для"
 
+msgid "Recover applications?"
+msgstr "Восстановить приложения?"
+
+msgid "Starting recovering..."
+msgstr "Восстановление..."
+
+msgid "Starting applications updates..."
+msgstr "Обновление приложений..."
+
+msgid "Starting system updates..."
+msgstr "Обновление системы..."
+
 msgid "System"
 msgstr "Система"
 
@@ -904,11 +921,19 @@ msgstr "Неизвестное положение винта"
 msgid "Unload"
 msgstr "Загружено"
 
-msgid "Load\nfull"
-msgstr "Заправить\nполностью"
+msgid ""
+"Load\n"
+"full"
+msgstr ""
+"Заправить\n"
+"полностью"
 
-msgid "Unload\nfull"
-msgstr "Извлечь\nполностью"
+msgid ""
+"Unload\n"
+"full"
+msgstr ""
+"Извлечь\n"
+"полностью"
 
 msgid "Unretract Extra Length"
 msgstr "Дополнительная длина деретракта"
@@ -921,6 +946,15 @@ msgstr "Обновлено"
 
 msgid "Update"
 msgstr "Обновить"
+
+msgid "Software: version verification error"
+msgstr "ПО: ошибка проверки версии"
+
+msgid "Software: actual version"
+msgstr "ПО: актуальная версия"
+
+msgid "Software: has updates"
+msgstr "ПО: доступны обновления"
 
 msgid "Updating"
 msgstr "Обновление"
@@ -1014,7 +1048,7 @@ msgstr "Ни один профиль не был загружен"
 
 #, python-format
 msgid "Not set temperature"
-msgstr "Температура не установлена" 
+msgstr "Температура не установлена"
 
 msgid "Preheat"
 msgstr "Преднагрев"
@@ -1024,6 +1058,7 @@ msgstr "Укажите температуру"
 
 msgid "Save after calibrate"
 msgstr "Сохранить после калибровки"
+
 #, python-format
 msgid "profile_%d"
 msgstr "Профиль_%d"
@@ -1084,16 +1119,26 @@ msgid "<b>Disable the access point?</b>\n"
 msgstr "<b>Отключить точку доступа?</b>\n"
 
 #, python-format
-msgid "After turning on the access point, Wi-Fi is turned off.\n To turn on Wi-Fi, turn off the access point"
-msgstr "После включения точки доступа Wi-Fi отключается.\n Чтобы включить Wi-Fi, выключите точку доступа"
+msgid ""
+"After turning on the access point, Wi-Fi is turned off.\n"
+" To turn on Wi-Fi, turn off the access point"
+msgstr ""
+"После включения точки доступа Wi-Fi отключается.\n"
+" Чтобы включить Wi-Fi, выключите точку доступа"
 
 #, python-format
-msgid "Cannot configure ipv4 addresses for connection.\n Reconfigure connection\n"
-msgstr "Невозможно сконфигурировать ip-адрес для подключения.\n Измените метод соединения на \"auto\" либо \"manual\"\n"
+msgid ""
+"Cannot configure ipv4 addresses for connection.\n"
+" Reconfigure connection\n"
+msgstr ""
+"Невозможно сконфигурировать ip-адрес для подключения.\n"
+" Измените метод соединения на \"auto\" либо \"manual\"\n"
 
 #, python-format
 msgid "Cannot find method for connection\n"
-msgstr "Невозможно найти метод для подключения\n Валидные методы - \"auto\", \"manual\"\n"
+msgstr ""
+"Невозможно найти метод для подключения\n"
+" Валидные методы - \"auto\", \"manual\"\n"
 
 msgid "DHCP selected. Set parameters will be deleted after saving"
 msgstr "Выбран DHCP. Установленные параметры будут удалены после применения изменений"
@@ -1109,12 +1154,14 @@ msgstr "Включить"
 
 #, python-format
 msgid "Ethernet"
-msgstr "Проводное\nподключение"
+msgstr ""
+"Проводное\n"
+"подключение"
 
 msgid "Access Point"
 msgstr "Точка доступа"
 
-msgid "Password must contains minimum 8 sumbols"
+msgid "Password must contains minimum 8 symbols"
 msgstr "Пароль должен содержать минимум 8 символов"
 
 msgid "SSID cannot be null"
@@ -1128,6 +1175,7 @@ msgstr "IP точки доступа"
 
 msgid "DHCP-address"
 msgstr "DHCP адрес"
+
 msgid "IP-address"
 msgstr "IP-адрес"
 
@@ -1139,6 +1187,7 @@ msgstr "Основной шлюз"
 
 msgid "Save changes"
 msgstr "Сохранить изменения"
+
 msgid "Password"
 msgstr "Пароль"
 
@@ -1170,8 +1219,16 @@ msgid "Safety Printing"
 msgstr "Безопасная печать"
 
 #, python-format
-msgid "\nPrinting was interrupted\n\nDid you want to continue print?\n"
-msgstr "\nПечать была прервана\n\nЖелаете продолжить печать?\n"
+msgid ""
+"\n"
+"Printing was interrupted\n"
+"\n"
+"Did you want to continue print?\n"
+msgstr ""
+"\n"
+"Печать была прервана\n"
+"\n"
+"Желаете продолжить печать?\n"
 
 msgid "Continue Print"
 msgstr "Продолжить печать"
@@ -1203,11 +1260,23 @@ msgstr "Печать с PLA филаментом. Пожалуйста, вклю
 msgid "Error on load LAN interface"
 msgstr "Ошибка при загрузке параметров проводного подключения"
 
-msgid "Error on load access point.\nAccess point is not present"
-msgstr "Ошибка при загрузке параметров точки доступа.\nНе найдено ни одной сконфигурированной точки доступа"
+msgid ""
+"Error on load access point.\n"
+"Access point is not present"
+msgstr ""
+"Ошибка при загрузке параметров точки доступа.\n"
+"Не найдено ни одной сконфигурированной точки доступа"
 
-msgid "Cannot connect to github.com. Please, check your internet connection"
-msgstr "Не удается соединиться с github. Пожалуйста, проверьте ваше интернет-соединение"
+#, python-format
+msgid ""
+"Access point error:\n"
+"%s"
+msgstr ""
+"Ошибка точки доступа:\n"
+"%s"
+
+msgid "Cannot connect to github.com.\nPlease, check your internet connection"
+msgstr "Не удается соединиться с github.\nПожалуйста, проверьте ваше интернет-соединение"
 
 msgid "Stop service"
 msgstr "Остановить службу"
@@ -1308,7 +1377,6 @@ msgstr "Остановить PID"
 
 #~ msgid "IPv6"
 #~ msgstr "IPv6"
-
 
 #~ msgid "Duration Only"
 #~ msgstr "Продолжительность печати"

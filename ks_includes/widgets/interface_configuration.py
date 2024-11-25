@@ -4,7 +4,7 @@ import subprocess
 import os
 import nmcli
 from ks_includes.widgets.numpad import Numpad
-from ks_includes.widgets.typed_entry import TypedEntry
+from ks_includes.widgets.typed_entry import TypedEntry, InterfaceRule, NetmaskRule
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
@@ -40,9 +40,9 @@ class InterfaceConfiguration(Gtk.Box):
         self.reinit_connectionData()
         
         self.labels['lan_static'] = {
-            'ipv4.addresses' : TypedEntry("interface"),
-            'netmask': TypedEntry("netmask"),
-            'ipv4.gateway': TypedEntry("interface"),
+            'ipv4.addresses' : TypedEntry(InterfaceRule),
+            'netmask': TypedEntry(NetmaskRule),
+            'ipv4.gateway': TypedEntry(InterfaceRule),
         }
         
         self.dhcp_entry = TypedEntry()
@@ -247,10 +247,6 @@ class InterfaceConfiguration(Gtk.Box):
                 'ipv4.gateway': ''
             })
             nmcli.connection.up(self.connection_id)
-            # os.system(f"nmcli connection down {self.connection_id}")
-            # os.system(f"nmcli connection modity {self.connection_id} ipv4.method auto connection.autoconnect yes")
-            # os.system(f"nmcli connection modity {self.connection_id} ipv4.addresses \"\" ipv4.gateway \"\"")
-            # os.system(f"nmcli connection up {self.connection_id}")
         else:
             addr = self.labels['lan_static']['ipv4.addresses'].get_text()
             netmask = self.labels['lan_static']['netmask'].get_text()
@@ -264,10 +260,6 @@ class InterfaceConfiguration(Gtk.Box):
                 'ipv4.gateway': gateway
             })
             nmcli.connection.up(self.connection_id)
-            # os.system(f"nmcli connection down {self.connection_id}")
-            # os.system(f"nmcli connection modify {self.connection_id} ipv4.addresses {addr}/{netmask} ipv4.gateway {gateway}")
-            # os.system(f"nmcli connection modity {self.connection_id} ipv4.method manual connection.autoconnect yes")
-            # os.system(f"nmcli connection up {self.connection_id}")
         self._screen.remove_numpad()
         for child in self.button_box:
             self.button_box.remove(child)

@@ -5,10 +5,13 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib, Pango
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.typed_entry import TypedEntry
-HIDDEN_MACROS = ["GET_TIMELAPSE_SETUP", "_SET_TIMELAPSE_SETUP", "TIMELAPSE_TAKE_FRAME", 
-                 "_TIMELAPSE_NEW_FRAME", "_WAIT_TIMELAPSE_TAKE_FRAME", "HYPERLAPSE", 
-                 "_HYPERLAPSE_LOOP", "TIMELAPSE_RENDER", "_WAIT_TIMELAPSE_RENDER", 
-                 "TEST_STREAM_DELAY", "SET_PAUSE_AT_LAYER", "SET_PAUSE_NEXT_LAYER"]
+HIDDEN_MACROS = [
+  "CANCEL_PRINT", "GET_TIMELAPSE_SETUP", "HYPERLAPSE", "LOAD_FILAMENT", "M201", "M203", 
+  "M205", "M486", "M900", "PAUSE", "RESUME", "SET_PAUSE_AT_LAYER", "SET_PAUSE_NEXT_LAYER", 
+  "SET_PRINT_STATS_INFO", "TEST_STREAM_DELAY", "TIMELAPSE_RENDER", "TIMELAPSE_TAKE_FRAME", 
+  "UNLOAD_FILAMENT", "_SET_TIMELAPSE_SETUP", "_TIMELAPSE_NEW_FRAME", "_WAIT_TIMELAPSE_TAKE_FRAME", 
+  "_HYPERLAPSE_LOOP", "_WAIT_TIMELAPSE_RENDER"
+]
 
 class Panel(ScreenPanel):
     def __init__(self, screen, title):
@@ -102,16 +105,12 @@ class Panel(ScreenPanel):
 
         params_grid = Gtk.Grid(column_homogeneous=True)
         for i, param in enumerate(self.macros[macro]["params"]):
-            # Перевести в homogeneous grid, добавить переход на новый row после третьего входного параметра
             param_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5, margin_right=10)
             if param in param_locale_dict:
                 param_box.add(Gtk.Label(label=param_locale_dict[param], hexpand=True, halign=Gtk.Align.CENTER))
             else:
                 param_box.add(Gtk.Label(label=param, hexpand=True, halign=Gtk.Align.CENTER))
-            #plugRight = Gtk.Label()
-            #plugRight.set_size_request(self._screen.gtk.content_width * 0.3, 1)
             param_box.add(self.macros[macro]["params"][param])
-            #param_box.add(plugRight)
             
             self.macros[macro]["params"][param].connect("focus-in-event", self.on_change_entry)
             self.macros[macro]["params"][param].connect("focus-out-event", self._screen.remove_keyboard)

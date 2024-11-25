@@ -166,10 +166,11 @@ class KlippyGtk:
         stream.close_async(2)
         return pixbuf
 
-    def Button(self, image_name=None, label=None, style=None, scale=None, position=Gtk.PositionType.TOP, lines=2, is_ellipsize=True):
+    def Button(self, image_name=None, label=None, style=None, scale=None, position=Gtk.PositionType.TOP, lines=2, is_ellipsize=True,
+               hexpand=True, vexpand=True):
         if self.font_size_type == "max" and label is not None and scale is None:
             image_name = None
-        b = Gtk.Button(hexpand=True, vexpand=True, can_focus=False, image_position=position, always_show_image=True)
+        b = Gtk.Button(hexpand=hexpand, vexpand=vexpand, can_focus=False, image_position=position, always_show_image=True)
         if label is not None:
             b.set_label(label)
         if image_name is not None:
@@ -301,11 +302,6 @@ class KlippyGtk:
         if width is not None and height is not None:
             g.set_size_request(width, height)
         return g
-    
-    # def ToggleButton(self, text):
-    #     b = Gtk.ToggleButton(label=text, hexpand=True, vexpand=True)
-    #     b.connect("clicked", self.screen.reset_screensaver_timeout)
-    #     return b
 
     def ScrolledWindow(self, steppers=True):
         scroll = Gtk.ScrolledWindow(vexpand=True, overlay_scrolling=False)
@@ -317,7 +313,6 @@ class KlippyGtk:
             scroll.get_vscrollbar().get_style_context().add_class("with-steppers")
         return scroll
 
-    
     @staticmethod
     def VerticalNotebook(pages):
         notebook = Gtk.Notebook()

@@ -87,8 +87,8 @@ class Panel(ScreenPanel):
         self.labels['extrudefactor'] = self._gtk.Button("refresh", "  100%",
                                                         "color4", self.bts, Gtk.PositionType.LEFT, 1)
         if self._screen.vertical_mode:
-            grid.attach(self.labels['z-'], 0, 0, 1, 1)
-            grid.attach(self.labels['z+'], 1, 0, 1, 1)
+            grid.attach(self.labels['z+'], 0, 0, 1, 1)
+            grid.attach(self.labels['z-'], 1, 0, 1, 1)
             grid.attach(self.labels['zoffset'], 2, 0, 1, 1)
             grid.attach(zgrid, 0, 1, 3, 1)
             grid.attach(self.labels['speed-'], 0, 2, 1, 1)

@@ -366,35 +366,14 @@ class MoonrakerApi:
         )
     
     def print_remove(self, callback=None, *args):
-        logging.debug("Sending printer.print.rebuild")
+        logging.debug("Sending printer.print.remove")
         return self._ws.send_method(
             "printer.print.remove",
             {},
             callback,
             *args
         )
-    def change_wifi_mode(self, wifi_mode, callback=None, *args):
-        logging.debug("Sending printer.setwifimode")
-        return self._ws.send_method(
-            "printer.setwifimode",
-            {
-                "wifi_mode": wifi_mode
-            },
-            callback,
-            *args
-        )
-        
-    def set_hotspot(self, hotspot, callback=None, *args):
-        logging.debug("Sending printer.set_hotspot")
-        return self._ws.send_method(
-            "printer.set_hotspot",
-            {
-                "hotspot": hotspot
-            },
-            callback,
-            *args
-        )
-        
+
     def set_safety(self, safety, callback=None, *args):
         logging.debug("Sending printer.setSafetyPrinting")
         return self._ws.send_method(

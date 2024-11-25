@@ -68,7 +68,6 @@ class Panel(ScreenPanel):
         self.labels['layer_lbl'] = Gtk.Label(_("Layer:"))
 
         for fan in self._printer.get_fans():
-            # fan_types = ["controller_fan", "fan_generic", "heater_fan"]
             if fan == "fan":
                 name = " "
             elif fan.startswith("fan_generic"):
@@ -382,7 +381,7 @@ class Panel(ScreenPanel):
         self.buttons['save_offset_endstop'].connect("clicked", self.save_offset, "endstop")
 
     def save_offset(self, widget, device):
-        sign = "+" if self.zoffset > 0 else "-"
+        sign = "-" if self.zoffset > 0 else "+"
         label = Gtk.Label()
         if device == "probe":
             probe = self._printer.get_probe()
@@ -427,15 +426,19 @@ class Panel(ScreenPanel):
     def restart(self, widget):
         if self.filename:
             self.disable_button("restart")
-            if self.state == "error":
-                script = {"script": "SDCARD_RESET_FILE"}
-                self._screen._send_action(None, "printer.gcode.script", script)
-            self._screen._ws.klippy.print_start(self.filename)
+            # if self.state == "error":
+            #     script = {"script": "SDCARD_RESET_FILE"}
+            #     self._screen._send_action(None, "printer.gcode.script", script)
+            self._screen._ws.klippy.print_start(self.filename, self.print_start_callback)
             logging.info(f"Starting print: {self.filename}")
             self.new_print()
         else:
+            self.enable_button("restart")
             logging.info(f"Could not restart {self.filename}")
 
+    def print_start_callback(self, result, method, params):
+      self.enable_button("restart")
+      
     def resume(self, widget):
         self.disable_button("resume")
         self._screen._ws.klippy.print_resume()

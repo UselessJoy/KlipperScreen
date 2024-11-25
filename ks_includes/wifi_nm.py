@@ -113,29 +113,18 @@ class WifiManager:
             self.last_connected_ssid = self.get_connected_ssid()
         except:
             self.last_connected_ssid = None
-        # NetworkManager.NetworkManager.OnPropertiesChanged(self.nm_prop_changed)
         self.wireless_device = NetworkManager.NetworkManager.GetDeviceByIpIface(wireless_interface)
         self.wireless_device.OnAccessPointAdded(self._ap_added)
         self.wireless_device.OnAccessPointRemoved(self._ap_removed)
         self.wireless_device.OnStateChanged(self._ap_state_changed)
-        # Коллбэк на очередное состояние NetworkManager
-        #self.wireless_device.OnPropertiesChanged(self.nm_prop_changed)
 
         for ap in self.wireless_device.GetAccessPoints():
             self._add_ap(ap)
         self._update_known_connections()
         self.initialized = True
-        
         self.rescan_thread = None
         self.rescan_thread = self.thread_rescan_popen_callback(self._on_rescan)
         self.rescan_timer = GLib.timeout_add_seconds(30, self.rescan)
-
-    # NetworkingConnectivity bug (show 4(limited) but nmcli show 5(full)) "Full"singal from both interfaces  
-    # Обработка коллбэка на очередное состояние NetworkManager
-    # def nm_prop_changed(self, ap, interface, signal, properties):
-    #     logging.info(f"Callback nm_prop_changed:")
-    #     logging.info( NetworkManager.NetworkManager.CheckConnectivity())
-    #     logging.info(properties)
         
     def _update_known_connections(self):
         self.known_networks = {}
@@ -147,8 +136,6 @@ class WifiManager:
                 
     def _ap_added(self, nm, interface, signal, access_point):
         try:
-            # Привязка коллбэка на изменение поля для очередного соединения 
-            #access_point.OnPropertiesChanged(self._ap_prop_changed)
             ssid = self._add_ap(access_point)
             for cb in self._callbacks['scan_results']:
                 args = (cb, [ssid], [])
@@ -173,7 +160,6 @@ class WifiManager:
     def _ap_state_changed(self, nm, interface, signal, old_state, new_state, reason):
         if new_state in NM_STATE:
             self.callback(NM_STATE[new_state]['callback'], NM_STATE[new_state]['msg'])
-            #logging.info(f"State {NM_STATE[new_state]['callback']} msg {NM_STATE[new_state]['msg']}")
 
         if new_state == NetworkManager.NM_DEVICE_STATE_ACTIVATED:
             self.connected = True
@@ -183,17 +169,6 @@ class WifiManager:
                 GLib.idle_add(*args)
         else:
             self.connected = False
-            
-    # Обработка коллбэка на изменение поля для очередного соединения        
-    # Пропсы очень плохо регистрируются (на активном соеднении вообще не регистрируются) 
-    # def _ap_prop_changed(self, ap, interface, signal, properties):
-    #     logging.info(f"Callback _ap_prop_changed:")
-    #     logging.info(ap.Ssid)
-    #     logging.info(ap.Strength)
-        #logging.info(properties)
-        # ap_status = {'ssid': ap.Ssid}
-        # ap_status['properties'] = properties
-        # self.callback("properties_changed", ap_status)
 
     def _add_ap(self, ap):
         ssid = ap.Ssid

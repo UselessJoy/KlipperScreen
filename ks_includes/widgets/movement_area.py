@@ -5,8 +5,6 @@ from ks_includes.KlippyGcodes import KlippyGcodes
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, GLib
 
-# Надо создать общий класс MovementArea и создать наследуемые от него классы XY и Z
-
 class MovementArea(Gtk.EventBox):
     def __init__(self, screen, printer):
         super().__init__(resize_mode=False, vexpand=True, hexpand=True)

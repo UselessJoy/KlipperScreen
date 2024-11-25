@@ -9,7 +9,7 @@ from gi.repository import Gtk, Gdk, Pango, GLib
 from ks_includes.KlippyGcodes import KlippyGcodes
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.bedmap import BedMap
-from ks_includes.widgets.typed_entry import TypedEntry
+from ks_includes.widgets.typed_entry import TypedEntry, NumberRule, SpaceRule
 
 RESOLUTION_K = {(800, 480): 0.43}
 class Panel(ScreenPanel):
@@ -416,8 +416,8 @@ class Panel(ScreenPanel):
         self.new_profiles_grid.attach(new_row, 0, len(self.new_profiles_grid), 1, 1)
         self.content.show_all()
 
-    def delete_profile_row(self, widget, number):
-        self.new_profiles_grid.remove_row(number)
+    def delete_profile_row(self, widget, row):
+        self.new_profiles_grid.remove(row)
         self.content.show_all()
     
     def count_new_default_profiles(self):
@@ -468,12 +468,11 @@ class Panel(ScreenPanel):
             
     def create_new_profile_row(self):
         profile_label = Gtk.Label(label=_("Profile Name:"), hexpand=True, halign=Gtk.Align.START)
-        profile_entry = TypedEntry("no_space")
-
+        profile_entry = TypedEntry(SpaceRule)
         i = self.count_new_default_profiles()
-        
         self.new_default_profile_name = f"profile_{i}"
         locale_name = _("profile_%d") % i
+
         profile_entry.set_placeholder_text(_(locale_name))
         profile_entry.set_text('')
         profile_entry.set_hexpand(True)
@@ -482,7 +481,7 @@ class Panel(ScreenPanel):
         profile_entry.connect("focus-out-event", self.on_focus_out_event)
         profile_entry.connect("button_release_event", self.click_to_entry)
         
-        preheat_entry = TypedEntry("number", max=self._printer.get_config_section('heater_bed')['max_temp'])
+        preheat_entry = TypedEntry(NumberRule, max=self._printer.get_config_section('heater_bed')['max_temp'])
         preheat_entry.connect("focus-in-event", self.on_focus_in_event)
         preheat_entry.connect("focus-out-event", self.on_focus_out_event)
         preheat_entry.connect("button_release_event", self.click_to_entry)
@@ -504,7 +503,7 @@ class Panel(ScreenPanel):
         
 
         minusButton = self._screen.gtk.Button("minus", None, "round_button")
-        minusButton.connect("clicked", self.delete_profile_row, len(self.new_profiles_grid) - 1)
+        
 
         save_box = Gtk.Box()
         save_box.add(Gtk.Label(label=_("Save after calibrate")))
@@ -523,6 +522,7 @@ class Panel(ScreenPanel):
         main_row.pack_start(profile_box, True, True, 5)
         main_row.add(preheat_box)
         main_row.add(save_box)
+        minusButton.connect("clicked", self.delete_profile_row, main_row)
         return main_row
 
     def on_switch_preheat(self, switch, gdata, entry):
@@ -565,10 +565,6 @@ class Panel(ScreenPanel):
                     popup.get_style_context().add_class("message_popup_error")
                     popup.set_position(Gtk.PositionType.BOTTOM)
                     popup.set_halign(Gtk.Align.CENTER)
-                    if 'locale_name' in profiles_dict[profile_i]:
-                      pr_name = profiles_dict[profile_i]['locale_name']
-                    else:
-                      pr_name = profiles_dict[profile_i]['profile_name']
                     msg = Gtk.Button(label=_("Not set temperature"))
                     msg.set_hexpand(True)
                     msg.set_vexpand(True)

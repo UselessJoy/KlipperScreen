@@ -26,6 +26,24 @@ home = os.path.expanduser("~/")
 printer_data_config = os.path.join(home, "printer_data", "config")
 xdg_config = os.path.join(home, ".config", "KlipperScreen")
 
+DEF_PREHEATS = {
+  'PLA': {
+    'bed': 65,
+    'extruder': 215,
+  },
+  'ABS': {
+    'bed': 110,
+    'extruder': 240,
+  },
+  'PETG': {
+    'bed': 85,
+    'extruder': 235,
+  },
+  'FLEX': {
+    'bed': 90,
+    'extruder': 240,
+  },
+}
 
 class ConfigError(Exception):
     pass
@@ -167,7 +185,8 @@ class KlipperScreenConfig:
                 )
                 numbers = (
                     'job_complete_timeout', 'job_error_timeout', 'move_speed_xy', 'move_speed_z',
-                    'print_estimate_compensation', 'width', 'height',
+                    'print_estimate_compensation', 'width', 'height', "bed_PLA", "extruder_PLA", 
+                    "bed_ABS", "extruder_ABS", "bed_PETG", "extruder_PETG", "bed_FLEX", "extruder_FLEX"
                 )
             elif section.startswith('printer '):
                 bools = (
@@ -317,9 +336,26 @@ class KlipperScreenConfig:
             {"move_speed_z": {"section": "main", "name": _("Z Move Speed (mm/s)"), "type": None, "value": "10"}},
             {"print_sort_dir": {"section": "main", "type": None, "value": "name_asc"}},
             {"print_view": {"section": "main", "type": None, "value": "thumbs"}},
+            
+        ]
+        
+        # Configurable preheat options
+        preheats_options = [
+          {"pla_bed": {"section": "main", "type": None, "value": "65"}},
+          {"pla_extruder": {"section": "main", "type": None, "value": "215"}},
+          
+          {"abs_bed": {"section": "main", "type": None, "value": "110"}},
+          {"abs_extruder": {"section": "main", "type": None, "value": "240"}},
+          
+          {"petg_bed": {"section": "main", "type": None, "value": "85"}},
+          {"petg_extruder": {"section": "main", "type": None, "value": "235"}},
+          
+          {"flex_bed": {"section": "main", "type": None, "value": "90"}},
+          {"flex_extruder": {"section": "main", "type": None, "value": "240"}},
         ]
 
         self.configurable_options.extend(panel_options)
+        self.configurable_options.extend(preheats_options)
         
         t_path = os.path.join(klipperscreendir, 'styles')
         themes = [d for d in os.listdir(t_path) if (not os.path.isfile(os.path.join(t_path, d)) and d != "z-bolt")]
@@ -351,7 +387,15 @@ class KlipperScreenConfig:
                 self.config.add_section(vals['section'])
             if name not in list(self.config[vals['section']]):
                 self.config.set(vals['section'], name, vals['value'])
-
+                
+    def get_default_preheats(self):
+      p = {}
+      for preheat in ['PLA', 'ABS', 'PETG', 'FLEX']:
+        p[preheat] = {}
+        for key in ['bed', 'extruder']:
+          p[preheat][key] = self.get_main_config().getfloat(f"{preheat.lower()}_{key}", DEF_PREHEATS[preheat][key])
+      return p
+        
     def exclude_from_config(self, config):
         exclude_list = ['preheat']
         if not self.defined_config.getboolean('main', "use_default_menu", fallback=True):
@@ -554,9 +598,9 @@ class KlipperScreenConfig:
         except Exception as e:
             logging.error(f"Error writing configuration file in {filepath}:\n{e}")
 
-    def set(self, section, name, value):
-        self.config.set(section, name, value)
-
+    def set(self, section, option, value):
+        self.config.set(section, option, value)
+        
     def log_config(self, config):
         lines = [
             " "

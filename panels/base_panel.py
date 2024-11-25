@@ -13,10 +13,7 @@ from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.timepicker import Timepicker
 import netifaces
 from ks_includes.KlippyGcodes import KlippyGcodes
-# from subprocess import run, STDOUT, PIPE
 
-# Брать информацию о соединении из коллбэка NetworkManager, а не по таймеру
-# По клику на значок интерфейса видеть его название
 class BasePanel(ScreenPanel):
     def __init__(self, screen, title):
         super().__init__(screen, title)
@@ -32,7 +29,6 @@ class BasePanel(ScreenPanel):
         self.check_temp = False
         self.titlebar_name_type = None
         self.last_time_message = None
-        self.wifi_mode = None
         self.hours = None
         self.minutes = None
         self.current_extruder = None
@@ -58,26 +54,15 @@ class BasePanel(ScreenPanel):
                 logging.info("Using wpa_cli")
                 from ks_includes.wifi import WifiManager
             self.wifi = WifiManager(self.wireless_interfaces[0])
-            #self.wifi.add_callback("strength_changed", self.on_properties_changed_callback)
             self.wifi.add_callback("connecting", self.connecting_callback)
             self.wifi.add_callback("connected", self.connected_callback)
             self.wifi.add_callback("disconnected", self.disconnected_callback)
             self.wifi.add_callback("popup", self.popup_callback)
         ####    END NEW    ####
-        
         for control in self.control:
             self.set_control_sensitive(False, control)
         self.control['estop'] = self._gtk.Button('emergency', scale=abscale)
         self.control['estop'].connect("clicked", self.emergency_stop)
-        # self.control['estop'].set_no_show_all(True)
-        # self.shutdown = {
-        #     "name": None,
-        #     "panel": "shutdown",
-        #     "icon": "shutdown",
-        # }
-        # self.control['shutdown'] = self._gtk.Button('shutdown', scale=abscale)
-        # self.control['shutdown'].connect("clicked", self.menu_item_clicked, self.shutdown)
-        # self.control['shutdown'].set_no_show_all(True)
         self.control['printer_select'] = self._gtk.Button('shuffle', scale=abscale)
         self.control['printer_select'].connect("clicked", self._screen.show_printer_select)
         self.control['printer_select'].set_no_show_all(True)
@@ -192,7 +177,7 @@ class BasePanel(ScreenPanel):
 
     def on_popover_clicked(self, widget, event):
         self.unsaved_config_popover.show_all()
-    
+
     def create_time_modal(self, widget, event):
         
         buttons = [
@@ -208,7 +193,7 @@ class BasePanel(ScreenPanel):
         dialog = self._gtk.Dialog(buttons, timepicker, _("Time"), self.close_time_modal, width=1, height=1)
         dialog.get_action_area().set_layout(Gtk.ButtonBoxStyle.EXPAND)
         dialog.show_all()
-    
+
     def close_time_modal(self, dialog, response_id):
         self._gtk.remove_dialog(dialog)
         if response_id == Gtk.ResponseType.OK:
@@ -222,12 +207,10 @@ class BasePanel(ScreenPanel):
                 subprocess.call(["systemctl", "enable", "systemd-timesyncd.service"])
                 logging.info("time synchromized")
         self.update_time()
-            
-    
+
     def on_change_timesync(self, switch_status):
         self.is_timesync = switch_status
-    
-            
+
     def on_change_value(self, name, value):
         logging.info(f'in on_change name is {name} value is {value}')
         if name == 'hours':
@@ -236,7 +219,6 @@ class BasePanel(ScreenPanel):
             self.minutes = value
 
     ####      NEW      ####
-        
     def show_power_dialog(self, widget=None):
         buttons = [
                     {"name": _("Restart"), "response": Gtk.ResponseType.YES, "style": "color1"},
@@ -249,7 +231,6 @@ class BasePanel(ScreenPanel):
         b = []
         for i, button in enumerate(buttons):
           b.append(self._gtk.Button(None, button['name'], button['style']))
-          
           button_grid.attach(b[i], i, 0, 1, 1)
         last_btn = self._gtk.Button(None, _("Shutdown on cooling"), "color2")
         last_btn.set_size_request(1, self._screen.height / 4)
@@ -262,7 +243,7 @@ class BasePanel(ScreenPanel):
         for i, button in enumerate(b):
           button.connect("clicked", self.close_power_dialog, self.power_dialog, buttons[i]['response'])
         last_btn.connect("clicked", self.close_power_dialog, self.power_dialog, Gtk.ResponseType.APPLY)
-        
+
     def close_power_dialog(self, widget, dialog, response_id):
         if response_id == Gtk.ResponseType.OK:
             os.system("systemctl poweroff")
@@ -273,13 +254,7 @@ class BasePanel(ScreenPanel):
           self.check_temp = True
         self._gtk.remove_dialog(self.power_dialog)
         self.power_dialog = None
-    
-    # def on_properties_changed_callback(self, ap_status):
-    #     # Update status only for connected ssid
-    #     if ap_status['ssid'] == self.wifi.get_connected_ssid():
-    #         if 'Strength' in ap_status['properties']: 
-    #             self.update_connected_network_status()
-    
+
     def get_wifi_dev(self):
         return self.wifi
     # Callback only from wireless interface
@@ -287,22 +262,22 @@ class BasePanel(ScreenPanel):
         logging.info("connecting...")
         self.is_connecting_to_network = True
         self.update_connected_network_status()
-    
+
     def connected_callback(self, ssid, prev_ssid):
         logging.info("connected!")
         self.is_connecting_to_network = False
         self.update_connected_network_status()
-        
+
     def disconnected_callback(self, msg):
         logging.info("disconnected!")
         self.is_connecting_to_network = False
         self.update_connected_network_status()
-        
+
     def popup_callback(self, msg):
         logging.exception("exception connect!")
         self.is_connecting_to_network = False
         self.update_connected_network_status()
-    
+
     def update_connected_network_status(self):
         try:
             if not self.is_connecting_to_network:
@@ -313,6 +288,7 @@ class BasePanel(ScreenPanel):
                     self.network_status_image.show()
                 connected_ssid = self.wifi.get_connected_ssid()
                 if not connected_ssid:
+                    self._screen.process_update("notify_status_update", {'access_point': {'is_active': False}})
                     # connectivity в объекте нетворк манагера херово работает (он показывает 4, а команда напрямую показывает full)
                     data: bytes = subprocess.check_output(["nmcli", "networking", "connectivity"])
                     data = data.decode("utf-8").strip()
@@ -328,12 +304,11 @@ class BasePanel(ScreenPanel):
                     if not "signal_level_dBm" in netinfo:
                         netinfo["signal_level_dBm"] = 0
                         logging.warning("Cannot get signal strehgth info")
-                    if self.wifi_mode:
+                    self._screen.process_update("notify_status_update", {'access_point': {'is_active': netinfo['is_hotspot']}})
+                    if netinfo['is_hotspot']:
                         self._screen.gtk.update_image(self.network_status_image, "access_point", self.img_titlebar_size, self.img_titlebar_size)
-                        #logging.info("showing access_point")
                     else:
-                        self._screen.gtk.update_image(self.network_status_image, self.signal_strength(netinfo["signal_level_dBm"]), self.img_titlebar_size, self.img_titlebar_size)
-                        #logging.info("showing wifi with signal")     
+                        self._screen.gtk.update_image(self.network_status_image, self.signal_strength(netinfo["signal_level_dBm"]), self.img_titlebar_size, self.img_titlebar_size)     
             else:
                 if self.network_status_image.get_visible():
                     self.network_status_image.hide()
@@ -343,7 +318,7 @@ class BasePanel(ScreenPanel):
         except Exception as e:
             logging.exception(f"Error on update network status:\n{e}")
         return True
-                
+
     def signal_strength(self, signal_level):
         # networkmanager uses percentage not dbm
         # the bars of nmcli are aligned near this breakpoints
@@ -358,8 +333,7 @@ class BasePanel(ScreenPanel):
             return "wifi_fair"
         else:
             return "wifi_weak"   
-        
-        
+
     def show_heaters(self, show=True):
         try:
             for child in self.control['temp_box'].get_children():
@@ -437,10 +411,7 @@ class BasePanel(ScreenPanel):
             self.time_update = GLib.timeout_add_seconds(1, self.update_time)
 
     def add_content(self, panel):
-        printing = self._printer and self._printer.state in {"printing", "paused"}
         connected = self._printer and self._printer.state not in {'disconnected', 'startup', 'shutdown', 'error'}
-        # self.control['estop'].set_visible(printing)
-        # self.control['shutdown'].set_visible(not printing)
         self.show_shortcut(connected)
         self.show_heaters(connected)
         for control in ('back', 'home'):
@@ -530,8 +501,6 @@ class BasePanel(ScreenPanel):
                         self.on_unsaved_config.show()
                     else:
                         self.on_unsaved_config.hide()
-        if 'wifi_mode' in data and 'wifiMode' in data['wifi_mode']:
-            self.wifi_mode = True if data['wifi_mode']['wifiMode'] == 'AP' else False
         for device in self._printer.get_temp_devices():
             temp = self._printer.get_dev_stat(device, "temperature")
             if temp is not None and device in self.labels:
@@ -575,6 +544,7 @@ class BasePanel(ScreenPanel):
             msg = data['messages']
             if msg['is_open']:
               if msg["message"] != "" and msg['message_type'] != "":
+                  logging.info(f"show popup from messages open {msg['message_type']} {msg['message']}")
                   lvl = 1 if msg['message_type'] == 'success' else 2 if msg['message_type'] != 'error' else 3
                   self._screen.show_popup_message(msg['message'], level=lvl, just_popup=True)
         return False
@@ -652,7 +622,6 @@ class BasePanel(ScreenPanel):
             and self._printer.get_printer_status_data()["printer"]["gcode_macros"]["count"] > 0
         )
         self.control['shortcut'].set_visible(show)
-        # self.set_control_sensitive(self._screen._cur_panels[-1] != self.shutdown['panel'], control='shutdown')
         
     def show_printer_select(self, show=True):
         self.control['printer_select'].set_visible(show)

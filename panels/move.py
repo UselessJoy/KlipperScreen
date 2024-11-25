@@ -171,7 +171,7 @@ class Panel(ScreenPanel):
                         self.movement_area.onExternalMove(data['gcode_move']['gcode_position'], self.on_finish_move)
                 elif self.movement_area.verified:
                     self.movement_area.deactivate_movement_area()
-    
+
     def on_finish_move(self):
         return
         # self.buttons['mode'].set_sensitive(True)
