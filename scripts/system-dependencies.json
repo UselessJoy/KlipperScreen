@@ -17,7 +17,8 @@
         "wireless-tools",
         "libdbus-glib-1-dev",
         "policykit-1",
-        "autoconf"
+        "autoconf",
+        "systemd-timesyncd"
     ],
     "arch": [
         "python-virtualenv",
