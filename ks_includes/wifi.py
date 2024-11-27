@@ -5,12 +5,9 @@ import socket
 import threading
 from threading import Thread
 from queue import Queue
-
 import gi
-
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib
-
 
 class WifiManager:
     networks_in_supplicant = []
@@ -56,7 +53,6 @@ class WifiManager:
         self.wpa_cli("ATTACH", False)
         self.wpa_cli("SCAN", False)
         GLib.idle_add(self.read_wpa_supplicant)
-        #self.timeout = GLib.timeout_add_seconds(180, self.rescan)
 
     def add_callback(self, name, callback):
         if name in self._callbacks and callback not in self._callbacks[name]:
@@ -67,7 +63,6 @@ class WifiManager:
             if self.supplicant_networks[netid]['ssid'] == ssid:
                 # Modify network
                 return
-
         # TODO: Add wpa_cli error checking
         network_id = self.wpa_cli("ADD_NETWORK")
         commands = [
@@ -278,7 +273,6 @@ class WifiManager:
         for cmd in commands:
             self.wpa_cli(cmd)
 
-
 class WpaSocket(Thread):
     def __init__(self, wm, queue, callback):
         super().__init__()
@@ -322,7 +316,6 @@ class WpaSocket(Thread):
 
     def skip_command(self):
         self.skip_commands = self.skip_commands + 1
-
 
 class WifiChannels:
     @staticmethod

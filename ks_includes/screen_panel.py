@@ -1,10 +1,8 @@
 import logging
 import datetime
 import gi
-
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-
 
 class ScreenPanel:
     _screen = None
@@ -30,7 +28,6 @@ class ScreenPanel:
         self.content.get_style_context().add_class("content")
         self._show_heater_power = self._config.get_main_config().getboolean('show_heater_power', False)
         self.bts = self._gtk.bsidescale
-
         self.update_dialog = None
 
     def _autoscroll(self, scroll, *args):

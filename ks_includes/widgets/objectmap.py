@@ -12,8 +12,8 @@ class ObjectMap(Gtk.DrawingArea):
         self._screen = screen
         self.set_hexpand(True)
         self.set_vexpand(True)
-        # self.get_style_context().add_class('objectmap')
         self.printer = printer
+        self.marked_obj = ""
         self.max_length = 0
         self.connect('draw', self.draw_graph)
         self.add_events(Gdk.EventMask.TOUCH_MASK)
@@ -39,6 +39,9 @@ class ObjectMap(Gtk.DrawingArea):
         return ((1 - ((gy - self.margin_top) / (height - self.margin_top - self.margin_bottom)))
                 * (self.max_y - self.min_y)) + self.min_y
 
+    def mark_obj(self, name):
+      self.marked_obj = name
+    
     def event_cb(self, da, ev):
         # Convert coordinates from screen-graph to bed
         x = self.x_graph_to_bed(da.get_allocated_width(), ev.x)
@@ -126,6 +129,8 @@ class ObjectMap(Gtk.DrawingArea):
                 ctx.set_source_rgb(1, 0, 0)  # Red
             elif obj['name'] in self.printer.get_stat("exclude_object", "excluded_objects"):
                 ctx.set_source_rgb(0, 0, 0)  # Black
+            elif obj['name'] == self.marked_obj:
+              ctx.set_source_rgb(0, 0.5, 1)
             else:
                 ctx.set_source_rgb(.5, .5, .5)  # Grey
             for i, point in enumerate(obj["polygon"]):

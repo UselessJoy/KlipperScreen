@@ -1,18 +1,13 @@
 import logging
-import os
 import re
 import gi
-
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, GLib, GObject
-
-
+from gi.repository import Gtk
 
 class BaseRule:
     @staticmethod
     def is_valid(entry, key):
         return True
-    
 
 class InterfaceRule(BaseRule):
     @staticmethod
@@ -37,8 +32,7 @@ class InterfaceRule(BaseRule):
             text_right = text[position:right_point_index]
         value = text_left + text_right
         return value
-        
-    
+
     @staticmethod
     def is_valid(entry, key):
         text = entry.get_text()
@@ -53,9 +47,6 @@ class InterfaceRule(BaseRule):
         elif key == "⌫":
             return True
         return False
-        
-        
-
         
 class NetmaskRule(BaseRule):
     @staticmethod

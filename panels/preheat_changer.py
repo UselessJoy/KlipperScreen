@@ -1,4 +1,3 @@
-import logging
 import gi
 from ks_includes.widgets.keyboard import Keyboard
 gi.require_version("Gtk", "3.0")
@@ -112,6 +111,17 @@ class Panel(ScreenPanel):
     # minusButton.connect("clicked", self.delete_profile_row, main_row)
     return main_row
   
+  
+  # def delete_profile_row(self, widget, row):
+  #   self.preheat_grid.remove(row)
+  #   self.content.show_all()
+
+  # def add_preheat_row(self, widget):
+  #   new_row = self.create_preheat_row()
+  #   self.preheat_grid.attach(new_row, 0, len(self.preheat_grid), 1, 1)
+  #   self.content.show_all()
+  
+
   # def delete_profile_row(self, widget, row):
   #   self.preheat_grid.remove(row)
   #   self.content.show_all()
@@ -135,6 +145,9 @@ class Panel(ScreenPanel):
     msg.connect("clicked", self.popup_popdown, popup)
     return popup
     
+    
+                
+
                 
   def change_preheats(self, widget=None, event=None):
     preheat_dict = self.get_preheat_grid_as_dict()
@@ -163,7 +176,7 @@ class Panel(ScreenPanel):
       for child in popups:
           child.popdown()   
       popups.clear()
-  
+
   def get_preheat_grid_as_dict(self):
     preheats = {}
     for i,row in enumerate(self.preheat_grid):
@@ -188,7 +201,7 @@ class Panel(ScreenPanel):
                   preheats[i][f"widget_{key}"] = grid_box_child
                   preheats[i][key] = grid_box_child.get_text()
     return preheats
-            
+
   def on_focus_in_event(self, entry, event):
     self.keyboard = Keyboard(self._screen, entry=entry)
     self.keyboard.change_entry(entry=entry)
@@ -198,18 +211,18 @@ class Panel(ScreenPanel):
       self.keyboard.set_size_request(1, self._screen.height * RESOLUTION_K[(self._screen.width, self._screen.height)])
     self.content.add(self.keyboard)
     self.content.show_all()
-  
+
   def on_focus_out_event(self, entry, event):
     if self.keyboard:
       self.content.remove(self.keyboard)
     self.keyboard = None
-  
+
   def popup_popdown(self, widget, popup):
     popup.popdown()
-  
+
   def click_to_entry(self, entry, event):
     return True
-  
+
   def click_to_eventbox(self, eventBox, event):
     if not self.was_child_scrolled:
       eventBox.grab_focus()

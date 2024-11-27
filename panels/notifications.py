@@ -1,9 +1,7 @@
 import gi
-
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from ks_includes.screen_panel import ScreenPanel
-
 
 COLORS = {
     "time": "DarkGrey",
@@ -12,10 +10,8 @@ COLORS = {
     "error": "FireBrick",
 }
 
-
 def remove_newlines(msg: str) -> str:
     return msg.replace('\n', ' ')
-
 
 class Panel(ScreenPanel):
     def __init__(self, screen, title):

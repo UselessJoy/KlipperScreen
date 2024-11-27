@@ -1,13 +1,10 @@
 import gi
 import logging
-import subprocess
 from ks_includes import access_point
 import nmcli
-import os
 from ks_includes.widgets.typed_entry import TypedEntry
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-
 
 class APConfiguration(Gtk.Box):
     def __init__(self, screen):

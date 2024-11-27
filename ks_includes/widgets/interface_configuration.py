@@ -1,9 +1,6 @@
 import gi
 import logging
-import subprocess
-import os
 import nmcli
-from ks_includes.widgets.numpad import Numpad
 from ks_includes.widgets.typed_entry import TypedEntry, InterfaceRule, NetmaskRule
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk

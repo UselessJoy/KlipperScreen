@@ -5,85 +5,81 @@ import contextlib
 import logging
 import traceback
 import uuid
-import os
 from ks_includes import NetworkManager
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 import gi
 from subprocess import Popen
 from threading import Thread
-
 gi.require_version('Gdk', '3.0')
 from gi.repository import GLib
-
 from ks_includes.wifi import WifiChannels
 
 NM_STATE = {
-    NetworkManager.NM_DEVICE_STATE_UNKNOWN : {
-            'msg': "State is unknown",
-            'callback': "disconnected"
-        },
-    NetworkManager.NM_DEVICE_STATE_REASON_UNKNOWN : {
-            'msg': "State is unknown",
-            'callback': "disconnected"
-        },
-    NetworkManager.NM_DEVICE_STATE_UNMANAGED : {
-            'msg': "Error: Not managed by NetworkManager",
-            'callback': "disconnected"
-        },
-    NetworkManager.NM_DEVICE_STATE_UNAVAILABLE : {
-            'msg': "Error: Not available for use:\nReasons may include the wireless switched off, missing firmware, etc.",
-            'callback': "disconnected"
-        },
-    NetworkManager.NM_DEVICE_STATE_DISCONNECTED : {
-            'msg': "Currently disconnected",
-            'callback': "disconnected"
-        },
-    NetworkManager.NM_DEVICE_STATE_PREPARE : {
-            'msg': "Preparing the connection to the network",
-            'callback': "connecting"
-        },
-    NetworkManager.NM_DEVICE_STATE_CONFIG : {
-            'msg': "Connecting to the requested network...",
-            'callback': "connecting"
-        },
-    NetworkManager.NM_DEVICE_STATE_NEED_AUTH : {
-            'msg': "Authorizing",
-            'callback': "connecting"
-        },
-    NetworkManager.NM_DEVICE_STATE_IP_CONFIG : {
-            'msg': "Requesting IP addresses and routing information",
-            'callback': "connecting"
-        },
-    NetworkManager.NM_DEVICE_STATE_IP_CHECK : {
-            'msg': "Checking whether further action is required for the requested network connection",
-            'callback': "connecting"
-        },
-    NetworkManager.NM_DEVICE_STATE_SECONDARIES : {
-            'msg': "Waiting for a secondary connection (like a VPN)",
-            'callback': "connecting"
-        },
-    NetworkManager.NM_DEVICE_STATE_ACTIVATED : {
-            'msg': "Connected",
-            'callback': "connecting_status"
-        },
-    NetworkManager.NM_DEVICE_STATE_DEACTIVATING : {
-            'msg': "A disconnection from the current network connection was requested",
-            'callback': "connecting"
-        },
-    NetworkManager.NM_DEVICE_STATE_FAILED : {
-            'msg': _("Failed to connect to the requested network"),
-            'callback': "popup"
-        },
-    NetworkManager.NM_DEVICE_STATE_REASON_DEPENDENCY_FAILED : {
-            'msg': "A dependency of the connection failed",
-            'callback': "connecting"
-        },
-    NetworkManager.NM_DEVICE_STATE_REASON_CARRIER : {
-            'msg': "",
-            'callback': ""
-        }
-    
+  NetworkManager.NM_DEVICE_STATE_UNKNOWN : {
+    'msg': "State is unknown",
+    'callback': "disconnected"
+  },
+  NetworkManager.NM_DEVICE_STATE_REASON_UNKNOWN : {
+    'msg': "State is unknown",
+    'callback': "disconnected"
+  },
+  NetworkManager.NM_DEVICE_STATE_UNMANAGED : {
+    'msg': "Error: Not managed by NetworkManager",
+    'callback': "disconnected"
+  },
+  NetworkManager.NM_DEVICE_STATE_UNAVAILABLE : {
+    'msg': "Error: Not available for use:\nReasons may include the wireless switched off, missing firmware, etc.",
+    'callback': "disconnected"
+  },
+  NetworkManager.NM_DEVICE_STATE_DISCONNECTED : {
+    'msg': "Currently disconnected",
+    'callback': "disconnected"
+  },
+  NetworkManager.NM_DEVICE_STATE_PREPARE : {
+    'msg': "Preparing the connection to the network",
+    'callback': "connecting"
+  },
+  NetworkManager.NM_DEVICE_STATE_CONFIG : {
+    'msg': "Connecting to the requested network...",
+    'callback': "connecting"
+  },
+  NetworkManager.NM_DEVICE_STATE_NEED_AUTH : {
+    'msg': "Authorizing",
+    'callback': "connecting"
+  },
+  NetworkManager.NM_DEVICE_STATE_IP_CONFIG : {
+    'msg': "Requesting IP addresses and routing information",
+    'callback': "connecting"
+  },
+  NetworkManager.NM_DEVICE_STATE_IP_CHECK : {
+    'msg': "Checking whether further action is required for the requested network connection",
+    'callback': "connecting"
+  },
+  NetworkManager.NM_DEVICE_STATE_SECONDARIES : {
+    'msg': "Waiting for a secondary connection (like a VPN)",
+    'callback': "connecting"
+  },
+  NetworkManager.NM_DEVICE_STATE_ACTIVATED : {
+    'msg': "Connected",
+    'callback': "connecting_status"
+  },
+  NetworkManager.NM_DEVICE_STATE_DEACTIVATING : {
+    'msg': "A disconnection from the current network connection was requested",
+    'callback': "connecting"
+  },
+  NetworkManager.NM_DEVICE_STATE_FAILED : {
+    'msg': _("Failed to connect to the requested network"),
+    'callback': "popup"
+  },
+  NetworkManager.NM_DEVICE_STATE_REASON_DEPENDENCY_FAILED : {
+    'msg': "A dependency of the connection failed",
+    'callback': "connecting"
+  },
+  NetworkManager.NM_DEVICE_STATE_REASON_CARRIER : {
+    'msg': "",
+    'callback': ""
+  }
 }
 
 class WifiManager:

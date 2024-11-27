@@ -1,6 +1,5 @@
 import logging
 import contextlib
-import profile
 import re 
 import gi
 from ks_includes.widgets.keyboard import Keyboard

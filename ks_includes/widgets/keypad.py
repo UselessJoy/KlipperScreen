@@ -1,8 +1,6 @@
 import gi
-
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-
 
 class Keypad(Gtk.Box):
     def __init__(self, screen, change_temp, pid_calibrate, close_function):
@@ -19,18 +17,18 @@ class Keypad(Gtk.Box):
         numpad.get_style_context().add_class('numpad')
 
         keys = [
-            ['1', 'numpad_tleft'],
-            ['2', 'numpad_top'],
-            ['3', 'numpad_tright'],
-            ['4', 'numpad_left'],
-            ['5', 'numpad_button'],
-            ['6', 'numpad_right'],
-            ['7', 'numpad_left'],
-            ['8', 'numpad_button'],
-            ['9', 'numpad_right'],
-            ['✔', 'numpad_bleft'],
-            ['0', 'numpad_bottom'],
-            ['⌫', 'numpad_bright']
+          ['1', 'numpad_tleft'],
+          ['2', 'numpad_top'],
+          ['3', 'numpad_tright'],
+          ['4', 'numpad_left'],
+          ['5', 'numpad_button'],
+          ['6', 'numpad_right'],
+          ['7', 'numpad_left'],
+          ['8', 'numpad_button'],
+          ['9', 'numpad_right'],
+          ['✔', 'numpad_bleft'],
+          ['0', 'numpad_bottom'],
+          ['⌫', 'numpad_bright']
         ]
         for i in range(len(keys)):
             k_id = f'button_{str(keys[i][0])}'
@@ -104,7 +102,6 @@ class Keypad(Gtk.Box):
         else:
             self.labels['entry'].set_text(text + digit)
         self.pid.set_sensitive(True)
-        # self.pid.set_sensitive(self.validate_temp(self.labels['entry'].get_text()) > 9)
         
     @staticmethod
     def validate_temp(temp):

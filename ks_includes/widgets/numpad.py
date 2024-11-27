@@ -15,22 +15,21 @@ class Numpad(Gtk.Box):
         self.entry = entry
         numpad = self._gtk.HomogeneousGrid()
         numpad.set_direction(Gtk.TextDirection.LTR)
-        #numpad.get_style_context().add_class('numpad')
         self.timeout = self.clear_timeout = None
         keys = [
-            ['1', 'numpad_tleft'],
-            ['2', 'numpad_top'],
-            ['3', 'numpad_tright'],
-            ['4', 'numpad_left'],
-            ['5', 'numpad_button'],
-            ['6', 'numpad_right'],
-            ['7', 'numpad_left'],
-            ['8', 'numpad_button'],
-            ['9', 'numpad_right'],
-            ['.', 'numpad_left'],
-            ['0', 'numpad_button'],
-            ['⌫', 'numpad_right'],
-            ['✔', 'numpad_bottom']
+          ['1', 'numpad_tleft'],
+          ['2', 'numpad_top'],
+          ['3', 'numpad_tright'],
+          ['4', 'numpad_left'],
+          ['5', 'numpad_button'],
+          ['6', 'numpad_right'],
+          ['7', 'numpad_left'],
+          ['8', 'numpad_button'],
+          ['9', 'numpad_right'],
+          ['.', 'numpad_left'],
+          ['0', 'numpad_button'],
+          ['⌫', 'numpad_right'],
+          ['✔', 'numpad_bottom']
         ]
         
         for i in range(len(keys)):
@@ -51,24 +50,12 @@ class Numpad(Gtk.Box):
                 numpad.attach(self.labels[k_id], 1, 4, 1, 1)
             else:
                 numpad.attach(self.labels[k_id], i % 3, i / 3, 1, 1)
-        # for i in range(len(keys)):
-        #     k_id = f'button_{str(keys[i][0])}'
-        #     self.labels[k_id] = Gtk.Button(label=keys[i][0])
-            
-        #     self.labels[k_id].connect('button-press-event', self.repeat, keys[i][0])
-        #     self.labels[k_id].connect('button-release-event', self.release)            
-        #     #self.labels[k_id].connect('clicked', self.update_entry, keys[i][0])
-        #     self.labels[k_id].set_vexpand(True)
-        #     self.labels[k_id].get_style_context().add_class("keyboard_pad")
-        #     #self.labels[k_id].get_style_context().add_class(keys[i][1])
-        #     numpad.attach(self.labels[k_id], i % 3, i / 3, 1, 1)
 
         self.labels["keypad"] = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         
         self.add(numpad)
         numpad.set_margin_start(5)
         numpad.set_margin_end(32)
-        #self.set_margin_top(15)
         numpad.set_margin_bottom(5)
         self.labels["keypad"] = numpad
     

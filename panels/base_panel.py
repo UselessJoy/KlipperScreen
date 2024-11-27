@@ -5,7 +5,7 @@ import os
 import subprocess
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import GLib, Gtk, Pango, Gdk, GdkPixbuf
+from gi.repository import GLib, Gtk, Pango, Gdk
 from jinja2 import Environment
 from datetime import datetime
 from math import log

@@ -4,7 +4,6 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from ks_includes.KlippyGcodes import KlippyGcodes
 from ks_includes.screen_panel import ScreenPanel
-from ks_includes.widgets.movement_area import MovementArea
 
 class Panel(ScreenPanel):
     distances = ['.1', '.5', '1', '5', '10', '25', '50']
@@ -132,7 +131,6 @@ class Panel(ScreenPanel):
       actions.attach(distgrid, 0 ,0, 1, 1)
       actions.attach(keypad_grid, 0, 1, 1, 1)
       actions.attach(self.confirm_grid,0, 2, 1, 1)
-      
       return actions
         
         

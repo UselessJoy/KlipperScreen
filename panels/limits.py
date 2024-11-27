@@ -5,7 +5,6 @@ from gi.repository import Gtk, Pango
 from ks_includes.screen_panel import ScreenPanel
 
 class Panel(ScreenPanel):
-
     def __init__(self, screen, title):
         super().__init__(screen, title)
         self.limits = {}
@@ -15,42 +14,42 @@ class Panel(ScreenPanel):
 
         conf = self._printer.get_config_section("printer")
         self.options = [
-            {
-                "name": _("Max Acceleration"),
-                "option": "max_accel",
-                "units": _("mm/s²"),
-                "value": int(float(conf['max_accel']))
-            },
-            {
-                "name": _("Minimum Cruise Ratio"),
-                "option": "minimum_cruise_ratio",
-                "units": "%",
-                "value": int(float(conf['minimum_cruise_ratio']) * 100) if "minimum_cruise_ratio" in conf else 50,
-                "max": 99
-            },
-            {
-                "name": _("Max Velocity"),
-                "option": "max_velocity",
-                "units": _("mm/s"),
-                "value": int(float(conf["max_velocity"]))},
-            {
-                "name": _("Square Corner Velocity"),
-                "option": "square_corner_velocity",
-                "units": _("mm/s"),
-                "value": int(float(conf['square_corner_velocity'])) if "square_corner_velocity" in conf else 5
-            },
-            {
-              "name": _("XY Speed"),
-              "option": "move_speed_xy",
-              "units": _("mm/s"),
-              "value": int(float(conf['move_speed_xy'])) if "move_speed_xy" in conf else 50
-            },
-            {
-              "name": _("Z Speed"),
-              "option": "move_speed_z",
-              "units": _("mm/s"),
-              "value": int(float(conf['move_speed_xy'])) if "move_speed_z" in conf else 10
-            }
+          {
+            "name": _("Max Acceleration"),
+            "option": "max_accel",
+            "units": _("mm/s²"),
+            "value": int(float(conf['max_accel']))
+          },
+          {
+            "name": _("Minimum Cruise Ratio"),
+            "option": "minimum_cruise_ratio",
+            "units": "%",
+            "value": int(float(conf['minimum_cruise_ratio']) * 100) if "minimum_cruise_ratio" in conf else 50,
+            "max": 99
+          },
+          {
+            "name": _("Max Velocity"),
+            "option": "max_velocity",
+            "units": _("mm/s"),
+            "value": int(float(conf["max_velocity"]))},
+          {
+            "name": _("Square Corner Velocity"),
+            "option": "square_corner_velocity",
+            "units": _("mm/s"),
+            "value": int(float(conf['square_corner_velocity'])) if "square_corner_velocity" in conf else 5
+          },
+          {
+            "name": _("XY Speed"),
+            "option": "move_speed_xy",
+            "units": _("mm/s"),
+            "value": int(float(conf['move_speed_xy'])) if "move_speed_xy" in conf else 50
+          },
+          {
+            "name": _("Z Speed"),
+            "option": "move_speed_z",
+            "units": _("mm/s"),
+            "value": int(float(conf['move_speed_xy'])) if "move_speed_z" in conf else 10
+          }
         ]
 
         for opt in self.options:

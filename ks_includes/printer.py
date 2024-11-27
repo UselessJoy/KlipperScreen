@@ -5,7 +5,6 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import GLib
 from typing import Union
 
-
 class Printer:
     def __init__(self, state_cb, state_callbacks) -> None:
         self.config = {}
@@ -218,13 +217,12 @@ class Printer:
                 continue
             macros.append(macro)
         return macros
-    
-    ####      NEW      ####
+
     def get_neopixels(self) -> list:
         neopixels = []
         neopixels.extend(iter(self.get_config_section_list("neopixel ")))
         return neopixels
-    ####    END NEW    ####
+    
     def get_heaters(self) -> list:
         heaters = self.get_config_section_list("heater_generic ")
         if "heater_bed" in self.devices:
@@ -332,8 +330,7 @@ class Printer:
             if speed < off_below:
                 speed = 0
         return speed
-    
-    ####      NEW      ####
+
     def get(self, section, option=None, default=None):
         if section in self.data:
             if not option:
@@ -341,7 +338,6 @@ class Printer:
             if option in self.data[section]:
               return self.data[section][option] 
         return default
-    ####    END NEW    ####
     
     def get_pin_value(self, pin) -> int:
         if pin in self.data:

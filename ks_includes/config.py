@@ -7,7 +7,6 @@ import re
 import copy
 import pathlib
 import locale
-
 from io import StringIO
 
 SCREEN_BLANKING_OPTIONS = [
@@ -47,7 +46,6 @@ DEF_PREHEATS = {
 
 class ConfigError(Exception):
     pass
-
 
 class KlipperScreenConfig:
     config = None
@@ -287,7 +285,7 @@ class KlipperScreenConfig:
                     {"name": _("Never"), "value": "off"}]
             }},
             ####      NEW      ####
-            {"quite_mode": {"section": "main", "name": _("Quite Mode"), "type": "binary",# no locale
+            {"quite_mode": {"section": "main", "name": _("Quite Mode"), "type": "binary",
                                 "value": "False", "callback": screen.set_quite_mode}},
             {"autooff_enable": {"section": "main", "name": _("Enable autooff after print"), "type": "binary",
                                 "value": "False", "callback": screen.set_autooff}},
@@ -313,17 +311,17 @@ class KlipperScreenConfig:
             {"confirm_estop": {"section": "main", "name": _("Confirm Emergency Stop"), "type": "binary",
                                "value": "False"}},
             {"only_heaters": {"section": "main", "name": _("Hide sensors in Temp."), "type": "binary",
-                              "value": "False"}},# "callback": screen.reload_panels}},
+                              "value": "False"}},
             {"use_dpms": {"section": "main", "name": _("Screen DPMS"), "type": "binary",
                           "value": "True", "callback": screen.set_dpms}},
             {"autoclose_popups": {"section": "main", "name": _("Auto-close notifications"), "type": "binary",
                                   "value": "True"}},
             {"show_heater_power": {"section": "main", "name": _("Show Heater Power"), "type": "binary",
-                                   "value": "False"}},# "callback": screen.reload_panels}},
+                                   "value": "False"}},
             {"show_scroll_steppers": {"section": "main", "name": _("Show Scrollbars Buttons"), "type": "binary",
-                                      "value": "False"}},# "callback": screen.reload_panels}},
+                                      "value": "False"}},
             {"auto_open_extrude": {"section": "main", "name": _("Auto-open Extrude On Pause"), "type": "binary",
-                                   "value": "True"}},# "callback": screen.reload_panels}},
+                                   "value": "True"}},
             # {"": {"section": "main", "name": _(""), "type": ""}}
         ]
 
@@ -411,7 +409,6 @@ class KlipperScreenConfig:
     def _include_config(self, directory, filepath):
         full_path = filepath if filepath[0] == "/" else f"{directory}/{filepath}"
         parse_files = []
-
         if "*" in full_path:
             parent_dir = "/".join(full_path.split("/")[:-1])
             file = full_path.split("/")[-1]
@@ -421,7 +418,6 @@ class KlipperScreenConfig:
             files = os.listdir(parent_dir)
             regex = f"^{file.replace('*', '.*')}$"
             parse_files.extend(os.path.join(parent_dir, file) for file in files if re.match(regex, file))
-
         else:
             if not os.path.exists(os.path.join(full_path)):
                 logging.info(f"Config Error: {full_path} does not exist")
@@ -474,15 +470,12 @@ class KlipperScreenConfig:
         logging.info(f"Passed config (-c): {file}")
         if file not in (".", "..") and os.path.exists(file):
             return file
-
         # List of directories to search for the config file
         directories = [printer_data_config, xdg_config, klipperscreendir]
-
         for directory in directories:
             path = self.check_path_exists(directory, self.configfile_name)
             if path:
                 return path
-
         # fallback
         return self.default_config_path
 
@@ -508,7 +501,6 @@ class KlipperScreenConfig:
             split = item.split()
             if len(split) == 1:
                 menu_items.append(self._build_menu_item(menu, index + item))
-
         return menu_items
 
     def get_menu_name(self, menu="__main", subsection=""):
@@ -529,7 +521,6 @@ class KlipperScreenConfig:
     def get_printer_config(self, name):
         if not name.startswith("printer "):
             name = f"printer {name}"
-
         return None if name not in self.config else self.config[name]
 
     def get_printers(self):
@@ -568,9 +559,8 @@ class KlipperScreenConfig:
 
         if self.config_path == self.default_config_path:
             user_def = ""
-            saved_def = None
         else:
-            user_def, saved_def = self.separate_saved_config(self.config_path)
+            user_def, _saved_def = self.separate_saved_config(self.config_path)
 
         contents = (f"{user_def}\n"
                     f"{self.do_not_edit_line}\n"

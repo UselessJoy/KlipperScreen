@@ -2,18 +2,15 @@ import os.path
 import pathlib
 import logging
 import gi
-
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GdkPixbuf, GObject, Pango, Gdk
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.KlippyRest import KlippyRest
 from datetime import datetime
-
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
     from backports.zoneinfo import ZoneInfo
-
 
 def format_date(date):
     try:
@@ -23,7 +20,6 @@ def format_date(date):
             return datetime.strptime(date, '%Y-%m-%dT%H:%M:%S').replace(tzinfo=ZoneInfo('UTC'))
         except ValueError:
             return None
-
 
 class SpoolmanVendor:
     id: int
@@ -35,7 +31,6 @@ class SpoolmanVendor:
         for date in ["registered"]:
             if date in entries:
                 self.__setattr__(date, format_date(entries[date]))
-
 
 class SpoolmanFilament:
     article_number: str

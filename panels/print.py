@@ -2,7 +2,7 @@ import logging
 import os
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Pango, GLib
+from gi.repository import Gtk, Pango
 from datetime import datetime
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.KlippyGtk import find_widget
@@ -16,13 +16,8 @@ def format_label(widget):
         label.set_line_wrap(True)
         label.set_ellipsize(Pango.EllipsizeMode.END)
         label.set_lines(2)
-        
-        
-class Panel(ScreenPanel):
-    # cur_directory = "gcodes"
-    # dir_panels = {}
-    # filelist = {'gcodes': {'directories': [], 'files': []}}
-    
+
+class Panel(ScreenPanel): 
     def __init__(self, screen, title):
         super().__init__(screen, title)
         sortdir = self._config.get_main_config().get("print_sort_dir", "name_asc")
@@ -99,7 +94,6 @@ class Panel(ScreenPanel):
         self.set_loading(True)
         self._screen._ws.klippy.get_dir_info(self.load_files, 'gcodes')
         self._screen._ws.klippy.get_dir_info(self.load_files, 'media')
-        # GLib.timeout_add_seconds(1, self.watch_cur_directory)
 
     def watch_cur_directory(self):
         if self.cur_directory != '':

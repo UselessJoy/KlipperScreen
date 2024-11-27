@@ -9,7 +9,6 @@ import threading
 import time
 import traceback
 from queue import SimpleQueue as Queue
-
 import ctypes
 import struct
 

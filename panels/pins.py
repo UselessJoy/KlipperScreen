@@ -12,12 +12,9 @@ class Panel(ScreenPanel):
         # Create a grid for all devices
         self.labels['devices'] = Gtk.Grid()
         self.labels['devices'].set_valign(Gtk.Align.CENTER)
-
         self.load_pins()
-
         scroll = self._gtk.ScrolledWindow()
         scroll.add(self.labels['devices'])
-
         self.content.add(scroll)
 
     def load_pins(self):
@@ -30,11 +27,9 @@ class Panel(ScreenPanel):
             self.add_pin(pin)
 
     def add_pin(self, pin):
-
         logging.info(f"Adding pin: {pin}")
         name = Gtk.Label(hexpand=True, vexpand=True, halign=Gtk.Align.START, valign=Gtk.Align.CENTER, wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR)
         name.set_markup(f'\n<big><b>{" ".join(pin.split(" ")[1:])}</b></big>\n')
-
         self.devices[pin] = {}
         section = self._printer.get_config_section(pin)
         if parse_bool(section.get('pwm', 'false')) or parse_bool(section.get('hardware_pwm', 'false')):
@@ -46,7 +41,6 @@ class Panel(ScreenPanel):
             scale.get_style_context().add_class("fan_slider")
             self.devices[pin]['scale'] = scale
             scale.connect("button-release-event", self.set_output_pin, pin)
-
             min_btn = self._gtk.Button("cancel", None, "color1", 1)
             min_btn.set_hexpand(False)
             min_btn.connect("clicked", self.update_pin_value, pin, 0)
@@ -62,9 +56,7 @@ class Panel(ScreenPanel):
             self.devices[pin]["row"] = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
             self.devices[pin]["row"].add(name)
             self.devices[pin]["row"].add(self.devices[pin]['switch'])
-
         pos = sorted(self.devices).index(pin)
-
         self.labels['devices'].insert_row(pos)
         self.labels['devices'].attach(self.devices[pin]['row'], 0, pos, 1, 1)
         self.labels['devices'].show_all()
@@ -87,7 +79,7 @@ class Panel(ScreenPanel):
         if widget and isinstance(widget, Gtk.Switch):
             widget.set_sensitive(True)
         return False
-    
+
     def process_update(self, action, data):
         if action != "notify_status_update":
             return

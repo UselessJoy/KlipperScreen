@@ -1293,6 +1293,12 @@ msgstr "Вы уверены?"
 msgid "Stop PID"
 msgstr "Остановить PID"
 
+msgid "Temp bed:"
+msgstr "Стол:"
+
+msgid "Temp extruder:"
+msgstr "Экструдер:"
+
 # ###    END NEW    ####
 #~ msgid "Decrease"
 #~ msgstr "Уменьшить"

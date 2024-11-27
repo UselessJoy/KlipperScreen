@@ -1,11 +1,6 @@
-import logging
-from venv import logger
 import gi
-
-from jinja2 import Environment, Template
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-import cairo
 
 class BedMap(Gtk.DrawingArea):
     def __init__(self, font_size, bm):

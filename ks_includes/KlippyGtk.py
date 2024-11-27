@@ -3,9 +3,7 @@ import contextlib
 import logging
 import os
 import pathlib
-
 import gi
-
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, GdkPixbuf, Gio, Gtk, Pango
 

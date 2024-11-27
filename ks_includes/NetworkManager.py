@@ -33,12 +33,10 @@ import time
 import warnings
 import xml.etree.ElementTree as ET
 
-
 class ObjectVanished(Exception):
     def __init__(self, obj):
         self.obj = obj
         super(ObjectVanished, self).__init__(obj.object_path)
-
 
 class SignalDispatcher(object):
     def __init__(self):
@@ -372,7 +370,6 @@ class Connection(NMDbusInterface):
     def __eq__(self, other):
         return isinstance(other, type(self)) and self.uuid == other.uuid
 
-
 class ActiveConnection(TransientNMDbusInterface):
     interface_names = ['org.freedesktop.NetworkManager.Connection.Active']
 
@@ -388,10 +385,8 @@ class ActiveConnection(TransientNMDbusInterface):
     def __eq__(self, other):
         return isinstance(other, type(self)) and self.Uuid == other.Uuid
 
-
 class VPNConnection(ActiveConnection):
     interface_names = ['org.freedesktop.NetworkManager.VPN.Connection']
-
 
 class Device(NMDbusInterface):
     interface_names = ['org.freedesktop.NetworkManager.Device', 'org.freedesktop.NetworkManager.Device.Statistics']
@@ -417,7 +412,6 @@ class Device(NMDbusInterface):
     # no longer needed. But code may use it.
     def SpecificDevice(self):
         return self
-
 
 def device_class(typ):
     return {

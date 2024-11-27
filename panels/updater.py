@@ -1,10 +1,7 @@
 import logging
 import socket
 from gettext import ngettext
-
 import gi
-from ks_includes.callback_thread import CallbackThread
-
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Pango, GLib
 from ks_includes.screen_panel import ScreenPanel

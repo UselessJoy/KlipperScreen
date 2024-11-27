@@ -2,7 +2,6 @@ import re
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Pango
-from ks_includes.KlippyGcodes import KlippyGcodes
 from ks_includes.screen_panel import ScreenPanel
 
 # X and Y frequencies
@@ -123,10 +122,6 @@ class Panel(ScreenPanel):
     def activate(self):
         # This will return the current values
         self._screen._ws.klippy.gcode_script('SET_INPUT_SHAPER')
-    #     # Check for the accelerometer
-    #     self._screen._ws.klippy.gcode_script('ACCELEROMETER_QUERY')
-    #     # Send at least two commands, with my accelerometer the first command after a reboot will fail
-    #     self._screen._ws.klippy.gcode_script('MEASURE_AXES_NOISE')
 
     
     def _autoscroll(self, *args):

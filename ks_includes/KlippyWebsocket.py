@@ -3,14 +3,11 @@
 import threading
 import json
 import logging
-
 import gi
 import websocket
-
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib
 from ks_includes.KlippyGcodes import KlippyGcodes
-
 
 class KlippyWebsocket(threading.Thread):
     _req_id = 0
