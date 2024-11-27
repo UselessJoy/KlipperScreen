@@ -1299,6 +1299,12 @@ msgstr "Стол:"
 msgid "Temp extruder:"
 msgstr "Экструдер:"
 
+msgid "Delete"
+msgstr "Удалить"
+
+msgid "Mark"
+msgstr "Выделить"
+
 # ###    END NEW    ####
 #~ msgid "Decrease"
 #~ msgstr "Уменьшить"
@@ -1343,9 +1349,6 @@ msgstr "Экструдер:"
 #, python-format
 #~ msgid "Retry #%s"
 #~ msgstr "Повторная попытка #%s"
-
-#~ msgid "Delete"
-#~ msgstr "Удалить"
 
 #~ msgid "Home"
 #~ msgstr "Парковка"
