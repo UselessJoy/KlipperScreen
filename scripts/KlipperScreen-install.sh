@@ -9,7 +9,7 @@ CAGE="cage seatd xwayland"
 PYTHON="python3-virtualenv virtualenv python3-distutils"
 PYGOBJECT="libgirepository1.0-dev gcc libcairo2-dev pkg-config python3-dev gir1.2-gtk-3.0"
 MISC="librsvg2-common libopenjp2-7 wireless-tools libdbus-glib-1-dev autoconf"
-OPTIONAL="fonts-nanum fonts-ipafont libmpv-dev policykit-1 network-manager"
+OPTIONAL="fonts-nanum fonts-ipafont libmpv-dev policykit-1 network-manager systemd-timesyncd"
 
 Red='\033[0;31m'
 Green='\033[0;32m'
