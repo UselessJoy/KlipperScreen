@@ -56,7 +56,7 @@ class Panel(ScreenPanel):
     self.was_child_scrolled = True
 
   def create_preheat_row(self, preheat = None, name=None):
-    preheat_name_label = Gtk.Label(label=_("Preheat: "), hexpand=True, halign=Gtk.Align.START)
+    preheat_name_label = Gtk.Label(label=_("Preheat"), hexpand=True, halign=Gtk.Align.START)
     preheat_name_entry = TypedEntry(SpaceRule)
     preheat_name_entry.set_sensitive(False)
     preheat_name_entry.get_style_context().add_class('unused_entry')
