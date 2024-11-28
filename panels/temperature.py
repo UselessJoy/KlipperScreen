@@ -58,7 +58,7 @@ class Panel(ScreenPanel):
       cooldown = self._gtk.Button('cool-down', _('Cooldown'), "color4", self.bts, Gtk.PositionType.LEFT, 1)
       adjust = self._gtk.Button('fine-tune', None, "color3", self.bts * 1.4, Gtk.PositionType.LEFT, 1)
       change_temp = self._gtk.Button('heat-up', None, "color2", self.bts * 1.4, Gtk.PositionType.LEFT, 1)
-      change_temp.connect("clicked", self.menu_item_clicked, {"panel": "preheat_changer", "name": _("Change preheats")})
+      change_temp.connect("clicked", self.menu_item_clicked, {"panel": "preheat_changer", "name": _("Preheat")})
       cooldown.connect("clicked", self.set_temperature, "cooldown")
       adjust.connect("clicked", self.switch_preheat_adjust)
 
