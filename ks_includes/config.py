@@ -183,8 +183,7 @@ class KlipperScreenConfig:
                 )
                 numbers = (
                     'job_complete_timeout', 'job_error_timeout', 'move_speed_xy', 'move_speed_z',
-                    'print_estimate_compensation', 'width', 'height', "bed_PLA", "extruder_PLA", 
-                    "bed_ABS", "extruder_ABS", "bed_PETG", "extruder_PETG", "bed_FLEX", "extruder_FLEX"
+                    'print_estimate_compensation', 'width', 'height'
                 )
             elif section.startswith('printer '):
                 bools = (
@@ -208,6 +207,8 @@ class KlipperScreenConfig:
                     or section.startswith('displayed_macros')\
                     or section.startswith('spoolman'):
                 bools = [f'{option}' for option in config[section]]
+            elif section.startswith('preheat_'):
+              numbers = [f'{option}' for option in config[section]]
             else:
                 self.errors.append(f'Section [{section}] not recognized')
 
@@ -336,24 +337,8 @@ class KlipperScreenConfig:
             {"print_view": {"section": "main", "type": None, "value": "thumbs"}},
             
         ]
-        
-        # Configurable preheat options
-        preheats_options = [
-          {"pla_bed": {"section": "main", "type": None, "value": "65"}},
-          {"pla_extruder": {"section": "main", "type": None, "value": "215"}},
-          
-          {"abs_bed": {"section": "main", "type": None, "value": "110"}},
-          {"abs_extruder": {"section": "main", "type": None, "value": "240"}},
-          
-          {"petg_bed": {"section": "main", "type": None, "value": "85"}},
-          {"petg_extruder": {"section": "main", "type": None, "value": "235"}},
-          
-          {"flex_bed": {"section": "main", "type": None, "value": "90"}},
-          {"flex_extruder": {"section": "main", "type": None, "value": "240"}},
-        ]
 
         self.configurable_options.extend(panel_options)
-        self.configurable_options.extend(preheats_options)
         
         t_path = os.path.join(klipperscreendir, 'styles')
         themes = [d for d in os.listdir(t_path) if (not os.path.isfile(os.path.join(t_path, d)) and d != "z-bolt")]
@@ -387,11 +372,15 @@ class KlipperScreenConfig:
                 self.config.set(vals['section'], name, vals['value'])
                 
     def get_default_preheats(self):
+      preheats = [preheat for preheat in self.config.sections() if preheat.startswith('preheat_')]
       p = {}
-      for preheat in ['PLA', 'ABS', 'PETG', 'FLEX']:
-        p[preheat] = {}
-        for key in ['bed', 'extruder']:
-          p[preheat][key] = self.get_main_config().getfloat(f"{preheat.lower()}_{key}", DEF_PREHEATS[preheat][key])
+      for preheat in preheats:
+        preheat_name = preheat[8:]
+        p[preheat_name] = {}
+        for option in self.config[preheat]:
+          p[preheat_name][option] = self.config[preheat].getfloat(option, fallback=True)
+      if not p:
+        return DEF_PREHEATS
       return p
         
     def exclude_from_config(self, config):
@@ -525,6 +514,10 @@ class KlipperScreenConfig:
 
     def get_printers(self):
         return self.printers
+      
+    def remove_section(self, section):
+      if section in self.config.sections():
+        self.config.remove_section(section)
 
     def save_user_config_options(self):
         save_config = configparser.ConfigParser()
@@ -552,6 +545,14 @@ class KlipperScreenConfig:
                     if section not in save_config.sections():
                         save_config.add_section(section)
                     save_config.set(section, item, str(value))
+
+        preheat_sections = [i for i in self.config.sections() if i.startswith("preheat_")]
+        logging.info(preheat_sections)
+        for section in preheat_sections:
+          if section not in save_config.sections():
+            save_config.add_section(section)
+          for option in self.config.options(section):
+            save_config.set(section, option, str(self.config[section].get(option, fallback=True)))
 
         save_output = self._build_config_string(save_config).split("\n")
         for i in range(len(save_output)):
@@ -589,7 +590,9 @@ class KlipperScreenConfig:
             logging.error(f"Error writing configuration file in {filepath}:\n{e}")
 
     def set(self, section, option, value):
-        self.config.set(section, option, value)
+      if section not in self.config:
+        self.config.add_section(section)
+      self.config.set(section, option, value)
         
     def log_config(self, config):
         lines = [

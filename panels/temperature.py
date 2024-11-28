@@ -52,31 +52,25 @@ class Panel(ScreenPanel):
                 continue
             if h not in self.active_heaters:
                 self.select_heater(None, h)
-
-        if self._screen.vertical_mode:
-            self.grid.attach(self.create_right_panel(), 0, 1, 1, 1)
-        else:
-            self.grid.attach(self.create_right_panel(), 1, 0, 1, 1)
-
         self.content.add(self.grid)
 
     def create_right_panel(self):
-        cooldown = self._gtk.Button('cool-down', _('Cooldown'), "color4", self.bts, Gtk.PositionType.LEFT, 1)
-        adjust = self._gtk.Button('fine-tune', None, "color3", self.bts * 1.4, Gtk.PositionType.LEFT, 1)
-        change_temp = self._gtk.Button('heat-up', None, "color2", self.bts * 1.4, Gtk.PositionType.LEFT, 1)
-        change_temp.connect("clicked", self.menu_item_clicked, {"panel": "preheat_changer", "name": _("Change preheats")})
-        cooldown.connect("clicked", self.set_temperature, "cooldown")
-        adjust.connect("clicked", self.switch_preheat_adjust)
+      cooldown = self._gtk.Button('cool-down', _('Cooldown'), "color4", self.bts, Gtk.PositionType.LEFT, 1)
+      adjust = self._gtk.Button('fine-tune', None, "color3", self.bts * 1.4, Gtk.PositionType.LEFT, 1)
+      change_temp = self._gtk.Button('heat-up', None, "color2", self.bts * 1.4, Gtk.PositionType.LEFT, 1)
+      change_temp.connect("clicked", self.menu_item_clicked, {"panel": "preheat_changer", "name": _("Change preheats")})
+      cooldown.connect("clicked", self.set_temperature, "cooldown")
+      adjust.connect("clicked", self.switch_preheat_adjust)
 
-        right = self._gtk.HomogeneousGrid()
-        right.attach(cooldown, 0, 0, 2, 1)
-        right.attach(adjust, 2, 0, 1, 1)
-        right.attach(change_temp, 3, 0, 1, 1)
-        if self.show_preheat:
-            right.attach(self.preheat(), 0, 1, 4, 3)
-        else:
-            right.attach(self.delta_adjust(), 0, 1, 4, 3)
-        return right
+      right = self._gtk.HomogeneousGrid()
+      right.attach(cooldown, 0, 0, 2, 1)
+      right.attach(adjust, 2, 0, 1, 1)
+      right.attach(change_temp, 3, 0, 1, 1)
+      if self.show_preheat:
+        right.attach(self.preheat(), 0, 1, 4, 3)
+      else:
+        right.attach(self.delta_adjust(), 0, 1, 4, 3)
+      return right
 
     def switch_preheat_adjust(self, widget):
         self.show_preheat ^= True
@@ -94,7 +88,7 @@ class Panel(ScreenPanel):
             if option != "cooldown":
                 self.labels[option] = self._gtk.Button(label=option, style=f"color{(i % 4) + 1}")
                 self.labels[option].connect("clicked", self.set_temperature, option)
-                self.labels['preheat_grid'].attach(self.labels[option], (i % 2), int(i / 2), 1, 1)
+                self.labels["preheat_grid"].attach(self.labels[option], (i % 2), int(i / 2), 1, 1)
                 i += 1
         scroll = self._gtk.ScrolledWindow()
         scroll.add(self.labels["preheat_grid"])
@@ -199,9 +193,17 @@ class Panel(ScreenPanel):
                 self.graph_update = None
 
     def activate(self):
-        if not self._printer.tempstore:
-            self._screen.init_tempstore()
-        self.update_graph_visibility()
+      for child in self.labels["preheat_grid"]:
+        self.labels["preheat_grid"].remove(child)
+      if self._screen.vertical_mode:
+        self.grid.remove_row(1)
+        self.grid.attach(self.create_right_panel(), 0, 1, 1, 1)
+      else:
+        self.grid.remove_column(1)
+        self.grid.attach(self.create_right_panel(), 1, 0, 1, 1)
+      if not self._printer.tempstore:
+        self._screen.init_tempstore()
+      self.update_graph_visibility()
 
     def deactivate(self):
         if self.graph_update is not None:
@@ -236,15 +238,15 @@ class Panel(ScreenPanel):
                 max_temp = float(self._printer.get_config_section(heater)['max_temp'])
                 name = heater.split()[1] if len(heater.split()) > 1 else heater
                 with contextlib.suppress(KeyError):
-                    for i in preheat_options[setting]:
-                        logging.info(f"{preheat_options[setting]}")
-                        if i == name:
-                            # Assign the specific target if available
-                            target = preheat_options[setting][name]
-                            logging.info(f"name match {name}")
-                        elif i == heater:
-                            target = preheat_options[setting][heater]
-                            logging.info(f"heater match {heater}")
+                  for i in preheat_options[setting]:
+                    logging.info(f"{preheat_options[setting]}")
+                    if i == name:
+                      # Assign the specific target if available
+                      target = preheat_options[setting][name]
+                      logging.info(f"name match {name}")
+                    elif i == heater:
+                      target = preheat_options[setting][heater]
+                      logging.info(f"heater match {heater}")
                 if target is None and setting == "cooldown" and not heater.startswith('temperature_fan '):
                     target = 0
                 if heater.startswith('extruder'):
@@ -273,15 +275,15 @@ class Panel(ScreenPanel):
             GLib.timeout_add(250, self.preheat_gcode, preheat_options, setting)
 
     def validate(self, heater, target=None, max_temp=None):
-        if target is not None and max_temp is not None:
-            if 0 <= target <= max_temp:
-                self._printer.set_dev_stat(heater, "target", target)
-                return True
-            elif target > max_temp:
-                self._screen.show_popup_message(_("Can't set above the maximum:") + f' {max_temp}')
-                return False
-        logging.debug(f"Invalid {heater} Target:{target}/{max_temp}")
-        return False
+      if target is not None and max_temp is not None:
+        if 0 <= target <= max_temp:
+          self._printer.set_dev_stat(heater, "target", target)
+          return True
+        elif target > max_temp:
+          self._screen.show_popup_message(_("Can't set above the maximum:") + f' {max_temp}')
+          return False
+      logging.debug(f"Invalid {heater} Target:{target}/{max_temp}")
+      return False
 
     def preheat_gcode(self, preheat_options, setting):
         with contextlib.suppress(KeyError):

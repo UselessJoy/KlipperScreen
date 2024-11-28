@@ -5,7 +5,7 @@ from gi.repository import Gtk, GLib, GObject
 
 
 class Numpad(Gtk.Box):
-    def __init__(self, screen, accept_cb, entry=None):
+    def __init__(self, screen, accept_cb=None, entry=None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
 
         self.labels = {}
@@ -84,6 +84,9 @@ class Numpad(Gtk.Box):
                
     def update_entry(self, widget, key):
         if key == "✔":
+          if self.accept_cb:
             self.accept_cb()
+          else:
+            self.get_parent().remove(self)
         else:
             self.entry.update_entry(key)

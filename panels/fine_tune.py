@@ -101,8 +101,8 @@ class Panel(ScreenPanel):
             grid.attach(extgrid, 0, 5, 3, 1)
         else:
             grid.attach(self.labels['zoffset'], 0, 0, 1, 1)
-            grid.attach(self.labels['z+'], 0, 1, 1, 1)
-            grid.attach(self.labels['z-'], 0, 2, 1, 1)
+            grid.attach(self.labels['z-'], 0, 1, 1, 1)
+            grid.attach(self.labels['z+'], 0, 2, 1, 1)
             grid.attach(zgrid, 0, 3, 1, 1)
             grid.attach(self.labels['speedfactor'], 1, 0, 1, 1)
             grid.attach(self.labels['speed+'], 1, 1, 1, 1)

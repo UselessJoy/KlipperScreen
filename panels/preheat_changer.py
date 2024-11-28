@@ -1,5 +1,7 @@
+import logging
 import gi
 from ks_includes.widgets.keyboard import Keyboard
+from ks_includes.widgets.numpad import Numpad
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, GLib, Pango
 from ks_includes.screen_panel import ScreenPanel
@@ -19,17 +21,19 @@ class Panel(ScreenPanel):
     scroll.set_hexpand(True)
     scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
     box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    self.removing_preheats = []
+    self.exists_preheats = []
     self.preheat_grid = Gtk.Grid(row_spacing=20)
-    # plusButton = self._screen.gtk.Button("plus", None, "round_button", scale=1)
-    # plusButton.connect("clicked", self.add_preheat_row)
-    # plusButton.set_hexpand(True)
-    # plusButton.set_halign(Gtk.Align.CENTER)
-    # plusButton.set_vexpand(True)
-    # plusButton.set_valign(Gtk.Align.START)
+    plusButton = self._screen.gtk.Button("plus", None, "round_button", scale=1)
+    plusButton.connect("clicked", self.add_preheat_row)
+    plusButton.set_hexpand(True)
+    plusButton.set_halign(Gtk.Align.CENTER)
+    plusButton.set_vexpand(True)
+    plusButton.set_valign(Gtk.Align.START)
     box.add(self.preheat_grid)
-    # box.add(plusButton)
+    box.add(plusButton)
     scroll.add(box)
-    change_temperature_button = self._gtk.Button(None, _("Save changes"), "color3", self.bts)
+    change_temperature_button = self._gtk.Button(None, _("Save"), "color3", self.bts)
     change_temperature_button.set_can_focus(False)
     change_temperature_button.set_hexpand(True)
     change_temperature_button.set_halign(Gtk.Align.END)
@@ -46,10 +50,14 @@ class Panel(ScreenPanel):
     self.content.add(eventBox)
 
   def activate(self):
+    self.removing_preheats= []
+    self.exists_preheats = []
     for child in self.preheat_grid:
       self.preheat_grid.remove(child)
     preheats = self._screen._config.get_default_preheats()
+    logging.info(preheats)
     for i, name in enumerate(preheats):
+      self.exists_preheats.append(name)
       self.preheat_grid.attach(self.create_preheat_row(preheats[name], name), 0, i, 1, 1)
   
   def on_scrolling(self, *args):
@@ -58,32 +66,30 @@ class Panel(ScreenPanel):
   def create_preheat_row(self, preheat = None, name=None):
     preheat_name_label = Gtk.Label(label=_("Preheat"), hexpand=True, halign=Gtk.Align.START)
     preheat_name_entry = TypedEntry(SpaceRule)
-    preheat_name_entry.set_sensitive(False)
-    preheat_name_entry.get_style_context().add_class('unused_entry')
     preheat_name_entry.set_hexpand(True)
     preheat_name_entry.set_vexpand(False)
-    preheat_name_entry.connect("focus-in-event", self.on_focus_in_event)
-    preheat_name_entry.connect("focus-out-event", self.on_focus_out_event)
+    preheat_name_entry.connect("focus-in-event", self.on_focus_in_entry, Keyboard)
+    preheat_name_entry.connect("focus-out-event", self.on_focus_out_entry)
     preheat_name_entry.connect("button_release_event", self.click_to_entry)
     if name:
       preheat_name_entry.set_text(name)
     
-    # minusButton = self._screen.gtk.Button("minus", None, "round_button")
+    minusButton = self._screen.gtk.Button("minus", None, "round_button")
     name_box = Gtk.Box()
     name_box.add(preheat_name_label)
     name_box.add(preheat_name_entry)
-    # name_box.pack_end(minusButton, False, False, 5)
+    name_box.pack_end(minusButton, False, False, 5)
     
     preheat_bed_label = Gtk.Label(label=_("Temp bed:"), hexpand=True, halign=Gtk.Align.CENTER)
     preheat_bed_entry = TypedEntry(NumberRule, max=self._printer.get_config_section('heater_bed')['max_temp'])
-    preheat_bed_entry.connect("focus-in-event", self.on_focus_in_event)
-    preheat_bed_entry.connect("focus-out-event", self.on_focus_out_event)
+    preheat_bed_entry.connect("focus-in-event", self.on_focus_in_entry, Numpad)
+    preheat_bed_entry.connect("focus-out-event", self.on_focus_out_entry)
     preheat_bed_entry.connect("button_release_event", self.click_to_entry)
     
     preheat_extruder_label = Gtk.Label(label=_("Temp extruder:"), hexpand=True, halign=Gtk.Align.CENTER)
     preheat_extruder_entry = TypedEntry(NumberRule, max=self._printer.get_config_section('extruder')['max_temp'])
-    preheat_extruder_entry.connect("focus-in-event", self.on_focus_in_event)
-    preheat_extruder_entry.connect("focus-out-event", self.on_focus_out_event)
+    preheat_extruder_entry.connect("focus-in-event", self.on_focus_in_entry, Numpad)
+    preheat_extruder_entry.connect("focus-out-event", self.on_focus_out_entry)
     preheat_extruder_entry.connect("button_release_event", self.click_to_entry)
     
     if preheat:
@@ -108,28 +114,21 @@ class Panel(ScreenPanel):
                                             spacing=5)
     main_row.add(name_box)
     main_row.add(preheat_temperatures_grid)
-    # minusButton.connect("clicked", self.delete_profile_row, main_row)
+    minusButton.connect("clicked", self.delete_profile_row, main_row)
     return main_row
-  
-  
-  # def delete_profile_row(self, widget, row):
-  #   self.preheat_grid.remove(row)
-  #   self.content.show_all()
 
-  # def add_preheat_row(self, widget):
-  #   new_row = self.create_preheat_row()
-  #   self.preheat_grid.attach(new_row, 0, len(self.preheat_grid), 1, 1)
-  #   self.content.show_all()
-  
+  def delete_profile_row(self, button, row):
+    for widget in row:
+      if isinstance(widget, TypedEntry):
+        self.removing_preheats.append(widget.get_text())
+        break
+    self.preheat_grid.remove(row)
+    self.content.show_all()
 
-  # def delete_profile_row(self, widget, row):
-  #   self.preheat_grid.remove(row)
-  #   self.content.show_all()
-
-  # def add_preheat_row(self, widget):
-  #   new_row = self.create_preheat_row()
-  #   self.preheat_grid.attach(new_row, 0, len(self.preheat_grid), 1, 1)
-  #   self.content.show_all()
+  def add_preheat_row(self, widget):
+    new_row = self.create_preheat_row()
+    self.preheat_grid.attach(new_row, 0, len(self.preheat_grid), 1, 1)
+    self.content.show_all()
   
   def ErrorPopup(self, widget, msg):
     popup = Gtk.Popover.new(widget)
@@ -144,11 +143,7 @@ class Panel(ScreenPanel):
     popup.add(msg)
     msg.connect("clicked", self.popup_popdown, popup)
     return popup
-    
-    
-                
-
-                
+   
   def change_preheats(self, widget=None, event=None):
     preheat_dict = self.get_preheat_grid_as_dict()
     error_popups = []
@@ -160,17 +155,24 @@ class Panel(ScreenPanel):
         error_popups.append(self.ErrorPopup(preheat_dict[preheat_i]['widget_bed'], _("Bed temp not specified")))        
       if not preheat_dict[preheat_i]['extruder']:
         error_popups.append(self.ErrorPopup(preheat_dict[preheat_i]['widget_extruder'], _("Extruder temp not specified")))   
-      config_preheat[preheat_dict[preheat_i]['name']] = { 'bed': preheat_dict[preheat_i]['bed'], 'extruder': preheat_dict[preheat_i]['extruder'] }
+      config_preheat[preheat_dict[preheat_i]['name']] = {'bed': preheat_dict[preheat_i]['bed'], 'extruder': preheat_dict[preheat_i]['extruder']}
     if len(error_popups):
         for popup in error_popups:
           popup.popup()
           popup.show_all()
         GLib.timeout_add_seconds(5, self.close_preheat_popups, error_popups)
         return Gdk.EVENT_STOP
+    for name in self.exists_preheats:
+      if name not in config_preheat and name not in self.removing_preheats:
+        self.removing_preheats.append(name)
     for name in config_preheat:
       for key in ['bed', 'extruder']:
-        self._config.set("main", f"{name}_{key}", config_preheat[name][key])
+        self._config.set(f"preheat_{name}", key, config_preheat[name][key])
+    for name in self.removing_preheats:
+      self._config.remove_section(f"preheat_{name}")
     self._config.save_user_config_options()
+    self._screen._menu_go_back()
+    
 
   def close_preheat_popups(self, popups: list):
       for child in popups:
@@ -202,8 +204,8 @@ class Panel(ScreenPanel):
                   preheats[i][key] = grid_box_child.get_text()
     return preheats
 
-  def on_focus_in_event(self, entry, event):
-    self.keyboard = Keyboard(self._screen, entry=entry)
+  def on_focus_in_entry(self, entry, event, keyboard_class):
+    self.keyboard = keyboard_class(self._screen, entry=entry)
     self.keyboard.change_entry(entry=entry)
     self.keyboard.set_vexpand(False)
     self.keyboard.set_hexpand(True)
@@ -211,8 +213,8 @@ class Panel(ScreenPanel):
       self.keyboard.set_size_request(1, self._screen.height * RESOLUTION_K[(self._screen.width, self._screen.height)])
     self.content.add(self.keyboard)
     self.content.show_all()
-
-  def on_focus_out_event(self, entry, event):
+        
+  def on_focus_out_entry(self, entry, event):
     if self.keyboard:
       self.content.remove(self.keyboard)
     self.keyboard = None
