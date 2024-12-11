@@ -366,8 +366,8 @@ class Panel(ScreenPanel):
             'pause': self._gtk.Button("pause", _("Pause"), "color1"),
             'restart': self._gtk.Button("refresh", _("Restart"), "color3"),
             'resume': self._gtk.Button("resume", _("Resume"), "color1"),
-            'save_offset_probe': self._gtk.Button("home-z", _("Save Z") + "\n" + "Probe", "color1"),
-            'save_offset_endstop': self._gtk.Button("home-z", _("Save Z") + "\n" + "Endstop", "color2"),
+            'save_offset_probe': self._gtk.Button("home-z", _("Save offset probe"), "color1"),
+            'save_offset_endstop': self._gtk.Button("home-z", _("Save offset endstop"), "color2"),
         }
         self.buttons['cancel'].connect("clicked", self.cancel)
         self.buttons['control'].connect("clicked", self._screen._go_to_submenu, "")
@@ -455,7 +455,7 @@ class Panel(ScreenPanel):
             {"name": _("Go Back"), "response": Gtk.ResponseType.CANCEL, "style": "color4"}
         ]
         if len(self._printer.get_stat("exclude_object", "objects")) > 1:
-            buttons.insert(0, {"name": _("Exclude Object"), "response": Gtk.ResponseType.APPLY})
+            buttons.insert(0, {"name": _("Exclude Object"), "response": Gtk.ResponseType.APPLY, "style": "color3"})
         label = Gtk.Label()
         label.set_markup(_("Are you sure you wish to cancel this print?"))
         label.set_hexpand(True)

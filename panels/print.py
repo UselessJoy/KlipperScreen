@@ -241,14 +241,6 @@ class Panel(ScreenPanel):
         self.image_load(*image_args)
         return fbchild
 
-    # def show_path(self):
-    #     self.labels['path'].set_vexpand(False)
-    #     if self.cur_directory == 'gcodes':
-    #         self.labels['path'].hide()
-    #     else:
-    #         self.labels['path'].set_text(self.cur_directory)
-    #         self.labels['path'].show()
-
     def image_load(self, filepath, widget, size=-1, small=True, iconname=None):
         pixbuf = self.get_file_image(filepath, size, size, small)
         if pixbuf is not None:
@@ -368,42 +360,70 @@ class Panel(ScreenPanel):
                 
 
     def confirm_print(self, widget, filename):
-
         buttons = [
-            {"name": _("Print"), "response": Gtk.ResponseType.OK, "style": "color4"},
-            {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color2"}
+            {"name": _("Delete"), "response": Gtk.ResponseType.REJECT, "style": 'color1'},
+            {"name": _("Print"), "response": Gtk.ResponseType.OK, "style": 'color2'},
+            {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": 'color3'}
         ]
 
-        label = Gtk.Label()
-        label.set_markup(f"<b>{filename}</b>\n")
-        label.set_hexpand(True)
-        label.set_halign(Gtk.Align.CENTER)
-        label.set_vexpand(True)
-        label.set_valign(Gtk.Align.CENTER)
-        label.set_line_wrap(True)
-        label.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        label = Gtk.Label(
+            hexpand=True, vexpand=True, lines=2,
+            wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR,
+            ellipsize=Pango.EllipsizeMode.END
+        )
+        label.set_markup(f"<b>{filename}</b>")
 
-        grid = Gtk.Grid()
-        grid.set_vexpand(True)
-        grid.set_halign(Gtk.Align.CENTER)
-        grid.set_valign(Gtk.Align.CENTER)
-        grid.add(label)
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, vexpand=True)
+        main_box.pack_start(label, False, False, 0)
 
-        height = self._screen.height * .9 - self._gtk.font_size * 10
-        pixbuf = self.get_file_image(filename, self._screen.width * .9, height)
+        orientation = Gtk.Orientation.VERTICAL if self._screen.vertical_mode else Gtk.Orientation.HORIZONTAL
+        inside_box = Gtk.Box(orientation=orientation, vexpand=True)
+
+        if self._screen.vertical_mode:
+            width = self._screen.width * .9
+            height = (self._screen.height - self._gtk.dialog_buttons_height - self._gtk.font_size * 5) * .45
+        else:
+            width = self._screen.width * .5
+            height = (self._screen.height - self._gtk.dialog_buttons_height - self._gtk.font_size * 6)
+        pixbuf = self.get_file_image(filename, width, height)
         if pixbuf is not None:
             image = Gtk.Image.new_from_pixbuf(pixbuf)
-            image.set_vexpand(False)
-            grid.attach_next_to(image, label, Gtk.PositionType.BOTTOM, 1, 1)
+            image_button = self._gtk.Button()
+            image_button.set_image(image)
+            image_button.connect("clicked", self.show_fullscreen_thumbnail, filename)
+            inside_box.pack_start(image_button, True, True, 0)
 
-        self._gtk.Dialog(buttons, grid, _("Print"), self.confirm_print_response, filename)
+        info_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, vexpand=True)
+        fileinfo = Gtk.Label(
+            label=self.get_file_info_extended(filename), use_markup=True, ellipsize=Pango.EllipsizeMode.END
+        )
+        info_box.pack_start(fileinfo, True, True, 0)
+
+        inside_box.pack_start(info_box, True, True, 0)
+        main_box.pack_start(inside_box, True, True, 0)
+
+        self._gtk.Dialog(buttons, main_box, _("Print"), self.confirm_print_response, filename)  
+  
+    def show_fullscreen_thumbnail(self, widget, filename):
+        pixbuf = self.get_file_image(filename, self._screen.width * .9, self._screen.height * .75)
+        if pixbuf is None:
+            return
+        image = Gtk.Image.new_from_pixbuf(pixbuf)
+        image.set_vexpand(True)
+        self._gtk.Dialog(None, image, filename, self.close_fullscreen_thumbnail)
+
+    def close_fullscreen_thumbnail(self, dialog, *args):
+        self._gtk.remove_dialog(dialog)
 
     def confirm_print_response(self, dialog, response_id, filename):
         self._gtk.remove_dialog(dialog)
         if response_id == Gtk.ResponseType.CANCEL:
             return
-        logging.info(f"Starting print: {filename}")
-        self._screen._ws.klippy.print_start(filename)
+        elif response_id == Gtk.ResponseType.OK:
+            logging.info(f"Starting print: {filename}")
+            self._screen._ws.klippy.print_start(filename)
+        elif response_id == Gtk.ResponseType.REJECT:
+            self.confirm_delete_file(None, f"gcodes/{filename}")
 
     def get_info_str(self, item, path):
         info = ""
@@ -423,7 +443,44 @@ class Panel(ScreenPanel):
             if item['print_start_time']:
                 info += _("Last Print Time") + f': <b>{datetime.fromtimestamp(fileinfo["print_start_time"]):%Y/%m/%d %I:%M %p}</b>\n'
         return info
-        
+
+    def get_file_info_extended(self, filename):
+        fileinfo = self._screen.files.get_file_info(filename)
+        info = ""
+        if "modified" in fileinfo:
+            info += _("Modified")
+            if self.time_24:
+                info += f':<b> {datetime.fromtimestamp(fileinfo["modified"]):%Y/%m/%d %H:%M}</b>\n'
+            else:
+                info += f':<b> {datetime.fromtimestamp(fileinfo["modified"]):%Y/%m/%d %I:%M %p}</b>\n'
+        if "layer_height" in fileinfo:
+            info += _("Layer Height") + f': <b>{fileinfo["layer_height"]}</b> ' + _("mm") + '\n'
+        if "filament_type" in fileinfo or "filament_name" in fileinfo:
+            info += _("Filament:") + ':\n'
+        if "filament_type" in fileinfo:
+            info += f'    <b>{fileinfo["filament_type"]}</b>\n'
+        if "filament_name" in fileinfo:
+            info += f'    <b>{fileinfo["filament_name"]}</b>\n'
+        if "filament_weight_total" in fileinfo:
+            info += f'    <b>{fileinfo["filament_weight_total"]:.2f}</b> ' + _("g") + '\n'
+        if "nozzle_diameter" in fileinfo:
+            info += _("Nozzle Diameter") + f': <b>{fileinfo["nozzle_diameter"]}</b> ' + _("mm") + '\n'
+        if "slicer" in fileinfo:
+            info += (
+                _("Slicer") +
+                f': <b>{fileinfo["slicer"]} '
+                f'{fileinfo["slicer_version"] if "slicer_version" in fileinfo else ""}</b>\n'
+            )
+        if "size" in fileinfo:
+            info += _("Size") + f': <b>{self.format_size(fileinfo["size"])}</b>\n'
+        if "estimated_time" in fileinfo:
+            info += _("Estimated Time") + f': <b>{self.format_time(fileinfo["estimated_time"])}</b>\n'
+        if "job_id" in fileinfo:
+            history = self._screen.apiclient.send_request(f"server/history/job?uid={fileinfo['job_id']}")
+            if history and 'job' in history and 'status' in history['job'] and history['job']['status'] == "completed":
+                info += _("Last Duration") + f": <b>{self.format_time(history['job']['print_duration'])}</b>"
+        return info
+
     def load_files(self, result, method, params):
         self.set_loading(True)
         if not result.get("result") or not isinstance(result["result"], dict):

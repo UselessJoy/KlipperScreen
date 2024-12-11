@@ -272,7 +272,7 @@ class KlipperScreen(Gtk.Window):
                 "safety_printing": ["safety_enabled", "is_doors_open", "is_hood_open", "luft_timeout", "luft_overload"],
                 "power_button": ["state"],
                 "tmc2209 stepper_x": ["quite_mode"],
-                "bed_mesh": ["profile_name", "mesh_max", "mesh_min", "probed_matrix", "profiles", "unsaved_profiles"],
+                "bed_mesh": ["profile_name", "mesh_max", "mesh_min", "probed_matrix", "profiles", "unsaved_profiles", "is_calibrating"],
                 "configfile": ["config", "save_config_pending", "save_config_pending_items"],
                 "display_status": ["progress", "message"],
                 "fan": ["speed"],

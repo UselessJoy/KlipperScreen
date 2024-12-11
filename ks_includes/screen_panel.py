@@ -125,10 +125,10 @@ class ScreenPanel:
         seconds %= 3600
         minutes = round(seconds / 60)
         seconds %= 60
-        return f"{f'{days:2.0f}d ' if days > 0 else ''}" \
-               f"{f'{hours:2.0f}h ' if hours > 0 else ''}" \
-               f"{f'{minutes:2.0f}m ' if minutes > 0 else ''}" \
-               f"{f'{seconds:2.0f}s' if days == 0 and hours == 0 and minutes == 0 else ''}"
+        return f"{f'{days:2.0f}' + _('d') + ' ' if days > 0 else ''}" \
+               f"{f'{hours:2.0f}'+ _('h') + ' ' if hours > 0 else ''}" \
+               f"{f'{minutes:2.0f}'+ _('m') + ' ' if minutes > 0 else ''}" \
+               f"{f'{seconds:2.0f}'+ _('s') + ' ' if days == 0 and hours == 0 and minutes == 0 else ''}"
 
     def format_eta(self, total, elapsed):
         if total is None:
@@ -153,7 +153,7 @@ class ScreenPanel:
         for i, suffix in enumerate(suffixes, start=2):
             unit = 1024 ** i
             if size < unit:
-                return f"{(1024 * size / unit):.1f} {suffix}"
+                return f"{(1024 * size / unit):.1f} " + _(suffix)
 
     @staticmethod
     def prettify(name: str):

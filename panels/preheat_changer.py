@@ -13,6 +13,7 @@ class Panel(ScreenPanel):
   def __init__(self, screen, title):
     super().__init__(screen, title)
     scroll = self._screen.gtk.ScrolledWindow()
+    self.keyboard = None
     self.was_child_scrolled = False
     adj = Gtk.Adjustment()
     adj.connect("value-changed", self.on_scrolling)
@@ -21,8 +22,6 @@ class Panel(ScreenPanel):
     scroll.set_hexpand(True)
     scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
     box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    self.removing_preheats = []
-    self.exists_preheats = []
     self.preheat_grid = Gtk.Grid(row_spacing=20)
     plusButton = self._screen.gtk.Button("plus", None, "round_button", scale=1)
     plusButton.connect("clicked", self.add_preheat_row)
@@ -40,7 +39,7 @@ class Panel(ScreenPanel):
     change_temperature_button.set_vexpand(True)
     change_temperature_button.set_valign(Gtk.Align.END)
     change_temperature_button.set_size_request((self._screen.width - 30) / 4, self._screen.height / 5)
-    change_temperature_button.connect("button_release_event", self.change_preheats)
+    change_temperature_button.connect("clicked", self.change_preheats)
     box.add(change_temperature_button)
     eventBox = Gtk.EventBox()
     eventBox.set_can_focus(True)
@@ -50,14 +49,10 @@ class Panel(ScreenPanel):
     self.content.add(eventBox)
 
   def activate(self):
-    self.removing_preheats= []
-    self.exists_preheats = []
     for child in self.preheat_grid:
       self.preheat_grid.remove(child)
-    preheats = self._screen._config.get_default_preheats()
-    logging.info(preheats)
+    preheats = self._config.get_default_preheats()
     for i, name in enumerate(preheats):
-      self.exists_preheats.append(name)
       self.preheat_grid.attach(self.create_preheat_row(preheats[name], name), 0, i, 1, 1)
   
   def on_scrolling(self, *args):
@@ -118,10 +113,6 @@ class Panel(ScreenPanel):
     return main_row
 
   def delete_profile_row(self, button, row):
-    for widget in row:
-      if isinstance(widget, TypedEntry):
-        self.removing_preheats.append(widget.get_text())
-        break
     self.preheat_grid.remove(row)
     self.content.show_all()
 
@@ -144,7 +135,7 @@ class Panel(ScreenPanel):
     msg.connect("clicked", self.popup_popdown, popup)
     return popup
    
-  def change_preheats(self, widget=None, event=None):
+  def change_preheats(self, widget=None, *args):
     preheat_dict = self.get_preheat_grid_as_dict()
     error_popups = []
     config_preheat = {}
@@ -162,14 +153,11 @@ class Panel(ScreenPanel):
           popup.show_all()
         GLib.timeout_add_seconds(5, self.close_preheat_popups, error_popups)
         return Gdk.EVENT_STOP
-    for name in self.exists_preheats:
-      if name not in config_preheat and name not in self.removing_preheats:
-        self.removing_preheats.append(name)
-    for name in config_preheat:
-      for key in ['bed', 'extruder']:
-        self._config.set(f"preheat_{name}", key, config_preheat[name][key])
-    for name in self.removing_preheats:
+    for name in self._config.get_default_preheats():
       self._config.remove_section(f"preheat_{name}")
+    for name in config_preheat:
+      for key in config_preheat[name].keys():
+        self._config.set(f"preheat_{name}", key, str(config_preheat[name][key]))
     self._config.save_user_config_options()
     self._screen._menu_go_back()
     
@@ -202,7 +190,7 @@ class Panel(ScreenPanel):
                     key = 'bed'
                   preheats[i][f"widget_{key}"] = grid_box_child
                   preheats[i][key] = grid_box_child.get_text()
-    return preheats
+    return dict(reversed(preheats.items()))
 
   def on_focus_in_entry(self, entry, event, keyboard_class):
     self.keyboard = keyboard_class(self._screen, entry=entry)
@@ -214,7 +202,7 @@ class Panel(ScreenPanel):
     self.content.add(self.keyboard)
     self.content.show_all()
         
-  def on_focus_out_entry(self, entry, event):
+  def on_focus_out_entry(self, entry=None, event=None):
     if self.keyboard:
       self.content.remove(self.keyboard)
     self.keyboard = None
@@ -222,7 +210,7 @@ class Panel(ScreenPanel):
   def popup_popdown(self, widget, popup):
     popup.popdown()
 
-  def click_to_entry(self, entry, event):
+  def click_to_entry(self, entry=None, event=None):
     return True
 
   def click_to_eventbox(self, eventBox, event):

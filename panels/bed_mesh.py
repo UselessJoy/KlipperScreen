@@ -3,6 +3,7 @@ import contextlib
 import re 
 import gi
 from ks_includes.widgets.keyboard import Keyboard
+from ks_includes.widgets.numpad import Numpad
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, Pango, GLib
 from ks_includes.KlippyGcodes import KlippyGcodes
@@ -94,13 +95,11 @@ class Panel(ScreenPanel):
         self.load_meshes()
         with contextlib.suppress(KeyError):
             self.activate_mesh(self._printer.get_stat("bed_mesh", "profile_name"), self._printer.get_stat("bed_mesh", "unsaved_profiles"))
-            
 
-    
     def on_allocate_clear_button(self, widget=None, allocation=None, gdata=None):
         buttonHeight = allocation.height
         self.bedMapBox.set_size_request(self.baseBedMapW, self.baseBedMapH - buttonHeight)
-        
+
     def activate_mesh(self, profile, unsaved_profiles):
         if profile == "":
             logging.info("Clearing active profile")
@@ -320,7 +319,6 @@ class Panel(ScreenPanel):
                 self.activate_mesh(data['bed_mesh']['profile_name'], self._printer.get_stat("bed_mesh", "unsaved_profiles"))
             if 'bed_mesh' in data and 'unsaved_profiles' in data['bed_mesh']:
                 self.saving_profile(data['bed_mesh']['unsaved_profiles'])
-                    
 
     def remove_create(self):
         if self.show_create is False:
@@ -476,13 +474,13 @@ class Panel(ScreenPanel):
         profile_entry.set_text('')
         profile_entry.set_hexpand(True)
         profile_entry.set_vexpand(False)
-        profile_entry.connect("focus-in-event", self.on_focus_in_event)
-        profile_entry.connect("focus-out-event", self.on_focus_out_event)
+        profile_entry.connect("focus-in-event", self.on_focus_in_entry)
+        profile_entry.connect("focus-out-event", self.on_focus_out_entry)
         profile_entry.connect("button_release_event", self.click_to_entry)
-        
+
         preheat_entry = TypedEntry(NumberRule, max=self._printer.get_config_section('heater_bed')['max_temp'])
-        preheat_entry.connect("focus-in-event", self.on_focus_in_event)
-        preheat_entry.connect("focus-out-event", self.on_focus_out_event)
+        preheat_entry.connect("focus-in-event", self.on_focus_in_entry, Numpad)
+        preheat_entry.connect("focus-out-event", self.on_focus_out_entry)
         preheat_entry.connect("button_release_event", self.click_to_entry)
         preheat_entry.set_no_show_all(True)
         preheat_entry.hide()
@@ -499,10 +497,8 @@ class Panel(ScreenPanel):
         preheat_box = Gtk.Box()
         preheat_box.pack_start(preheat_switch_box, True, True, 10)
         preheat_box.pack_end(preheat_entry, True, True, 10)
-        
 
         minusButton = self._screen.gtk.Button("minus", None, "round_button")
-        
 
         save_box = Gtk.Box()
         save_box.add(Gtk.Label(label=_("Save after calibrate")))
@@ -533,30 +529,30 @@ class Panel(ScreenPanel):
         else:
             self.was_child_scrolled = False
         
-    def on_focus_out_event(self, entry, event):
+    def on_focus_out_entry(self, entry, event):
         if self.keyboard:
           self.content.remove(self.keyboard)
         self.keyboard = None
 
     def click_to_entry(self, entry, event):
         return True
-        
-    def on_focus_in_event(self, entry, event):
-        self.keyboard = Keyboard(self._screen, entry=entry)
-        self.keyboard.change_entry(entry=entry)
-        self.keyboard.set_vexpand(False)
-        self.keyboard.set_hexpand(True)
-        if (self._screen.width, self._screen.height) in RESOLUTION_K:
-          self.keyboard.set_size_request(1, self._screen.height * RESOLUTION_K[(self._screen.width, self._screen.height)])
-        self.content.add(self.keyboard)
-        self.content.show_all()
+
+    def on_focus_in_entry(self, entry, event, keyboard_class = Keyboard):
+      self.keyboard = keyboard_class(self._screen, entry=entry)
+      self.keyboard.change_entry(entry=entry)
+      self.keyboard.set_vexpand(False)
+      self.keyboard.set_hexpand(True)
+      if (self._screen.width, self._screen.height) in RESOLUTION_K:
+        self.keyboard.set_size_request(1, self._screen.height * RESOLUTION_K[(self._screen.width, self._screen.height)])
+      self.content.add(self.keyboard)
+      self.content.show_all()
 
     def start_calibrate(self, widget=None, event=None):
         profiles_dict = self.get_new_profiles_grid_parameters_as_dict()
         cmd = ""
         has_incorrect_data = False
         for profile_i in profiles_dict:
-            cmd = cmd + f"BED_MESH_CALIBRATE PROFILE={profiles_dict[profile_i]['profile_name']} SAVE_PERMANENTLY={profiles_dict[profile_i]['save']}\n"
+            cmd = cmd + f"BED_MESH_CALIBRATE PROFILE={profiles_dict[profile_i]['profile_name']} SAVE_PERMANENTLY={str(profiles_dict[profile_i]['save']).upper()}\n"
             if profiles_dict[profile_i]['preheat']:
                 prh_t = profiles_dict[profile_i]['preheat_temp']
                 if prh_t == '':
@@ -636,8 +632,6 @@ class Panel(ScreenPanel):
     def send_clear_mesh(self, widget):
         self._screen._ws.klippy.gcode_script("BED_MESH_CLEAR")
 
-    def has_cyrillic(text):
-        return bool(re.search('[а-я]|[А-Я]', text))
     def send_load_mesh(self, widget, profile):
         self._screen._ws.klippy.gcode_script(KlippyGcodes.bed_mesh_load(profile))
 

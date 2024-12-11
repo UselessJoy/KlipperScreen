@@ -42,16 +42,18 @@ class Panel(ScreenPanel):
         return self.autogrid
 
     def create_menu_items(self):
-        count = sum(bool(self.evaluate_enable(i[next(iter(i))]['enable'])) for i in self.items)
+        enable_items = [item for item in self.items if bool(self.evaluate_enable(item[next(iter(item))]['enable']))]
+        count = len(enable_items)
         scale = 1.1 if 12 < count <= 16 else None  # hack to fit a 4th row
-        for i in range(len(self.items)):
-            key = list(self.items[i])[0]
-            item = self.items[i][key]
+        for i in range(len(enable_items)):
+            key = list(enable_items[i])[0]
+            item = enable_items[i][key]
             name = self._screen.env.from_string(item['name']).render(self.j2_data)
             icon = self._screen.env.from_string(item['icon']).render(self.j2_data) if item['icon'] else None
             style = self._screen.env.from_string(item['style']).render(self.j2_data) if item['style'] else None
 
             b = self._gtk.Button(icon, name, style or f"color{i % 4 + 1}", scale=scale)
+            logging.info(name + " " + f"color{i % 4 + 1}")
 
             if item['panel']:
                 b.connect("clicked", self.menu_item_clicked, item)

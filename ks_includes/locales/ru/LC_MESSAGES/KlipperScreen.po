@@ -195,6 +195,9 @@ msgstr "Проверка интернет-соединения. Пожалуйс
 msgid "Clear bed mesh"
 msgstr "Очистить сетку стола"
 
+msgid "Stop bed mesh"
+msgstr "Прервать калибровку стола"
+
 msgid "Deactivate"
 msgstr "Деактивировать"
 
@@ -233,10 +236,13 @@ msgid "Delete Directory?"
 msgstr "Удалить директорию?"
 
 msgid "Delete File?"
-msgstr "Удалить Файл?"
+msgstr "Удалить файл?"
 
 msgid "Deselect"
 msgstr "Отменить выбор"
+
+msgid "Failed to open"
+msgstr "Не удалось получить ответ от"
 
 msgid "Disable Motors"
 msgstr "Откл. моторы"
@@ -254,7 +260,13 @@ msgid "Error"
 msgstr "Ошибка"
 
 msgid "Estimated Time Method"
-msgstr "Расчётное время"
+msgstr "Метод расчета времени печати"
+
+msgid "Estimated Time"
+msgstr "Расчетное время"
+
+msgid "Last Duration"
+msgstr "Последняя продолжительность печати"
 
 msgid "Exclude Object"
 msgstr "Удалить Объект"
@@ -364,6 +376,9 @@ msgstr "Скрыть датчики в Temp."
 
 msgid "Nozzle Diameter"
 msgstr "Диаметр сопла"
+
+msgid "Layer Height"
+msgstr "Высота слоя"
 
 msgid "Hide temp."
 msgstr "Скрыть температуру."
@@ -761,6 +776,15 @@ msgstr "Дельта ручная"
 
 msgid "Save Z"
 msgstr "Сохранить Z"
+
+msgid "Save offset probe"
+msgstr "Сохранить смещение пробы"
+
+msgid "Save offset endstop"
+msgstr "Сохранить смещение Z"
+
+msgid "Before adjusting, it is recommended to tighten all the screws until they stop"
+msgstr "Перед регулировкой рекомендуется закрутить все винты до упора"
 
 msgid "Save configuration?"
 msgstr "Сохранить конфигурацию?"
@@ -1276,7 +1300,10 @@ msgstr ""
 "%s"
 
 msgid "Cannot connect to github.com.\nPlease, check your internet connection"
-msgstr "Не удается соединиться с github.\nПожалуйста, проверьте ваше интернет-соединение"
+msgstr "Не удается соединиться с github.\nПожалуйста, проверьте соединение с интернетом"
+
+msgid "Unknown error on camera"
+msgstr "Неизвестная ошибка камеры"
 
 msgid "Stop service"
 msgstr "Остановить службу"
@@ -1304,6 +1331,46 @@ msgstr "Удалить"
 
 msgid "Mark"
 msgstr "Выделить"
+
+msgid "g"
+msgstr "г"
+
+msgid "d"
+msgstr "д"
+
+msgid "h"
+msgstr "ч"
+
+msgid "m"
+msgstr "м"
+
+msgid "s"
+msgstr "с"
+
+msgid "kB"
+msgstr "кБ"
+
+msgid "MB"
+msgstr "МБ"
+
+msgid "GB"
+msgstr "ГБ"
+
+msgid "TB"
+msgstr "ТБ"
+
+msgid "PB"
+msgstr "ПБ"
+
+msgid "EB"
+msgstr "ЭБ"
+
+msgid "ZB"
+msgstr "ЗБ"
+
+msgid "YB"
+msgstr "ЙБ"
+
 
 # ###    END NEW    ####
 #~ msgid "Decrease"

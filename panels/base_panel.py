@@ -105,7 +105,7 @@ class BasePanel(ScreenPanel):
         self.img_titlebar_size = self._gtk.img_scale * self.bts
         # This box will be populated by show_heaters
         self.control['temp_box'] = Gtk.Box(spacing=10)
-        
+
         self.network_status_image = self._gtk.Image()
         self.network_status_image.set_margin_left(15)
         self.network_status_image.hide()
@@ -114,34 +114,37 @@ class BasePanel(ScreenPanel):
         self.magnet_probe_image.set_margin_left(15)
         self.magnet_probe_image.hide()
 
-        
         self.on_connecting_spinner = Gtk.Spinner()
         self.on_connecting_spinner.set_size_request(self.img_titlebar_size, self.img_titlebar_size)
         self.on_connecting_spinner.hide()
-        
+
         self.unsaved_config_box = Gtk.EventBox()
         self.unsaved_config_box.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
         self.unsaved_config_box.add_events(Gdk.EventMask.TOUCH_MASK)
         self.unsaved_config_box.connect("button_release_event", self.on_popover_clicked)
-        # self.unsaved_config_box.connect('touch-event', self.on_popover_clicked)
-        
+
         self.on_unsaved_config = Gtk.Image()
         self.on_unsaved_config.set_margin_left(15)
         self.unsaved_config_box.add(self.on_unsaved_config)
-        
+
         self.unsaved_config_popover = Gtk.Popover()
         self.unsaved_config_popover.get_style_context().add_class("message_popup")
         self.unsaved_config_popover.set_halign(Gtk.Align.CENTER)
         self.unsaved_config_popover.add(Gtk.Label(label=_("Have unsaved options")))
         self.unsaved_config_popover.set_relative_to(self.unsaved_config_box)
         self.unsaved_config_popover.set_position(Gtk.PositionType.BOTTOM)
-        
+
         self.stop_pid_button = Gtk.Button(label=_("Stop PID"), hexpand=True, halign=Gtk.Align.CENTER)
         self.stop_pid_button.get_style_context().add_class('stop_pid')
         self.stop_pid_button.connect('clicked', self.send_stop_pid)
         self.stop_pid_button.get_children()[0].get_style_context().add_class('pb-06rem') # Кривое решение выравнивания Label (но остальное не работает)
         self.stop_pid_button.set_no_show_all(True)
         self.stop_pid_button.hide()
+        
+        self.stop_bed_mesh_button = self._gtk.Button("stop_bed_mesh", style='pb-06rem', scale=0.7, hexpand=False, vexpand=False)
+        self.stop_bed_mesh_button.connect('clicked', self.send_stop_bed_mesh)
+        self.stop_bed_mesh_button.set_no_show_all(True)
+        self.stop_bed_mesh_button.hide()
 
         self.titlelbl = Gtk.Label(hexpand=True, halign=Gtk.Align.CENTER, ellipsize=Pango.EllipsizeMode.END)
         self.control['time'] = Gtk.Label("00:00 AM")
@@ -156,6 +159,7 @@ class BasePanel(ScreenPanel):
         self.titlebar.add(self.unsaved_config_box)
         self.titlebar.add(self.magnet_probe_image)
         self.titlebar.add(self.titlelbl)
+        self.titlebar.add(self.stop_bed_mesh_button)
         self.titlebar.add(self.stop_pid_button)
         self.titlebar.add(self.control['time_box'])
         self.set_title(title)
@@ -493,6 +497,12 @@ class BasePanel(ScreenPanel):
                     self.stop_pid_button.show()
                 else:
                     self.stop_pid_button.hide()
+        if 'bed_mesh' in data:
+          if 'is_calibrating' in data['bed_mesh']:
+            if data['bed_mesh']['is_calibrating']:
+              self.stop_bed_mesh_button.show()
+            else:
+              self.stop_bed_mesh_button.hide()
         if 'configfile' in data:
                 if 'save_config_pending' in data['configfile']:
                     if data['configfile']['save_config_pending'] == True:
@@ -697,3 +707,7 @@ class BasePanel(ScreenPanel):
 
     def send_stop_pid(self, widget):
         self._screen._ws.klippy.stop_pid_calibrate()
+    
+    def send_stop_bed_mesh(self, widget):
+      self._screen._ws.klippy.run_async_command("ASYNC_STOP_BED_MESH_CALIBRATE")
+      return True

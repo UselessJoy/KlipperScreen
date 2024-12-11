@@ -47,6 +47,7 @@ class KlippyGtk:
         self.img_scale = self.font_size * 2
         self.button_image_scale = 1.38
         self.bsidescale = .65  # Buttons with image at the side
+        self.dialog_buttons_height = round(self.height / 5)
 
         if self.font_size_type == "max":
             self.font_size = self.font_size * 1.2
@@ -229,30 +230,31 @@ class KlippyGtk:
         dialog.set_resizable(False)
         dialog.set_transient_for(self.screen)
         dialog.set_modal(True)
-
-        for button in buttons:
-            dialog.add_button(button['name'], button['response'])
-            b = dialog.get_widget_for_response(button['response'])
-            if "image_name" in button:
-                w = h = self.img_scale * self.button_image_scale
-                b.set_image(self.Image(button['image_name'], w, h))
-                b.set_image_position(Gtk.PositionType.TOP)
-                b.set_always_show_image(True)
-            if "style" in button:
-                b.get_style_context().add_class(button['style'])
-            if width and height:
-                if "width" and "height" in button:
-                    b.set_size_request(button['width'], button['height'])
-            else:
-                # b.set_size_request((self.screen.width - 30) / 3, self.screen.height / 5)
-                if len(buttons) > 2:
-                    dialog.get_action_area().set_layout(Gtk.ButtonBoxStyle.EXPAND)
-                    button_hsize = -1
-                else:
-                    button_hsize = int((self.width / 3))
-                b.set_size_request(button_hsize - 30, round(self.height / 5))
-            format_label(button, 3)
-
+        
+        if buttons:
+          for button in buttons:
+              dialog.add_button(button['name'], button['response'])
+              b = dialog.get_widget_for_response(button['response'])
+              if "image_name" in button:
+                  w = h = self.img_scale * self.button_image_scale
+                  b.set_image(self.Image(button['image_name'], w, h))
+                  b.set_image_position(Gtk.PositionType.TOP)
+                  b.set_always_show_image(True)
+              if "style" in button:
+                  b.get_style_context().add_class(button['style'])
+              if width and height:
+                  if "width" and "height" in button:
+                      b.set_size_request(button['width'], button['height'])
+              else:
+                  if len(buttons) > 2:
+                      dialog.get_action_area().set_layout(Gtk.ButtonBoxStyle.EXPAND)
+                      button_hsize = -1
+                  else:
+                      button_hsize = int((self.width / 3))
+                  b.set_size_request(button_hsize - 30, round(self.height / 5))
+              format_label(button, 3)
+        else:
+          dialog.connect("button-release-event", callback, *args)
         dialog.connect("response", self.screen.reset_screensaver_timeout)
         dialog.connect("response", callback, *args)
         if style is not None:

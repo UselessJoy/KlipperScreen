@@ -45,7 +45,7 @@ class KlippyWebsocket(threading.Thread):
     def initial_connect(self):
         if self.connect() is not False:
             GLib.timeout_add_seconds(10, self.reconnect)
-    
+
     def reconnect(self):
         if self.reconnect_count > self.max_retries:
             logging.debug("Stopping reconnections")
@@ -55,7 +55,6 @@ class KlippyWebsocket(threading.Thread):
                 + f'\n\n{self._screen.apiclient.status}')
             return False
         return self.connect()
-
 
     def connect(self):
         if self.connected:
@@ -177,7 +176,6 @@ class KlippyWebsocket(threading.Thread):
         error = args[1] if len(args) == 2 else args[0]
         logging.debug(f"Websocket error: {error}")
 
-
 class MoonrakerApi:
     def __init__(self, ws):
         self._ws = ws
@@ -223,7 +221,7 @@ class MoonrakerApi:
             callback,
             *args
         )
-    
+
     def get_file_metadata(self, filename, callback=None, *args):
         return self._ws.send_method(
             "server.files.metadata",
@@ -294,7 +292,7 @@ class MoonrakerApi:
             callback,
             *args
         )
-        
+   
     def set_bed_temp(self, target, callback=None, *args):
         logging.debug(f"Sending set_bed_temp: {KlippyGcodes.set_bed_temp(target)}")
         return self._ws.send_method(
@@ -350,8 +348,13 @@ class MoonrakerApi:
         return self._ws.send_method(
             "printer.firmware_restart"
         )
-        
-    
+
+    def load_backup_config(self):
+        logging.debug("Sending printer.load_backup_config")
+        return self._ws.send_method(
+            "printer.load_backup_config"
+        )
+
     ####      NEW      ####
     def print_rebuild(self, callback=None, *args):
         logging.debug("Sending printer.print.rebuild")
@@ -361,7 +364,7 @@ class MoonrakerApi:
             callback,
             *args
         )
-    
+
     def print_remove(self, callback=None, *args):
         logging.debug("Sending printer.print.remove")
         return self._ws.send_method(
@@ -381,7 +384,7 @@ class MoonrakerApi:
             callback,
             *args
         )
-    
+
     def set_quite_mode(self, stepper, quite_mode, callback=None, *args):
         logging.debug("Sending printer.setQuiteMode")
         return self._ws.send_method(
@@ -393,7 +396,7 @@ class MoonrakerApi:
             callback,
             *args
         )
-        
+
     def set_watch_bed_mesh(self, watch_bed_mesh, callback=None, *args):
         logging.debug("Sending printer.setWatchBedMesh")
         return self._ws.send_method(
@@ -404,7 +407,7 @@ class MoonrakerApi:
             callback,
             *args
         )
-    
+
     def set_autoload_bed_mesh(self, autoload_bed_mesh, callback=None, *args):
         logging.debug("Sending printer.setAutoloadBedMesh")
         return self._ws.send_method(
@@ -415,7 +418,7 @@ class MoonrakerApi:
             callback,
             *args
         )
-    
+
     def set_neopixel_color(self, name, r, g, b, callback=None, *args):
         logging.debug(f"Sending set_led: {KlippyGcodes.set_led(name, r, g, b)}")
         return self._ws.send_method(
@@ -426,7 +429,7 @@ class MoonrakerApi:
             callback,
             *args
         )
-    
+
     def save_default_neopixel_color(self, name, r, g, b, callback=None, *args):
         logging.debug(f"Sending save_default_neopixel_color: {KlippyGcodes.save_default_neopixel_color(name, r, g, b)}")
         return self._ws.send_method(
@@ -437,7 +440,7 @@ class MoonrakerApi:
             callback,
             *args
         )
-    
+
     def turn_off_led(self, callback=None, *args):
         logging.debug(f"Sending turn_off_led: {KlippyGcodes.turn_off_led()}")
         return self._ws.send_method(
@@ -448,7 +451,7 @@ class MoonrakerApi:
             callback,
             *args
         )
-        
+
     def turn_on_led(self, callback=None, *args):
         logging.debug(f"Sending turn_off_led: {KlippyGcodes.turn_on_led()}")
         return self._ws.send_method(
@@ -459,7 +462,7 @@ class MoonrakerApi:
             callback,
             *args
         )
-    
+
     def get_neopixel_color(self, name, callback=None, *args):
         logging.debug(f"Sending get_neopixel_color")
         return self._ws.send_method(
@@ -470,7 +473,7 @@ class MoonrakerApi:
             callback,
             *args
         )
-        
+
     def cancel_autooff(self, callback=None, *args):
         logging.debug(f"Sending printer.offautooff")
         return self._ws.send_method(
@@ -479,7 +482,7 @@ class MoonrakerApi:
             callback,
             *args
         )
-    
+
     def set_autooff(self, autooff, callback=None, *args):
         logging.debug(f"Sending printer.setautooff")
         return self._ws.send_method(
@@ -490,7 +493,7 @@ class MoonrakerApi:
             callback,
             *args
     )
-    
+
     def close_message(self, callback=None, *args):
         logging.debug(f"Sending printer.close_message")
         return self._ws.send_method(
@@ -509,7 +512,7 @@ class MoonrakerApi:
             callback,
             *args
     )
-        
+  
     def run_async_command(self, command, callback=None, *args):
         return self._ws.send_method(
             "printer.gcode.async_command",

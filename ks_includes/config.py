@@ -266,9 +266,9 @@ class KlipperScreenConfig:
 
             {"nozzle_diameter": {
                 "section": "main", "name": _("Nozzle Diameter"), "type": "dropdown",
-                "value": "0.25", "options": [
-                    {"name": "0.25" + " " + _("(default)"), "value": "0.25"},
-                    {"name": "0.4", "value": "0.25"},
+                "value": "0.4", "options": [
+                    {"name": "0.4" + " " + _("(default)"), "value": "0.4"},
+                    {"name": "0.25", "value": "0.25"},
                     {"name": "0.6", "value": "0.6"},
                     {"name": "0.8", "value": "0.8"},
                     {"name": "1.0", "value": "1.0"},
@@ -378,11 +378,11 @@ class KlipperScreenConfig:
         preheat_name = preheat[8:]
         p[preheat_name] = {}
         for option in self.config[preheat]:
-          p[preheat_name][option] = self.config[preheat].getfloat(option, fallback=True)
+          p[preheat_name][option] = int(self.config[preheat].getfloat(option, fallback=True))
       if not p:
         return DEF_PREHEATS
       return p
-        
+
     def exclude_from_config(self, config):
         exclude_list = ['preheat']
         if not self.defined_config.getboolean('main', "use_default_menu", fallback=True):
@@ -547,7 +547,6 @@ class KlipperScreenConfig:
                     save_config.set(section, item, str(value))
 
         preheat_sections = [i for i in self.config.sections() if i.startswith("preheat_")]
-        logging.info(preheat_sections)
         for section in preheat_sections:
           if section not in save_config.sections():
             save_config.add_section(section)
@@ -593,7 +592,7 @@ class KlipperScreenConfig:
       if section not in self.config:
         self.config.add_section(section)
       self.config.set(section, option, value)
-        
+      
     def log_config(self, config):
         lines = [
             " "
