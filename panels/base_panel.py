@@ -34,6 +34,7 @@ class BasePanel(ScreenPanel):
         self.current_extruder = None
         self.last_usage_report = datetime.now()
         self.usage_report = 0
+        self.timezone = ""
         # Action bar buttons
         abscale = self.bts * 1.1
         self.control['back'] = self._gtk.Button('back', scale=abscale)
@@ -193,7 +194,7 @@ class BasePanel(ScreenPanel):
         self.minutes = int(f'{now:%M}')
         stat = subprocess.call(["systemctl", "is-active", "--quiet", "systemd-timesyncd.service"])
         self.is_timesync = True if stat == 0 else False
-        timepicker = Timepicker(self._screen, self.on_change_value, self.on_change_timesync)
+        timepicker = Timepicker(self._screen, self.on_change_value, self.on_change_timesync, self.on_change_timezone)
         dialog = self._gtk.Dialog(buttons, timepicker, _("Time"), self.close_time_modal, width=1, height=1)
         dialog.get_action_area().set_layout(Gtk.ButtonBoxStyle.EXPAND)
         dialog.show_all()
@@ -210,10 +211,15 @@ class BasePanel(ScreenPanel):
                 subprocess.call(["systemctl", "start", "systemd-timesyncd.service"])
                 subprocess.call(["systemctl", "enable", "systemd-timesyncd.service"])
                 logging.info("time synchromized")
+            if self.timezone:
+              os.system(f"timedatectl set-timezone {self.timezone}")
         self.update_time()
 
     def on_change_timesync(self, switch_status):
         self.is_timesync = switch_status
+    
+    def on_change_timezone(self, timezone):
+      self.timezone = timezone
 
     def on_change_value(self, name, value):
         logging.info(f'in on_change name is {name} value is {value}')

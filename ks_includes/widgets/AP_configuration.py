@@ -24,10 +24,12 @@ class APConfiguration(Gtk.Box):
         self.labels['AP'] = {
             'autoconnect': Gtk.Switch(active=self.ap.is_autoconnect(), sensitive=False),
             'ssid' : TypedEntry(text=self.ap.get_ssid(), hexpand=True, sensitive=False),
-            'psk' : TypedEntry(text=self.ap.get_psk(), hexpand=True, sensitive=False)
+            'psk' : TypedEntry(text=self.ap.get_psk(), hexpand=True, sensitive=False),
+            'is_need_password': Gtk.Switch(active=self.ap.is_need_password(), sensitive=False),
         }
         self.labels['AP']['ssid'].connect("button-press-event", self.on_change_entry)
         self.labels['AP']['psk'].connect("button-press-event", self.on_change_entry)
+        self.labels['AP']['is_need_password'].connect("notify::active", self.on_need_password_change)
         self.connect_switch = Gtk.Switch(active=self.ap.is_active())
         self.connect_switch.connect("notify::active", self.switch_access_point)
         self.connect_switch.connect("button-press-event", self.on_click_switch)
@@ -45,6 +47,13 @@ class APConfiguration(Gtk.Box):
         autobox.set_valign(Gtk.Align.CENTER)
         autobox.pack_start(Gtk.Label(label=_("Autoconnect")), False, False, 0)
         autobox.pack_end(self.labels['AP']['autoconnect'], False, False, 0)
+        
+        # use_password_box = Gtk.Box()
+        # use_password_box.set_hexpand(True)
+        # use_password_box.set_vexpand(False)
+        # use_password_box.set_valign(Gtk.Align.CENTER)
+        # use_password_box.pack_start(Gtk.Label(label=_("Use Password")), False, False, 0)
+        # use_password_box.pack_end(self.labels['AP']['is_need_password'], False, False, 0)
 
         IP_address = TypedEntry()
         IP_address.set_text(self.ap.get_ip()) 
@@ -57,19 +66,21 @@ class APConfiguration(Gtk.Box):
         plugLeft.set_size_request(self._screen.gtk.content_width/7, 1)
         plugRight.set_size_request(self._screen.gtk.content_width/7, 1)
 
-        grid = Gtk.Grid()
-        grid.attach(plugRight, 0, 0, 2, 3)
-        grid.attach(Gtk.Label(label=_("IP-address")), 2, 1, 1, 1)
-        grid.attach(IP_address, 3, 1, 8, 1)
-        grid.attach(Gtk.Label(label=_("SSID")), 2, 2, 1, 1)
-        grid.attach(self.labels['AP']['ssid'], 3, 2, 8, 1)
-        grid.attach(Gtk.Label(label=_("Password")), 2, 3, 1, 1)
-        grid.attach(self.labels['AP']['psk'], 3, 3, 8, 1)
-        grid.attach(plugLeft, 12, 0, 3, 3)
-        grid.set_row_spacing(5)
-        grid.set_vexpand(True)
-        grid.set_valign(Gtk.Align.CENTER)
-        
+        self.grid = Gtk.Grid()
+        # self.grid.attach(plugRight, 0, 0, 2, 3)
+        self.grid.attach(Gtk.Label(label=_("IP-address")), 0, 1, 1, 1)
+        self.grid.attach(IP_address, 1, 1, 8, 1)
+        self.grid.attach(Gtk.Label(label=_("SSID")), 0, 2, 1, 1)
+        self.grid.attach(self.labels['AP']['ssid'], 1, 2, 8, 1)
+        self.grid.attach(Gtk.Label(label=_("Password")), 0, 3, 1, 1)
+        self.grid.attach(self.labels['AP']['psk'], 1, 3, 8, 1)
+        self.grid.attach(Gtk.Label(label=_("Use\npassword"), justify=Gtk.Justification.CENTER), 9, 2, 1, 1)
+        self.grid.attach(self.labels['AP']['is_need_password'], 9, 3, 1, 1)
+        # self.grid.attach(plugLeft, 12, 0, 3, 3)
+        self.grid.set_row_spacing(5)
+        self.grid.set_vexpand(True)
+        self.grid.set_valign(Gtk.Align.CENTER)
+          
         self.button = {'save_changes': self._screen.gtk.Button("complete", _("Save changes"), "color1"),
                        'change': self._screen.gtk.Button("complete", _("Change"), "color1"),
                        'disable': self._screen.gtk.Button("cancel", _("Cancel Change"), "color2")}
@@ -82,16 +93,16 @@ class APConfiguration(Gtk.Box):
         self.button_box.pack_start(self.button['change'], False, False, 0)
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        box.pack_start(switchbox, False, True, 5)
-        box.pack_start(autobox, False, True, 5)
-        box.pack_start(grid, True, True, 5)
+        box.pack_start(switchbox, False, True, 0)
+        box.pack_start(autobox, False, True, 0)
+        # box.pack_start(use_password_box, False, True, 5)
+        box.pack_start(self.grid, True, True, 0)
         box.pack_end(self.button_box, True, True, 0)
 
         self.scroll = self._screen.gtk.ScrolledWindow()
         self.scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL)
         self.scroll.add(box)
         self.add(self.scroll)
-    
 
     def create_error_page(self):
         err_scroll = self._screen.gtk.ScrolledWindow()
@@ -128,7 +139,13 @@ class APConfiguration(Gtk.Box):
             self.ap.up()
           else:
             self.ap.down()
-    
+
+    def on_need_password_change(self, switch, gdata):
+        if not switch.get_active():
+          self.grid.get_child_at(3,3).set_sensitive(False)
+        else:
+          self.grid.get_child_at(3,3).set_sensitive(True)
+
     def change_fields(self, button):
         self.button_box.remove(self.button['change'])
         self.button_box.pack_start(self.button['disable'], False, False, 0) 
@@ -141,6 +158,7 @@ class APConfiguration(Gtk.Box):
         self.labels['AP']['autoconnect'].set_active(self.ap.is_autoconnect())
         self.labels['AP']['ssid'].set_text(self.ap.get_ssid())
         self.labels['AP']['psk'].set_text(self.ap.get_psk())
+        self.labels['AP']['is_need_password'].set_active(self.ap.is_need_password())
         for prop in self.labels['AP']:
           self.labels['AP'][prop].set_sensitive(False)
         for child in self.button_box:
@@ -161,8 +179,9 @@ class APConfiguration(Gtk.Box):
             self._screen.show_popup_message(_("Password must contains minimum 8 symbols"))
             return
         autoconnect = ['no', 'yes'][self.labels['AP']['autoconnect'].get_active()]
+        security_method = ['none', 'wpa-psk'][self.labels['AP']['is_need_password'].get_active()]
         try:
-          self.ap.modify(ssid, psk, autoconnect)
+          self.ap.modify(ssid, psk, autoconnect, security_method)
         except Exception as e:
           logging.error(f"Error on save_changes")
           self._screen.show_popup_message(_("Access point error:\n%s") % e)

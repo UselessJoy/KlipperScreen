@@ -21,6 +21,8 @@ class Panel(ScreenPanel):
         self.labels['restart'].connect("clicked", self.restart_klipper)
         self.labels['firmware_restart'] = self._gtk.Button("refresh", _("Firmware Restart"), "color2")
         self.labels['firmware_restart'].connect("clicked", self.firmware_restart)
+        self.labels['backup_config'] = self._gtk.Button("refresh", _("Load backup config"), "color3")
+        self.labels['backup_config'].connect("clicked", self.load_backup_config)
         self.labels['retry'] = self._gtk.Button("load", _('Retry'), "color3")
         self.labels['retry'].connect("clicked", self.retry)
 
@@ -59,6 +61,7 @@ class Panel(ScreenPanel):
     def show_restart_buttons(self):
         self._screen.gtk.Button_busy(self.labels['restart'], False)
         self._screen.gtk.Button_busy(self.labels['firmware_restart'], False)
+        self._screen.gtk.Button_busy(self.labels['backup_config'], False)
         self.clear_action_bar()
         if self.ks_printer_cfg is not None and self._screen._ws.connected:
             power_devices = self.ks_printer_cfg.get("power_devices", "")
@@ -67,6 +70,7 @@ class Panel(ScreenPanel):
                 self.add_power_button(power_devices)
         self.labels['actions'].add(self.labels['restart'])
         self.labels['actions'].add(self.labels['firmware_restart'])
+        self.labels['actions'].add(self.labels['backup_config'])
         self.labels['actions'].add(self.labels['menu'])
         if self._screen._ws and not self._screen._ws.connecting or self._screen.reinit_count > self._screen.max_retries:
             self.labels['actions'].add(self.labels['retry'])
@@ -102,6 +106,11 @@ class Panel(ScreenPanel):
         self._screen._ws.send_method("machine.services.restart", {"service": "klipper"})
         self._screen.gtk.Button_busy(widget, True)
         GLib.timeout_add_seconds(10, lambda: self._screen.gtk.Button_busy(widget, False))
+
+    def load_backup_config(self, widget):
+      self._screen._ws.klippy.load_backup_config()
+      self._screen.gtk.Button_busy(widget, True)
+      GLib.timeout_add_seconds(10, lambda: self._screen.gtk.Button_busy(widget, False))
 
     def retry(self, widget):
         if self._screen._ws and not self._screen._ws.connecting:

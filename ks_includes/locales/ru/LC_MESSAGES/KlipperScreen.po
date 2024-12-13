@@ -1305,6 +1305,12 @@ msgstr "Не удается соединиться с github.\nПожалуйс�
 msgid "Unknown error on camera"
 msgstr "Неизвестная ошибка камеры"
 
+msgid "Use\npassword"
+msgstr "Использовать\nпароль"
+
+msgid "Load backup config"
+msgstr "Загрузить бэкап"
+
 msgid "Stop service"
 msgstr "Остановить службу"
 
