@@ -276,4 +276,7 @@ class Panel(ScreenPanel):
             {"message": msg, "complete": False},
         )
         logging.info(f"sending apps on send_update_method: {apps}")
-        self._screen._ws.send_method(f"machine.update.{method}", {'apps': apps})
+        if apps:
+          self._screen._ws.send_method(f"machine.update.{method}", {'apps': apps})
+        else:
+          self._screen._ws.send_method(f"machine.update.{method}")
