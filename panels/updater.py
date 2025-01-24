@@ -191,6 +191,7 @@ class Panel(ScreenPanel):
       v_info = self.update_status["version_info"]
       scroll = self._gtk.ScrolledWindow(steppers=False)
       scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+      scroll.set_min_content_height(self._gtk.content_height * 0.7)
       labelBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
       for prog in v_info:
         if prog != 'system':
