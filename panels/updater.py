@@ -194,7 +194,7 @@ class Panel(ScreenPanel):
       labelBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
       for prog in v_info:
         if prog != 'system':
-          if v_info[prog]['version'] != v_info['remote_version']:
+          if v_info[prog]['version'] != v_info[prog]['remote_version']:
             prog_label = Gtk.Label(wrap=True, vexpand=True)
             prog_label.set_markup(
               "<b>"
