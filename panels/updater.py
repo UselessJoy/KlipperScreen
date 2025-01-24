@@ -264,9 +264,10 @@ class Panel(ScreenPanel):
               prog_info = v_info[prog]
               if not prog_info['is_valid']:
                 apps[prog] = {'hard': not not prog_info['git_messages'], 'update_deps': False}
+        logging.info(f"sending apps on recover: {apps}")
         self.send_update_method('recover_needed', _("Starting recovering..."), apps)
 
-    def send_update_method(self, method, msg, *args):
+    def send_update_method(self, method, msg, apps):
         if self._screen.updating:
           return
         self._screen.base_panel.show_update_dialog()
@@ -274,4 +275,5 @@ class Panel(ScreenPanel):
             "notify_update_response",
             {"message": msg, "complete": False},
         )
-        self._screen._ws.send_method(f"machine.update.{method}", *args)
+        logging.info(f"sending apps on send_update_method: {apps}")
+        self._screen._ws.send_method(f"machine.update.{method}", {'apps': apps})
