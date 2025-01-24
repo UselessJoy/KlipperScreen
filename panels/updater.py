@@ -204,6 +204,7 @@ class Panel(ScreenPanel):
             )
             labelBox.add(prog_label)
       scroll.add(labelBox)
+      
       buttons = [
           {
               "name": _("Update"),
