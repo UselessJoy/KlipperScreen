@@ -267,7 +267,7 @@ class Panel(ScreenPanel):
         logging.info(f"sending apps on recover: {apps}")
         self.send_update_method('recover_needed', _("Starting recovering..."), apps)
 
-    def send_update_method(self, method, msg, apps):
+    def send_update_method(self, method, msg, apps = {}):
         if self._screen.updating:
           return
         self._screen.base_panel.show_update_dialog()
@@ -276,7 +276,4 @@ class Panel(ScreenPanel):
             {"message": msg, "complete": False},
         )
         logging.info(f"sending apps on send_update_method: {apps}")
-        if apps:
-          self._screen._ws.send_method(f"machine.update.{method}", {'apps': apps})
-        else:
-          self._screen._ws.send_method(f"machine.update.{method}")
+        self._screen._ws.send_method(f"machine.update.{method}", {'apps': apps})
