@@ -53,7 +53,6 @@ class Panel(ScreenPanel):
     def clear_scroll(self):
         for child in self.scroll.get_children():
             self.scroll.remove(child)
-        self.scroll.show_all()
 
     def activate(self):
         GLib.timeout_add(200, self.refresh_updates)
@@ -166,6 +165,8 @@ class Panel(ScreenPanel):
         self._gtk.Button_busy(self.buttons["refresh"], False)
         self.update_status = response["result"]
         self.clear_scroll()
+        for ch in self.main_updates:
+          self.main_updates.remove(ch)
         self.main_updates.attach(self.ApplicationBox(), 0, 0, 1, 1)
         if 'system' in self.update_status['version_info']:
           self.main_updates.attach(self.SystemBox(), 0, 1, 1, 1)
