@@ -53,6 +53,7 @@ class Panel(ScreenPanel):
     def clear_scroll(self):
         for child in self.scroll.get_children():
             self.scroll.remove(child)
+        self.scroll.show_all()
 
     def activate(self):
         GLib.timeout_add(200, self.refresh_updates)
