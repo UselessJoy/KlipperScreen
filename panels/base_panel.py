@@ -688,6 +688,7 @@ class BasePanel(ScreenPanel):
         button = [{"name": _("Finish"), "response": Gtk.ResponseType.OK}]
         self.labels['update_progress'] = Gtk.Label(hexpand=True, vexpand=True, ellipsize=Pango.EllipsizeMode.END)
         self.labels['update_scroll'] = self._gtk.ScrolledWindow(steppers=False)
+        self.labels['update_scroll'].set_min_content_height(self._gtk.content_height * 0.7)
         self.labels['update_scroll'].set_property("overlay-scrolling", True)
         self.labels['update_scroll'].add(self.labels['update_progress'])
         self.labels['update_scroll'].connect("size-allocate", self._autoscroll)
