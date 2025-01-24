@@ -108,7 +108,7 @@ class Panel(ScreenPanel):
 
     def _all_updated(self):
         v_info = self.update_status['version_info']
-        return all(v_info[prog]['vesion'] == v_info[prog]['remote_version'] for prog in v_info if prog != 'system')
+        return all(v_info[prog]['version'] == v_info[prog]['remote_version'] for prog in v_info if prog != 'system')
     def _any_not_valid(self):
         v_info = self.update_status['version_info']
         return any((not v_info[prog]['is_valid']) for prog in v_info if prog != 'system')
