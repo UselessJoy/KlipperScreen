@@ -699,6 +699,7 @@ class BasePanel(ScreenPanel):
         dialog.get_widget_for_response(Gtk.ResponseType.OK).hide()
         self.update_dialog = dialog
         self._screen.updating = True
+        dialog.show_all()
 
     def finish_updating(self, dialog, response_id):
         if response_id != Gtk.ResponseType.OK:
