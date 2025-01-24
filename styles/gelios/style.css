@@ -79,10 +79,17 @@ window {
 button {
     background-color: inherit;/*#002b36; base03*/
 }
+
+.hide_button {
+  background-color: inherit;
+  box-shadow: none;
+}
+
 .keyboard {
     padding-right: 20px;
     padding-bottom: 10px;
 }
+
 button:active, .round_button:active {
     background-color: #cb4b16; /*solarized-orange*/
 }
@@ -257,8 +264,8 @@ spinbutton:disabled {
 }
 
 spinbutton button.up, spinbutton button.down {
-    padding-top: 20px;
-    padding-bottom: 20px;
+    padding-top: 10px;
+    padding-bottom: 10px;
 }
 
 .move_menu {
@@ -355,7 +362,6 @@ scrollbar, scrollbar button, scrollbar trough {
     background-color: inherit;
 }
 
-
 scrolledwindow button {
     box-shadow: -8px 11px 10px 2px rgba(34, 60, 80, 0.2) inset;
     border-radius: 1em;
@@ -384,6 +390,10 @@ textview .time {
 
 .popup {
     background-color: #002b36; /*solarized-cyan*/
+    border: .1em solid white;
+    border-radius: 1em;
+    padding: 1em;
+    margin: 0;
 }
 
 .tempbutton_top, .tempbutton, .tempbutton_bottom, .distbutton_top, .distbutton, .distbutton_bottom  {

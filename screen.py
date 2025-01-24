@@ -294,9 +294,9 @@ class KlipperScreen(Gtk.Window):
                 "heaters": ["is_waiting"],
                 "probe": ["is_using_magnet_probe", "last_z_result", "is_adjusting"],
                 "screws_tilt_adjust": ["results", "base_screw", "calibrating_screw", "is_calibrating"],
-                "manual_probe": ["is_active", "command"],
+                "manual_probe": ["is_active", "command", "z_position_endstop"],
                 "pid_calibrate": ["is_calibrating"],
-                "filament_watcher": ['filament_type', 'show_message']
+                "filament_watcher": ['filament_type', 'show_message'],
             }
         }
         for extruder in self.printer.get_tools():

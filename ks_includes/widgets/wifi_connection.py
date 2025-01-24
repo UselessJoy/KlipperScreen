@@ -120,7 +120,7 @@ class WiFiConnection(Gtk.Box):
         ap_scroll.add(ap_box)
         self.labels['AP_box'] = ap_scroll
 
-    def get_access_point_activity(self, is_access_point_active):
+    def print_network_mode(self, is_access_point_active):
         if self.is_access_point_active != is_access_point_active:
             self.is_access_point_active = is_access_point_active
             if self.is_access_point_active:

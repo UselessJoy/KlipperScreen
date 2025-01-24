@@ -1,12 +1,11 @@
 import logging
 import socket
-from gettext import ngettext
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Pango, GLib
 from ks_includes.screen_panel import ScreenPanel
-
-
+from ks_includes.callback_thread import CallbackThread
+import ks_includes.widgets.DetailsBoxes as DetailsBoxes
 class Panel(ScreenPanel):
     def __init__(self, screen, title):
         title = title or _("Update")
@@ -24,10 +23,12 @@ class Panel(ScreenPanel):
                 lines=1,
             ),
         }
+        self.main_updates = Gtk.Grid(row_homogeneous=True)
+        self.is_details_box = False
         self.buttons["refresh"].connect("clicked", self.refresh_updates)
         self.buttons["refresh"].set_vexpand(False)
-        top_box = Gtk.Box(vexpand=False)
-        top_box.pack_start(self.buttons["refresh"], True, True, 0)
+        self.top_box = Gtk.Box(vexpand=False)
+        self.top_box.pack_start(self.buttons["refresh"], True, True, 0)
         self.update_msg = Gtk.Label(label=_("Checking for updates, please wait..."), vexpand=True)
         self.check_internet_msg = Gtk.Label(label=_("Checking for internet connection, please wait..."), vexpand=True)
         self.no_internet_access_msg = Gtk.Label(label=_("Cannot connect to github.com.\nPlease, check your internet connection"), vexpand=True, max_width_chars=40, wrap=True, wrap_mode = Pango.WrapMode.WORD_CHAR)
@@ -35,53 +36,25 @@ class Panel(ScreenPanel):
         self.scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.scroll.add(self.check_internet_msg)
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, vexpand=True)
-        self.main_box.pack_start(top_box, False, False, 0)
+        self.main_box.pack_start(self.top_box, False, False, 0)
         self.main_box.pack_start(self.scroll, True, True, 0)
         self.content.add(self.main_box)
-        
-    def activate(self):
-      GLib.timeout_add(200, self.refresh_updates)
-        
-    def create_info_grid(self):
-        infogrid = Gtk.Grid()
-        infogrid.get_style_context().add_class("system-program-grid")
-        for i, prog in enumerate(sorted(list(self.update_status["version_info"]))):
-            self.labels[prog] = Gtk.Label(
-                hexpand=True, halign=Gtk.Align.START, ellipsize=Pango.EllipsizeMode.END
-            )
-            self.labels[prog].get_style_context().add_class("updater-item")
-            #prog - system, moonraker,  klipper, crownest, fluidd, KlipperScreen
-            self.buttons[f"{prog}_status"] = self._gtk.Button()
-            self.buttons[f"{prog}_status"].set_hexpand(False)
-            self.buttons[f"{prog}_status"].connect(
-                "clicked", self.show_update_info, prog
-            )
 
-            try:
-                if prog in self._printer.system_info["available_services"]:
-                    self.buttons[f"{prog}_restart"] = self._gtk.Button(
-                        "refresh",
-                        _("Restart"),
-                        "color2",
-                        position=Gtk.PositionType.LEFT,
-                        scale=self.bts,
-                    )
-                    self.buttons[f"{prog}_restart"].connect(
-                        "clicked", self.restart, prog
-                    )
-                    infogrid.attach(self.buttons[f"{prog}_restart"], 0, i, 1, 1)
-            except Exception as e:
-                logging.exception(e)
-
-            infogrid.attach(self.labels[prog], 1, i, 1, 1)
-            infogrid.attach(self.buttons[f"{prog}_status"], 2, i, 1, 1)
-            self.update_program_info(prog)
+    def back(self):
+      if self.is_details_box:
         self.clear_scroll()
-        self.scroll.add(infogrid)
-
+        self.scroll.add(self.main_updates)
+        self.top_box.show()
+        self.scroll.show_all()
+        return True
+      return False
+    
     def clear_scroll(self):
         for child in self.scroll.get_children():
             self.scroll.remove(child)
+
+    def activate(self):
+        GLib.timeout_add(200, self.refresh_updates)
 
     def refresh_updates(self, widget=None):
         self._gtk.Button_busy(self.buttons["refresh"], True)
@@ -89,22 +62,7 @@ class Panel(ScreenPanel):
         self.scroll.add(self.check_internet_msg)
         self.scroll.show_all()
         self.show_on_connection_result(self.inner_has_connection())
-        # thread = CallbackThread(
-        #   name='connection_check',
-        #   target=self.inner_has_connection,
-        #   callback=self.show_on_connection_result,
-        # )
-        # thread.start()
-        # Смысла чекать через moonraker сейчас нет
-        # self._screen._ws.send_method("machine.internet.connection", callback=self.on_get_connection)
-        
-    # def on_get_connection(self, result, method, params):
-    #   is_method_done = 'result' in result
-    #   if is_method_done:
-    #     has_connection = result['result']
-    #     self.show_on_connection_result(has_connection)
-    #   else:
-        
+       
     def show_on_connection_result(self, has_connection):
         if has_connection:
           self.check_updates()
@@ -127,7 +85,7 @@ class Panel(ScreenPanel):
         except Exception as e:
           logging.exception(f"Exception on internet_access: {e}")
         return False
-    
+
     def show_no_connection_message(self):
       self.clear_scroll()
       self.scroll.add(self.no_internet_access_msg)
@@ -139,270 +97,181 @@ class Panel(ScreenPanel):
       self.scroll.add(self.update_msg)
       self.scroll.show_all()
       logging.info("Sending machine.update.refresh")
-      self._screen._ws.send_method("machine.update.refresh", callback=self.get_updates)
+      self._screen._ws.send_method("machine.update.refresh", callback=self.on_updates)
 
-    def get_updates(self, response, method, params):
+    def show_details(self, widget, DetailsBox, *args):
+       self.clear_scroll()
+       self.top_box.hide()
+       self.scroll.add(DetailsBox(self.update_status['version_info'], *args))
+       self.is_details_box = True
+       self.scroll.show_all()
+
+    def _all_updated(self):
+        v_info = self.update_status['version_info']
+        return all(v_info[prog]['vesion'] == v_info[prog]['remote_version'] for prog in v_info if prog != 'system')
+    def _any_not_valid(self):
+        v_info = self.update_status['version_info']
+        return any((not v_info[prog]['is_valid']) for prog in v_info if prog != 'system')
+    
+    def UpdaterBox(self, updater_label, update_button_label, update_button_callback, DetailsBox, *args):
+      updater_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+      updater_label = Gtk.Label(label = updater_label, halign=Gtk.Align.START)
+      updater_label.get_style_context().add_class("details_prog_label")
+      updater_box.add(updater_label)
+      button_box = Gtk.Box()
+      if update_button_label:
+         update_button = self._gtk.Button(None, update_button_label, "color2", vexpand=False)
+         update_button.set_size_request((self._screen.width - 30) / 4, self._screen.height / 5)
+         update_button.connect("clicked", update_button_callback)
+         button_box.add(update_button)
+      details_button = self._gtk.Button(None, _("Details"), "color3", vexpand=False)
+      details_button.set_size_request((self._screen.width - 30) / 4, self._screen.height / 5)
+      details_button.connect("clicked", self.show_details, DetailsBox, *args)
+      button_box.add(details_button)
+      updater_box.add(button_box)
+      return updater_box
+
+    def ApplicationBox(self):
+      updater_label = update_button_label = ""
+      update_button_callback = lambda *args: None
+      if self._any_not_valid():
+        DetailsBox = DetailsBoxes.DetailsDirty
+        updater_label = _("Software: version verification error")
+        update_button_label = _("Recover")
+        update_button_callback = self.show_recover_dialog     
+      elif self._all_updated():
+        DetailsBox = DetailsBoxes.DetailsActual
+        updater_label = _("Software: actual version")
+      else:
+        DetailsBox = DetailsBoxes.DetailsUpdates
+        updater_label = _("Software: has updates")
+        update_button_label = _("Update")
+        update_button_callback = self.show_update_dialog
+      return self.UpdaterBox(updater_label, update_button_label, update_button_callback, DetailsBox)
+
+    def SystemBox(self):
+      updater_label = ( 
+        self._printer.system_info["distribution"]["name"] 
+        if "distribution" in self._printer.system_info and "name" in self._printer.system_info["distribution"]
+        else _("System")
+      )
+      update_button_label = _("Update") if self.update_status['version_info']['system']['package_count'] != 0 else ""
+      update_button_callback = self.show_system_update_dialog
+      DetailsBox = DetailsBoxes.DetailsSystemBox
+      return self.UpdaterBox(updater_label, update_button_label, update_button_callback, DetailsBox, updater_label)
+
+    def on_updates(self, response, method, params):
         self._gtk.Button_busy(self.buttons["refresh"], False)
-        logging.info(response)
-        if not response or "result" not in response:
-            self.clear_scroll()
-            if "error" in response:
-                self.scroll.add(
-                    Gtk.Label(
-                        label=f"Moonraker: {response['error']['message']}", vexpand=True
-                    )
-                )
-            else:
-                self.scroll.add(
-                    Gtk.Label(label=_("Not working or not configured"), vexpand=True)
-                )
-        else:
-            self.update_status = response["result"]
-            self.create_info_grid()
+        self.update_status = response["result"]
+        self.clear_scroll()
+        self.main_updates.attach(self.ApplicationBox(), 0, 0, 1, 1)
+        if 'system' in self.update_status['version_info']:
+          self.main_updates.attach(self.SystemBox(), 0, 1, 1, 1)
+        self.scroll.add(self.main_updates)
         self.scroll.show_all()
 
-    def restart(self, widget, program):
-        if self._printer.state in ("printing", "paused"):
-            self._screen._confirm_send_action(
-                widget,
-                f'{_("Are you sure?")}\n\n' f'{_("Restart")}: {program}',
-                "machine.services.restart",
-                {"service": program},
+    def show_recover_dialog(self, widget):
+      label = Gtk.Label(label = _("Recover applications?"), wrap=True, vexpand=True)
+      recoverybuttons = [
+          {
+              "name": _("Recover"),
+              "response": Gtk.ResponseType.OK,
+              "style": "color4",
+          },
+          {
+              "name": _("Cancel"),
+              "response": Gtk.ResponseType.CANCEL,
+              "style": "color3",
+          },
+      ]
+      self._gtk.Dialog(recoverybuttons, label, _("Recover"), self.recover)
+      return
+
+    def show_update_dialog(self, widget):
+      v_info = self.update_status["version_info"]
+      scroll = self._gtk.ScrolledWindow(steppers=False)
+      scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+      labelBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+      for prog in v_info:
+        if prog != 'system':
+          if v_info[prog]['version'] != v_info['remote_version']:
+            prog_label = Gtk.Label(wrap=True, vexpand=True)
+            prog_label.set_markup(
+              "<b>"
+              + _("%s will be updated to version") % prog.capitalize()
+              + f": {v_info[prog]['remote_version']}</b>"
             )
-        else:
-            self._screen._send_action(
-                widget, "machine.services.restart", {"service": program}
-            )
+            labelBox.add(prog_label)
+      scroll.add(labelBox)
+      buttons = [
+          {
+              "name": _("Update"),
+              "response": Gtk.ResponseType.OK,
+              "style": "color4",
+          },
+          {
+              "name": _("Cancel"),
+              "response": Gtk.ResponseType.CANCEL,
+              "style": "color3",
+          },
+      ]
+      self._gtk.Dialog(buttons, scroll, _("Update"), self.update)
 
-    def show_update_info(self, widget, program):
-        info = (
-            self.update_status["version_info"][program]
-            if program in self.update_status["version_info"]
-            else {}
-        )
-
-        scroll = self._gtk.ScrolledWindow(steppers=False)
-        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-
-        label = Gtk.Label(wrap=True, vexpand=True)
-        if "configured_type" in info and info["configured_type"] == "git_repo":
-            if not info["is_valid"] or info["is_dirty"]:
-                label.set_markup(_("Do you want to recover %s?") % program)
-                recoverybuttons = [
-                    {
-                        "name": _("Recover"),
-                        "response": Gtk.ResponseType.OK,
-                        "style": "color4",
-                    },
-                    {
-                        "name": _("Cancel"),
-                        "response": Gtk.ResponseType.CANCEL,
-                        "style": "color3",
-                    },
-                ]
-                self._gtk.Dialog(recoverybuttons, label, _("Recover"), self.reset_confirm, program, info["is_valid"], info["is_dirty"])
-                return
-            else:
-                if info["version"] == info["remote_version"]:
-                    return
-                ncommits = len(info["commits_behind"])
-                label.set_markup(
-                    "<b>"
-                    + _("Outdated by %d") % ncommits
-                    + " "
-                    + ngettext("commit", "commits", ncommits)
-                    + ":</b>\n"
-                )
-                vbox.add(label)
-                label.set_vexpand(False)
-                for c in info["commits_behind"]:
-                    commit_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-                    title = Gtk.Label(wrap=True, hexpand=True)
-                    title.set_markup(f"\n<b>{c['subject']}</b>\n<i>{c['author']}</i>\n")
-                    commit_box.add(title)
-
-                    details = Gtk.Label(label=c["message"], wrap=True, hexpand=True)
-                    commit_box.add(details)
-                    commit_box.add(Gtk.Separator())
-                    vbox.add(commit_box)
-
-        elif "package_count" in info:
-            label.set_markup(
+    def show_system_update_dialog(self, widget):
+      v_packages_count = self.update_status["version_info"]['system']["package_count"]
+      label = Gtk.Label(wrap=True, vexpand=True)
+      label.set_markup(
                 (
-                    f'<b>{info["package_count"]} '
+                    f'<b>{v_packages_count} '
                     + ngettext(
-                        "Package will be updated",
-                        "Packages will be updated",
-                        info["package_count"],
-                    )
-                    + ":</b>\n"
+                        "package will be updated",
+                        "packages will be updated",
+                        v_packages_count,
+                    ) +'</b>'
                 )
             )
-            label.set_vexpand(False)
-            vbox.set_valign(Gtk.Align.CENTER)
-            vbox.add(label)
-            grid = Gtk.Grid(
-                column_homogeneous=True,
-                halign=Gtk.Align.CENTER,
-                valign=Gtk.Align.CENTER,
-            )
-            i = 0
-            for j, c in enumerate(info["package_list"]):
-                label = Gtk.Label(
-                    halign=Gtk.Align.START, ellipsize=Pango.EllipsizeMode.END
-                )
-                label.set_markup(f"  {c}  ")
-                pos = j % 3
-                grid.attach(label, pos, i, 1, 1)
-                if pos == 2:
-                    i += 1
-            vbox.add(grid)
-        else:
-            label.set_markup(
-                "<b>"
-                + _("%s will be updated to version") % program.capitalize()
-                + f": {info['remote_version']}</b>"
-            )
-            vbox.add(label)
+      buttons = [
+          {
+              "name": _("Update"),
+              "response": Gtk.ResponseType.OK,
+              "style": "color4",
+          },
+          {
+              "name": _("Cancel"),
+              "response": Gtk.ResponseType.CANCEL,
+              "style": "color3",
+          },
+      ]
+      self._gtk.Dialog(buttons, label, _("Update"), self.system_update)
 
-        scroll.add(vbox)
+    def update(self, dialog, response_id):
+       self._gtk.remove_dialog(dialog)
+       if response_id == Gtk.ResponseType.OK:
+          self.send_update_method('applications', _("Starting applications updates..."))
 
-        buttons = [
-            {
-                "name": _("Update"),
-                "response": Gtk.ResponseType.OK,
-                "style": "color4",
-            },
-            {
-                "name": _("Cancel"),
-                "response": Gtk.ResponseType.CANCEL,
-                "style": "color3",
-            },
-        ]
-        self._gtk.Dialog(buttons, scroll, _("Update"), self.update_confirm, program)
+    def system_update(self, dialog, response_id):
+       self._gtk.remove_dialog(dialog)
+       if response_id == Gtk.ResponseType.OK:
+        self.send_update_method('system', _("Starting system updates..."))
 
-    def update_confirm(self, dialog, response_id, program):
-        self._gtk.remove_dialog(dialog)
-        if response_id == Gtk.ResponseType.OK:
-            logging.debug(f"Updating {program}")
-            self.update_program(self, program)
+    def recover(self, dialog, response_id):
+       self._gtk.remove_dialog(dialog)
+       if response_id == Gtk.ResponseType.OK:
+        apps = {}
+        v_info = self.update_status['version_info']
+        for prog in v_info:
+            if prog != 'system':
+              prog_info = v_info[prog]
+              if not prog_info['is_valid']:
+                apps[prog] = {'hard': not not prog_info['git_messages'], 'update_deps': False}
+        self.send_update_method('recover_needed', _("Starting recovering..."), apps)
 
-    def reset_confirm(self, dialog, response_id, program, valid, dirty):
-        self._gtk.remove_dialog(dialog)
-        if self.inner_has_connection():
-          if response_id == Gtk.ResponseType.OK:
-              if dirty:
-                self.reset_repo(self, program, False)
-              if not valid:
-                self.reset_repo(self, program, True)
-        else:
-          self.clear_scroll()
-          self.scroll.add(self.no_internet_access_msg)
-          self._gtk.Button_busy(self.buttons["refresh"], False)
-        
-    def reset_repo(self, widget, program, hard):
+    def send_update_method(self, method, msg, *args):
         if self._screen.updating:
-            return
+          return
         self._screen.base_panel.show_update_dialog()
-        msg = _("Starting recovery for") + f" {program}..."
         self._screen._websocket_callback(
             "notify_update_response",
-            {"application": {program}, "message": msg, "complete": False},
+            {"message": msg, "complete": False},
         )
-        logging.info(f"Sending machine.update.recover name: {program} hard: {hard}")
-        self._screen._ws.send_method(
-            "machine.update.recover", {"name": program, "hard": hard}
-        )
-
-    def update_program(self, widget, program):
-        if self._screen.updating or not self.update_status:
-            return
-
-        if program in self.update_status["version_info"]:
-            info = self.update_status["version_info"][program]
-            logging.info(f"program: {info}")
-            if (
-                "package_count" in info
-                and info["package_count"] == 0
-                or "version" in info
-                and info["version"] == info["remote_version"]
-            ):
-                return
-        self._screen.base_panel.show_update_dialog()
-        msg = (
-            _("Updating")
-            if program == "full"
-            else _("Starting update for") + f" {program}..."
-        )
-        self._screen._websocket_callback(
-            "notify_update_response",
-            {"application": {program}, "message": msg, "complete": False},
-        )
-
-        if program in ["klipper", "moonraker", "system", "full"]:
-            logging.info(f"Sending machine.update.{program}")
-            self._screen._ws.send_method(f"machine.update.{program}")
-        else:
-            logging.info(f"Sending machine.update.client name: {program}")
-            self._screen._ws.send_method("machine.update.client", {"name": program})
-
-    def update_program_info(self, p):
-        if not self.update_status or p not in self.update_status["version_info"]:
-            logging.info(f"Unknown version: {p}")
-            return
-
-        info = self.update_status["version_info"][p]
-
-        if p == "system":
-            distro = (
-                self._printer.system_info["distribution"]["name"]
-                if "distribution" in self._printer.system_info
-                and "name" in self._printer.system_info["distribution"]
-                else _("System")
-            )
-            self.labels[p].set_markup(f"<b>{distro}</b>")
-            if info["package_count"] == 0:
-                self._already_updated(p)
-            else:
-                self._needs_update(p, local="", remote=info["package_count"])
-
-        elif "configured_type" in info and info["configured_type"] == "git_repo":
-            if info["is_valid"] and not info["is_dirty"]:
-                if info["version"] == info["remote_version"]:
-                    self.labels[p].set_markup(f"<b>{p}</b>\n{info['version']}")
-                    self._already_updated(p)
-                    self.buttons[f"{p}_status"].get_style_context().remove_class(
-                        "invalid"
-                    )
-                else:
-                    self.labels[p].set_markup(
-                        f"<b>{p}</b>\n{info['version']} -> {info['remote_version']}"
-                    )
-                    self._needs_update(p, info["version"], info["remote_version"])
-            else:
-                logging.info(f"Invalid {p} {info['version']}")
-                self.labels[p].set_markup(f"<b>{p}</b>\n{info['version']}")
-                self.buttons[f"{p}_status"].set_label(_("Invalid"))
-                self.buttons[f"{p}_status"].get_style_context().add_class("invalid")
-                self.buttons[f"{p}_status"].set_sensitive(True)
-        elif "version" in info and info["version"] == info["remote_version"]:
-            self.labels[p].set_markup(f"<b>{p}</b>\n{info['version']}")
-            self._already_updated(p)
-        else:
-            self.labels[p].set_markup(
-                f"<b>{p}</b>\n{info['version']} -> {info['remote_version']}"
-            )
-            self._needs_update(p, info["version"], info["remote_version"])
-
-    def _already_updated(self, p):
-        self.buttons[f"{p}_status"].set_label(_("Up To Date"))
-        self.buttons[f"{p}_status"].get_style_context().remove_class("update")
-        self.buttons[f"{p}_status"].set_sensitive(False)
-
-    def _needs_update(self, p, local="", remote=""):
-        logging.info(f"{p} {local} -> {remote}")
-        self.buttons[f"{p}_status"].set_label(_("Update"))
-        self.buttons[f"{p}_status"].get_style_context().add_class("update")
-        self.buttons[f"{p}_status"].set_sensitive(True)
+        self._screen._ws.send_method(f"machine.update.{method}", *args)

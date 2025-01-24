@@ -80,8 +80,8 @@ msgid "Apply"
 msgstr "Применить"
 
 #, python-format
-msgid "Apply %s%.3f offset to Endstop?"
-msgstr "Применить смещение %s%.3f к концевику?"
+msgid "Apply %.3f offset to Endstop?"
+msgstr "Применить смещение %.3f к концевику?"
 
 #, python-format
 msgid "Apply %s%.3f offset to Probe?"
@@ -336,7 +336,17 @@ msgid "Finish"
 msgstr "Конец"
 
 msgid "Firmware Restart"
-msgstr "Перезапустить прошивку"
+msgstr "Перезапустить"
+
+msgid "Are you sure you want to download the backup?"
+msgstr "Вы уверены, что хотите загрузить бэкап?"
+
+#, python-format
+msgid "Will be recover to the latest backup"
+msgstr "Будет восстановлен последний бэкап"
+
+msgid "Backup not found. Will be recover to the base config"
+msgstr "Бэкап не найден. Будет восстановлена базовая конфигурация"
 
 msgid "Services"
 msgstr "Службы"
@@ -793,8 +803,8 @@ msgid "Saved"
 msgstr "Сохранённое"
 
 #, python-format
-msgid "Saved offset: %s"
-msgstr "Сохранено смещение: %s"
+msgid "Saved offset: %.3f"
+msgstr "Сохранено смещение: %.3f"
 
 msgid "Screen DPMS"
 msgstr "Экран DPMS"

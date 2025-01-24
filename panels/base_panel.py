@@ -3,11 +3,12 @@ import contextlib
 import logging
 import os
 import subprocess
+import time
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk, Pango, Gdk
 from jinja2 import Environment
-from datetime import datetime
+import datetime
 from math import log
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.timepicker import Timepicker
@@ -32,7 +33,7 @@ class BasePanel(ScreenPanel):
         self.hours = None
         self.minutes = None
         self.current_extruder = None
-        self.last_usage_report = datetime.now()
+        self.last_usage_report = datetime.datetime.now()
         self.usage_report = 0
         self.timezone = ""
         # Action bar buttons
@@ -189,7 +190,7 @@ class BasePanel(ScreenPanel):
                     {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color2"},
                     {"name": _("Resume"), "response": Gtk.ResponseType.OK, "style": "color4"}
                 ]
-        now = datetime.now()
+        now = datetime.datetime.now()
         self.hours = int(f'{now:%H}')
         self.minutes = int(f'{now:%M}')
         stat = subprocess.call(["systemctl", "is-active", "--quiet", "systemd-timesyncd.service"])
@@ -214,6 +215,7 @@ class BasePanel(ScreenPanel):
             if self.timezone:
               os.system(f"timedatectl set-timezone {self.timezone}")
         self.update_time()
+        time.tzset()
 
     def on_change_timesync(self, switch_status):
         self.is_timesync = switch_status
@@ -450,13 +452,13 @@ class BasePanel(ScreenPanel):
                 if self.usage_report < 3:
                     self.usage_report += 1
                     return
-                self.last_usage_report = datetime.now()
+                self.last_usage_report = datetime.datetime.now()
                 if not ctx.has_class(error):
                     ctx.add_class(error)
                 self._screen.log_notification(f"{self._screen.connecting_to_printer}: {msg}", 2)
                 self.titlelbl.set_label(msg)
             elif ctx.has_class(error):
-                if (datetime.now() - self.last_usage_report).seconds < 5:
+                if (datetime.datetime.now() - self.last_usage_report).seconds < 5:
                     self.titlelbl.set_label(msg)
                     return
                 self.usage_report = 0
@@ -657,8 +659,8 @@ class BasePanel(ScreenPanel):
 
         self.titlelbl.set_label(f"{self._screen.connecting_to_printer} | {title}")
 
-    def update_time(self):
-        now = datetime.now()
+    def update_time(self): 
+        now = datetime.datetime.now()
         confopt = self._config.get_main_config().getboolean("24htime", True)
         if now.minute != self.time_min or self.time_format != confopt:
             if confopt:

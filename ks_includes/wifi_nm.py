@@ -9,7 +9,7 @@ from ks_includes import NetworkManager
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 import gi
-from subprocess import Popen
+from subprocess import Popen, check_output
 from threading import Thread
 gi.require_version('Gdk', '3.0')
 from gi.repository import GLib
@@ -275,6 +275,7 @@ class WifiManager:
         aps = self.visible_networks
         if path in aps:
             ap = aps[path]
+            mode = check_output("nmcli -f %s connection show -s %s | awk '{print $2}'" % ('802-11-wireless.mode', ssid), universal_newlines=True, shell=True)[:-1]
             with contextlib.suppress(NetworkManager.ObjectVanished):
                 netinfo.update({
                     "mac": ap.HwAddress,
@@ -283,7 +284,7 @@ class WifiManager:
                     "frequency": str(ap.Frequency),
                     "flags": ap.Flags,
                     "ssid": ssid,
-                    "is_hotspot": ap.Mode == NetworkManager.NM_802_11_MODE_AP,
+                    "is_hotspot": mode == 'ap',
                     "connected": self._get_connected_ap() == ap,
                     "encryption": self._get_encryption(ap.RsnFlags),
                     "signal_level_dBm": int(ap.Strength),
@@ -294,20 +295,20 @@ class WifiManager:
     def _get_encryption(flags):
         encryption = ""
         if (flags & NetworkManager.NM_802_11_AP_SEC_PAIR_WEP40 or
-                flags & NetworkManager.NM_802_11_AP_SEC_PAIR_WEP104 or
-                flags & NetworkManager.NM_802_11_AP_SEC_GROUP_WEP40 or
-                flags & NetworkManager.NM_802_11_AP_SEC_GROUP_WEP104):
-            encryption += "WEP "
+            flags & NetworkManager.NM_802_11_AP_SEC_PAIR_WEP104 or
+            flags & NetworkManager.NM_802_11_AP_SEC_GROUP_WEP40 or
+            flags & NetworkManager.NM_802_11_AP_SEC_GROUP_WEP104):
+                encryption += "WEP "
         if (flags & NetworkManager.NM_802_11_AP_SEC_PAIR_TKIP or
-                flags & NetworkManager.NM_802_11_AP_SEC_GROUP_TKIP):
-            encryption += "TKIP "
+            flags & NetworkManager.NM_802_11_AP_SEC_GROUP_TKIP):
+                encryption += "TKIP "
         if (flags & NetworkManager.NM_802_11_AP_SEC_PAIR_CCMP or
-                flags & NetworkManager.NM_802_11_AP_SEC_GROUP_CCMP):
-            encryption += "AES "
+            flags & NetworkManager.NM_802_11_AP_SEC_GROUP_CCMP):
+                encryption += "AES "
         if flags & NetworkManager.NM_802_11_AP_SEC_KEY_MGMT_PSK:
-            encryption += "WPA-PSK "
+                encryption += "WPA-PSK "
         if flags & NetworkManager.NM_802_11_AP_SEC_KEY_MGMT_802_1X:
-            encryption += "802.1x "
+                encryption += "802.1x "
         return encryption.strip()
 
     def get_networks(self):

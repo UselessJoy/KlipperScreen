@@ -47,13 +47,6 @@ class APConfiguration(Gtk.Box):
         autobox.set_valign(Gtk.Align.CENTER)
         autobox.pack_start(Gtk.Label(label=_("Autoconnect")), False, False, 0)
         autobox.pack_end(self.labels['AP']['autoconnect'], False, False, 0)
-        
-        # use_password_box = Gtk.Box()
-        # use_password_box.set_hexpand(True)
-        # use_password_box.set_vexpand(False)
-        # use_password_box.set_valign(Gtk.Align.CENTER)
-        # use_password_box.pack_start(Gtk.Label(label=_("Use Password")), False, False, 0)
-        # use_password_box.pack_end(self.labels['AP']['is_need_password'], False, False, 0)
 
         IP_address = TypedEntry()
         IP_address.set_text(self.ap.get_ip()) 
@@ -67,7 +60,6 @@ class APConfiguration(Gtk.Box):
         plugRight.set_size_request(self._screen.gtk.content_width/7, 1)
 
         self.grid = Gtk.Grid()
-        # self.grid.attach(plugRight, 0, 0, 2, 3)
         self.grid.attach(Gtk.Label(label=_("IP-address")), 0, 1, 1, 1)
         self.grid.attach(IP_address, 1, 1, 8, 1)
         self.grid.attach(Gtk.Label(label=_("SSID")), 0, 2, 1, 1)
@@ -76,7 +68,6 @@ class APConfiguration(Gtk.Box):
         self.grid.attach(self.labels['AP']['psk'], 1, 3, 8, 1)
         self.grid.attach(Gtk.Label(label=_("Use\npassword"), justify=Gtk.Justification.CENTER), 9, 2, 1, 1)
         self.grid.attach(self.labels['AP']['is_need_password'], 9, 3, 1, 1)
-        # self.grid.attach(plugLeft, 12, 0, 3, 3)
         self.grid.set_row_spacing(5)
         self.grid.set_vexpand(True)
         self.grid.set_valign(Gtk.Align.CENTER)
@@ -179,7 +170,7 @@ class APConfiguration(Gtk.Box):
             self._screen.show_popup_message(_("Password must contains minimum 8 symbols"))
             return
         autoconnect = ['no', 'yes'][self.labels['AP']['autoconnect'].get_active()]
-        security_method = ['none', 'wpa-psk'][self.labels['AP']['is_need_password'].get_active()]
+        security_method = self.labels['AP']['is_need_password'].get_active()
         try:
           self.ap.modify(ssid, psk, autoconnect, security_method)
         except Exception as e:
@@ -198,7 +189,7 @@ class APConfiguration(Gtk.Box):
         self._screen.show_keyboard(entry=entry, accept_function=self.on_accept_keyboard_dutton)
         self._screen.keyboard.change_entry(entry=entry)
     
-    def get_access_point_activity(self, is_access_point_active):
+    def print_network_mode(self, is_access_point_active):
         if self.is_access_point_active != is_access_point_active:
             self.is_external_set_access_point_activity = True
             self.is_access_point_active = is_access_point_active

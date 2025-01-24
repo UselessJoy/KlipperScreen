@@ -17,12 +17,12 @@ class Panel(ScreenPanel):
 
         self.labels['menu'] = self._gtk.Button("settings", _("Menu"), "color4")
         self.labels['menu'].connect("clicked", self._screen._go_to_submenu, "")
-        self.labels['restart'] = self._gtk.Button("refresh", _("Klipper Service Restart"), "color1")
-        self.labels['restart'].connect("clicked", self.restart_klipper)
+        # self.labels['restart'] = self._gtk.Button("refresh", _("Klipper Service Restart"), "color1")
+        # self.labels['restart'].connect("clicked", self.restart_klipper)
         self.labels['firmware_restart'] = self._gtk.Button("refresh", _("Firmware Restart"), "color2")
         self.labels['firmware_restart'].connect("clicked", self.firmware_restart)
-        self.labels['backup_config'] = self._gtk.Button("refresh", _("Load backup config"), "color3")
-        self.labels['backup_config'].connect("clicked", self.load_backup_config)
+        self.labels['backup_config'] = self._gtk.Button("backup", _("Load backup config"), "color3")
+        self.labels['backup_config'].connect("clicked", self.confirm_backup)
         self.labels['retry'] = self._gtk.Button("load", _('Retry'), "color3")
         self.labels['retry'].connect("clicked", self.retry)
 
@@ -59,7 +59,7 @@ class Panel(ScreenPanel):
             self.labels['actions'].remove(child)
 
     def show_restart_buttons(self):
-        self._screen.gtk.Button_busy(self.labels['restart'], False)
+        # self._screen.gtk.Button_busy(self.labels['restart'], False)
         self._screen.gtk.Button_busy(self.labels['firmware_restart'], False)
         self._screen.gtk.Button_busy(self.labels['backup_config'], False)
         self.clear_action_bar()
@@ -68,7 +68,7 @@ class Panel(ScreenPanel):
             if power_devices and self._printer.get_power_devices():
                 logging.info(f"Associated power devices: {power_devices}")
                 self.add_power_button(power_devices)
-        self.labels['actions'].add(self.labels['restart'])
+        # self.labels['actions'].add(self.labels['restart'])
         self.labels['actions'].add(self.labels['firmware_restart'])
         self.labels['actions'].add(self.labels['backup_config'])
         self.labels['actions'].add(self.labels['menu'])
@@ -107,10 +107,18 @@ class Panel(ScreenPanel):
         self._screen.gtk.Button_busy(widget, True)
         GLib.timeout_add_seconds(10, lambda: self._screen.gtk.Button_busy(widget, False))
 
-    def load_backup_config(self, widget):
-      self._screen._ws.klippy.load_backup_config()
-      self._screen.gtk.Button_busy(widget, True)
-      GLib.timeout_add_seconds(10, lambda: self._screen.gtk.Button_busy(widget, False))
+    def confirm_backup(self, widget):
+        self._screen._ws.klippy.check_backup(self.on_check_backup)
+    
+    def on_check_backup(self, result, method, params):
+        if "error" in result:
+            logging.debug(result["error"])
+            return
+        self._screen._confirm_send_action(
+            self.labels['backup_config'],
+            _("Are you sure you want to download the backup?") +"\n\n" + (_("Will be recover to the latest backup") if result['result']['backup'] else _("Backup not found. Will be recover to the base config")),
+            "printer.load_backup_config",
+        )
 
     def retry(self, widget):
         if self._screen._ws and not self._screen._ws.connecting:

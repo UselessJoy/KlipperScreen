@@ -592,7 +592,7 @@ msgid "Saved"
 msgstr ""
 
 #, python-format
-msgid "Saved offset: %s"
+msgid "Saved offset: %.3f"
 msgstr ""
 
 msgid "Screen DPMS"

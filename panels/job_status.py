@@ -366,7 +366,6 @@ class Panel(ScreenPanel):
             'pause': self._gtk.Button("pause", _("Pause"), "color1"),
             'restart': self._gtk.Button("refresh", _("Restart"), "color3"),
             'resume': self._gtk.Button("resume", _("Resume"), "color1"),
-            'save_offset_probe': self._gtk.Button("home-z", _("Save offset probe"), "color1"),
             'save_offset_endstop': self._gtk.Button("home-z", _("Save offset endstop"), "color2"),
         }
         self.buttons['cancel'].connect("clicked", self.cancel)
@@ -377,28 +376,16 @@ class Panel(ScreenPanel):
         self.buttons['pause'].connect("clicked", self.pause)
         self.buttons['restart'].connect("clicked", self.restart)
         self.buttons['resume'].connect("clicked", self.resume)
-        self.buttons['save_offset_probe'].connect("clicked", self.save_offset, "probe")
-        self.buttons['save_offset_endstop'].connect("clicked", self.save_offset, "endstop")
+        self.buttons['save_offset_endstop'].connect("clicked", self.save_offset)
 
-    def save_offset(self, widget, device):
-        sign = "-" if self.zoffset > 0 else "+"
+    def save_offset(self, widget):
         label = Gtk.Label()
-        if device == "probe":
-            probe = self._printer.get_probe()
-            saved_z_offset = probe['z_offset'] if probe else "?"
-            label.set_label(_("Apply %s%.3f offset to Probe?") % (sign, self.zoffset)
-                            + "\n\n"
-                            + _("Saved offset: %s") % saved_z_offset)
-        elif device == "endstop":
-            saved_z_offset = None
-            msg = _("Apply %s%.3f offset to Endstop?") % (sign, self.zoffset) 
-            if 'stepper_z' in self._printer.get_config_section_list():
-                saved_z_offset = self._printer.get_config_section('stepper_z')['position_endstop']
-            elif 'stepper_a' in self._printer.get_config_section_list():
-                saved_z_offset = self._printer.get_config_section('stepper_a')['position_endstop']
-            if saved_z_offset:
-                msg += "\n\n" + _("Saved offset: %s") % saved_z_offset
-            label.set_label(msg)
+        saved_z_offset = None
+        msg = _("Apply %.3f offset to Endstop?") % (self.zoffset) 
+        saved_z_offset = self._printer.get_stat("manual_probe", "z_position_endstop")
+        if saved_z_offset:
+            msg += "\n\n" + _("Saved offset: %.3f") % saved_z_offset
+        label.set_label(msg)
         label.set_hexpand(True)
         label.set_halign(Gtk.Align.CENTER)
         label.set_vexpand(True)
@@ -412,23 +399,16 @@ class Panel(ScreenPanel):
             {"name": _("Apply"), "response": Gtk.ResponseType.APPLY, "style": "color4"},
             {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color2"}
         ]
-        self._gtk.Dialog(buttons, grid, _("Save Z"), self.save_confirm, device)
+        self._gtk.Dialog(buttons, grid, _("Save Z"), self.save_confirm)
 
-    def save_confirm(self, dialog, response_id, device):
+    def save_confirm(self, dialog, response_id):
         self._gtk.remove_dialog(dialog)
         if response_id == Gtk.ResponseType.APPLY:
-            if device == "probe":
-                self._screen._ws.klippy.gcode_script("Z_OFFSET_APPLY_PROBE")
-            if device == "endstop":
-                self._screen._ws.klippy.gcode_script("Z_OFFSET_APPLY_ENDSTOP")
-            self._screen._ws.klippy.gcode_script("SAVE_CONFIG")
+            self._screen._ws.klippy.gcode_script("Z_OFFSET_APPLY_ENDSTOP")
 
     def restart(self, widget):
         if self.filename:
             self.disable_button("restart")
-            # if self.state == "error":
-            #     script = {"script": "SDCARD_RESET_FILE"}
-            #     self._screen._send_action(None, "printer.gcode.script", script)
             self._screen._ws.klippy.print_start(self.filename, self.print_start_callback)
             logging.info(f"Starting print: {self.filename}")
             self.new_print()
@@ -775,10 +755,6 @@ class Panel(ScreenPanel):
                     self.buttons['button_grid'].attach(self.buttons["save_offset_endstop"], 0, 0, 1, 1)
                 else:
                     self.buttons['button_grid'].attach(Gtk.Label(""), 0, 0, 1, 1)
-                if "Z_OFFSET_APPLY_PROBE" in self._printer.available_commands:
-                    self.buttons['button_grid'].attach(self.buttons["save_offset_probe"], 1, 0, 1, 1)
-                else:
-                    self.buttons['button_grid'].attach(Gtk.Label(""), 1, 0, 1, 1)
             else:
                 self.buttons['button_grid'].attach(Gtk.Label(""), 0, 0, 1, 1)
                 self.buttons['button_grid'].attach(Gtk.Label(""), 1, 0, 1, 1)

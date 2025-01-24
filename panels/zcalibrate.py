@@ -97,7 +97,6 @@ class Panel(ScreenPanel):
         distances.pack_start(distgrid, True, True, 0)
 
         grid = Gtk.Grid()
-        #grid.set_row_homogeneous(True)
         if self._screen.vertical_mode:
             grid.attach(self.buttons['zpos'], 0, 1, 1, 1)
             grid.attach(self.buttons['zneg'], 0, 2, 1, 1)
@@ -131,7 +130,7 @@ class Panel(ScreenPanel):
         if method == "probe":
             self.z_offset = float(self.probe['z_offset'])
             self.widgets['whichoffset'].set_text(_("Probe Offset"))
-            self.widgets['savedoffset'].set_text(f"{self.z_offset:.2f}")
+            self.widgets['savedoffset'].set_text(f"{self.z_offset:.3f}")
             self.widgets['probe_z_result'].set_text("Проба сработала на Z = ?")
             #self._move_to_position()
             self._screen._ws.klippy.gcode_script(KlippyGcodes.PROBE_CALIBRATE)
@@ -142,9 +141,9 @@ class Panel(ScreenPanel):
         elif method == "delta_manual":
             self._screen._ws.klippy.gcode_script("DELTA_CALIBRATE METHOD=manual")
         elif method == "endstop":
-            self.z_offset = float(self._printer.get_config_section("stepper_z")['position_endstop'])
+            self.z_offset = float(self._printer.get_stat("manual_probe", "z_position_endstop"))
             self.widgets['whichoffset'].set_text(_("Endstop Offset"))
-            self.widgets['savedoffset'].set_text(f"{self.z_offset:.2f}")
+            self.widgets['savedoffset'].set_text(f"{self.z_offset:.3f}")
             self._screen._ws.klippy.gcode_script(KlippyGcodes.Z_ENDSTOP_CALIBRATE)
 
     def _move_to_position(self):
@@ -228,33 +227,31 @@ class Panel(ScreenPanel):
         if action == "notify_status_update":
             if self._printer.get_stat("toolhead", "homed_axes") != "xyz":
                 self.widgets['zposition'].set_text("Z: ?")
-            elif "gcode_move" in data and "gcode_position" in data['gcode_move']:
-                self.update_position(data['gcode_move']['gcode_position'])
+            elif "gcode_move" in data:
+                if "gcode_position" in data['gcode_move']:
+                    self.update_position(data['gcode_move']['gcode_position'])
             if 'manual_probe' in data:
                 if 'is_active' in data['manual_probe']:
                     self.manual_active = data['manual_probe']['is_active']
+                    if not self.manual_active:
+                        self.clear_widgets()
                 if 'command' in data['manual_probe']:
                     if data['manual_probe']['command'] == 'Z_ENDSTOP_CALIBRATE':
                         self.z_offset = float(self._printer.get_config_section("stepper_z")['position_endstop'])
                         self.widgets['whichoffset'].set_text(_("Endstop Offset"))
-                        self.widgets['savedoffset'].set_text(f"{self.z_offset:.2f}")
+                        self.widgets['savedoffset'].set_text(f"{self.z_offset:.3f}")
                         self.widgets['probe_z_result'].set_text("")
                     elif data['manual_probe']['command'] == 'PROBE_CALIBRATE':
                         self.z_offset = float(self.probe['z_offset'])
                         self.widgets['whichoffset'].set_text(_("Probe Offset"))
-                        self.widgets['savedoffset'].set_text(f"{self.z_offset:.2f}")
+                        self.widgets['savedoffset'].set_text(f"{self.z_offset:.3f}")
                         self.widgets['probe_z_result'].set_text("Проба сработала на Z = ?")  
             if 'probe' in data and 'last_z_result' in data['probe']:
                 if data['probe']['last_z_result']:
                     self.last_z_result = data['probe']['last_z_result']
-            with contextlib.suppress(Exception):
-                if 'probe' in data['configfile']['save_config_pending_items']:
-                    self.save_config()
-                elif 'stepper_z' in data['configfile']['save_config_pending_items']:
-                    self.save_config()
             if self.widgets['probe_z_result'].get_text() != "" and self.manual_active:
                 self.widgets['probe_z_result'].show()
-                self.widgets['probe_z_result'].set_text("Проба сработала на Z = %.2f" % self.last_z_result)
+                self.widgets['probe_z_result'].set_text("Проба сработала на Z = %.3f" % self.last_z_result)
             else:
                 self.widgets['probe_z_result'].hide()
         if action == "notify_gcode_response":
@@ -282,26 +279,21 @@ class Panel(ScreenPanel):
     def move(self, widget, direction):
         self._screen._ws.klippy.gcode_script(KlippyGcodes.testz_move(f"{direction}{self.distance}"))
 
-    def abort(self, widget):
+    def abort(self, widget = None):
         logging.info("Aborting calibration")
         self._screen._ws.klippy.gcode_script(KlippyGcodes.ABORT)
-        # self.buttons_not_calibrating()
-        self._screen._menu_go_back()
 
-    def accept(self, widget):
+
+    def accept(self, widget = None):
         logging.info("Accepting Z position")
-        # self.buttons_calibrating()
         self._screen._ws.klippy.gcode_script(KlippyGcodes.ACCEPT)
 
-    def save_config(self):
-
-        script = {"script": "SAVE_CONFIG"}
-        self._screen._confirm_send_action(
-            None,
-            _("Save configuration?") + "\n\n" + _("Klipper will reboot"),
-            "printer.gcode.script",
-            script
-        )
+    def clear_widgets(self):
+      self.widgets['zposition'].set_label("Z: ?")
+      self.widgets['whichoffset'].set_label("")
+      self.widgets['savedoffset'].set_label("?")
+      self.widgets['zoffset'].set_label("?")
+      self.widgets['probe_z_result'].set_label("")
         
     def buttons_calibrating(self):
         self.buttons['start'].get_style_context().remove_class('color3')

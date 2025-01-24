@@ -354,6 +354,14 @@ class MoonrakerApi:
         return self._ws.send_method(
             "printer.load_backup_config"
         )
+    
+    def check_backup(self, callback=None):
+        logging.debug("Sending printer.check_backup")
+        return self._ws.send_method(
+            "printer.check_backup",
+            {},
+            callback
+        )
 
     ####      NEW      ####
     def print_rebuild(self, callback=None, *args):

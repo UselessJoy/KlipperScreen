@@ -30,15 +30,24 @@ class AccessPoint():
 
   def get_field(self, field):
     return subprocess.check_output("nmcli -f %s connection show -s %s | awk '{print $2}'" % (field, self.id), universal_newlines=True, shell=True)[:-1]
+  
+  def delete_section(self, section):
+    subprocess.check_output("nmcli connection modify %s remove %s" % (self.id, section), universal_newlines=True, shell=True)[:-1]
 
   def modify(self, ssid, psk, autoconnect, security_method) -> None:
     try:
-      nmcli.connection.modify(self.id, {
-        '802-11-wireless.ssid': ssid,
-        '802-11-wireless-security.psk': psk,
-        'connection.autoconnect': autoconnect,
-        '802-11-wireless-security.key-mgmt': security_method
-      })
+        nmcli.connection.modify(self.id, {
+            '802-11-wireless.ssid': ssid,
+            'connection.autoconnect': autoconnect})
+        if security_method:
+            nmcli.connection.modify(self.id, {
+            '802-11-wireless-security.psk': psk,
+            '802-11-wireless-security.key-mgmt': 'wpa-psk'})
+        else:
+            self.delete_section("802-11-wireless-security")
+        if self.is_active():
+            self.down()
+            self.up()
     except Exception as e:
       logging.info(f"Connection modify error:\n{e}\n")
       raise e
