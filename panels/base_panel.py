@@ -685,7 +685,7 @@ class BasePanel(ScreenPanel):
     def show_update_dialog(self):
         if self.update_dialog is not None:
             return
-          
+
         button = [{"name": _("Finish"), "response": Gtk.ResponseType.OK}]
         self.labels['update_progress'] = Gtk.Label(hexpand=True, vexpand=True, ellipsize=Pango.EllipsizeMode.END)
         self.labels['update_scroll'] = self._gtk.ScrolledWindow(steppers=False)
