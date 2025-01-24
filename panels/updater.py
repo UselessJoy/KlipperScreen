@@ -26,6 +26,7 @@ class Panel(ScreenPanel):
         self.main_updates = Gtk.Grid(row_homogeneous=True)
         self.is_details_box = False
         self.buttons["refresh"].connect("clicked", self.refresh_updates)
+        self._gtk.Button_busy(self.buttons["refresh"], True)
         self.buttons["refresh"].set_vexpand(False)
         self.top_box = Gtk.Box(vexpand=False)
         self.top_box.pack_start(self.buttons["refresh"], True, True, 0)
