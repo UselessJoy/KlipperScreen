@@ -56,7 +56,7 @@ class Panel(ScreenPanel):
             self.scroll.remove(child)
 
     def activate(self):
-        GLib.timeout_add(200, self.refresh_updates)
+        self.refresh_updates()
 
     def refresh_updates(self, widget=None):
         self._gtk.Button_busy(self.buttons["refresh"], True)
