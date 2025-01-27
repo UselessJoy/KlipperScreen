@@ -47,6 +47,7 @@ class Panel(ScreenPanel):
         self.scroll.add(self.main_updates)
         self.top_box.show()
         self.scroll.show_all()
+        self.is_details_box = False
         return True
       return False
     
