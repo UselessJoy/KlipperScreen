@@ -119,8 +119,10 @@ class Panel(ScreenPanel):
         self.buttons['border_rm'] = self._gtk.Button("bed-level-r-m", scale=2.5)
         self.buttons['border_fm'] = self._gtk.Button("bed-level-b-m", scale=2.5)
         self.buttons['border_bm'] = self._gtk.Button("bed-level-t-m", scale=2.5)
-
-        rotation = self.ks_printer_cfg.getint("screw_rotation", 0)
+        try:
+          rotation = self.ks_printer_cfg.getint("screw_rotation", 0)
+        except:
+          rotation = 0
 
         self.bedgrid = Gtk.Grid(column_homogeneous=True)
         nscrews = len(self.screws)
