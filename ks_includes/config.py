@@ -27,20 +27,20 @@ xdg_config = os.path.join(home, ".config", "KlipperScreen")
 
 DEF_PREHEATS = {
   'PLA': {
-    'bed': 65,
-    'extruder': 215,
+    'bed': 80,
+    'extruder': 220,
   },
   'ABS': {
-    'bed': 110,
-    'extruder': 240,
+    'bed': 120,
+    'extruder': 245,
   },
   'PETG': {
-    'bed': 85,
+    'bed': 80,
     'extruder': 235,
   },
-  'FLEX': {
-    'bed': 90,
-    'extruder': 240,
+  'TPU': {
+    'bed': 80,
+    'extruder': 235,
   },
 }
 
@@ -111,6 +111,8 @@ class KlipperScreenConfig:
             {printer[8:]: {
                 "moonraker_host": self.config.get(printer, "moonraker_host", fallback="127.0.0.1"),
                 "moonraker_port": self.config.get(printer, "moonraker_port", fallback="7125"),
+                "moonraker_path": self.config.get(printer, "moonraker_path", fallback='').strip('/'),
+                "moonraker_ssl": self.config.getboolean(printer, "moonraker_ssl", fallback=None),
                 "moonraker_api_key": self.config.get(printer, "moonraker_api_key", fallback="").replace('"', '')
             }} for printer in printers
         ]

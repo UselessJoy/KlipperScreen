@@ -216,7 +216,7 @@ spinner {
 scale trough slider {
     min-height: 2em;
     min-width: 2em;
-}
+} 
 
 scrollbar, scrollbar button, scrollbar trough {
     border: none;

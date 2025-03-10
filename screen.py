@@ -58,7 +58,8 @@ PRINTER_BASE_STATUS_OBJECTS = [
     'screws_tilt_adjust',
     'manual_probe',
     'filament_watcher',
-    'pid_calibrate'
+    'pid_calibrate',
+    'fixing'
 ]
 
 klipperscreendir = pathlib.Path(__file__).parent.resolve()
@@ -123,6 +124,7 @@ class KlipperScreen(Gtk.Window):
         self.dialogs = []
         self.confirm = None
         self.last_popup_time = datetime.now()
+        # Для просмотра дерева виджетов
         # self.set_interactive_debugging(True)
         configfile = os.path.normpath(os.path.expanduser(args.configfile))
 
@@ -297,6 +299,7 @@ class KlipperScreen(Gtk.Window):
                 "manual_probe": ["is_active", "command", "z_position_endstop"],
                 "pid_calibrate": ["is_calibrating"],
                 "filament_watcher": ['filament_type', 'show_message'],
+                "fixing": ['has_uninstalled_updates', 'open_dialog', 'dialog_message', 'require_internet', 'can_reboot']
             }
         }
         for extruder in self.printer.get_tools():
@@ -614,6 +617,8 @@ class KlipperScreen(Gtk.Window):
             self.reload_panels()
             return
         self.attach_panel(self._cur_panels[-1])
+        if self._cur_panels[-1] == 'main_menu':
+          self.base_panel.check_system_fix_dialog()
 
     def reset_screensaver_timeout(self, *args):
         if self.screensaver_timeout is not None:
@@ -845,6 +850,7 @@ class KlipperScreen(Gtk.Window):
         self.base_panel.main_grid.get_style_context().add_class("window-ready")
         ####    END NEW    ####
         self.show_panel("main_menu", None, remove_all=True, items=self._config.get_menu_items("__main"))
+        self.base_panel.check_system_fix_dialog()
 
     def state_startup(self):
         self.last_window_class = "window-ready"
@@ -960,7 +966,7 @@ class KlipperScreen(Gtk.Window):
         if self._cur_panels and hasattr(self.panels[self._cur_panels[-1]], "process_update"):
             self.panels[self._cur_panels[-1]].process_update(*args)
             
-    def _confirm_send_action(self, widget, text, method, params=None):
+    def _confirm_send_action(self, widget, text, method, params=None, callback=None):
         buttons = [
             {"name": _("Continue"), "response": Gtk.ResponseType.OK, "style": "color4"},
             {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color2"}
@@ -983,16 +989,16 @@ class KlipperScreen(Gtk.Window):
 
         if self.confirm is not None:
             self.gtk.remove_dialog(self.confirm)
-        self.confirm = self.gtk.Dialog(buttons, label, "KlipperScreen", self._confirm_send_action_response, method, params)
+        self.confirm = self.gtk.Dialog(buttons, label, "KlipperScreen", self._confirm_send_action_response, method, params, callback)
 
-    def _confirm_send_action_response(self, dialog, response_id, method, params):
+    def _confirm_send_action_response(self, dialog, response_id, method, params, callback=None):
         self.gtk.remove_dialog(dialog)
         if response_id == Gtk.ResponseType.OK:
-            self._send_action(None, method, params)
+            self._send_action(None, method, params, callback)
 
-    def _send_action(self, widget, method, params):
+    def _send_action(self, widget, method, params, callback=None):
         logging.info(f"{method}: {params}")
-        self._ws.send_method(method, params)
+        self._ws.send_method(method, params, callback)
 
     def printer_initializing(self, msg, remove=False):
         if 'splash_screen' not in self.panels or remove:

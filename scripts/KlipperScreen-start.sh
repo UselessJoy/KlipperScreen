@@ -1,7 +1,17 @@
 #!/bin/sh
 
 XDG_RUNTIME_DIR=/run/user/$(id -u)
+CONFIGDIR=$HOME/.config
+MPVDIR=$CONFIGDIR/mpv
 export XDG_RUNTIME_DIR
+
+MPVDIR=$HOME/.config/mpv
+SOURCEDIR=$(dirname $(realpath $0))/mpv
+
+if [ ! -d ${MPVDIR} ]; then
+	mkdir -p $MPVDIR
+	cp -r $SOURCEDIR/* $MPVDIR/
+fi
 
 SCRIPTPATH=$(dirname $(realpath $0))
 if [ -f $SCRIPTPATH/launch_KlipperScreen.sh ]

@@ -83,6 +83,7 @@ button {
 .hide_button {
   background-color: inherit;
   box-shadow: none;
+  border-radius: 0px;
 }
 
 .keyboard {
@@ -187,7 +188,6 @@ button.color1:active, button.color2:active, button.color3:active, button.color4:
 button.active{
     background-color: #cb4b16; /*solarized-orange*/
 }
-
 
 button.overlay_close_button:active{
     background-color: inherit;
@@ -333,16 +333,16 @@ menuitem {
 }
 
 trough {
-    background-color: inherit; /*base02*/
-    color: #fdf6e3; /*base3*/
-    border-color: #002b36; /*base03*/
+    background-color: inherit;
+    color: #fdf6e3;
+    border-color: #002b36;
     border-radius: 1em;
 }
 
 trough highlight, trough progress {
-    background-color: #6c71c4; /*solarized-violet*/
-    color: #fdf6e3; /*base3*/
-    border-color: #404E57; /*base03*/
+    background-color: #6c71c4;
+    color: #fdf6e3;
+    border-color: #404E57;
     border-width: .1em;
     border-top-left-radius: 1em;
     border-bottom-left-radius: 1em;
@@ -354,8 +354,45 @@ trough.empty {
     background-color: #404E57;
 }
 
+/* Почистить ненужные свойства */
+.media trough {
+  min-height: 0.1em;
+  background-color: #404E57;
+  border: 1px solid #002b36;
+  border-radius: 0.1em;
+  padding: 0;
+  margin: 0;
+}
+
+.media trough highlight, .media trough progress {
+  min-height: 1em;
+  padding: 0;
+  margin: 0;
+  background-color: #474dc7;
+  border-color: #002b36;
+  border-width: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+scale.media {
+  margin: 0;
+  padding: 0;
+}
+
+scale.media trough slider {
+  background-image: -gtk-scaled(url(""));                                                
+  background-size: 2px 2px;
+  min-height: 0.1em;
+  min-width: 0.1em;
+  padding: 0;
+  margin: 0;
+}
+
 scale-mark {
-    color: #fdf6e3; /*base3*/
+    color: #fdf6e3;
 }
 
 scrollbar, scrollbar button, scrollbar trough {
@@ -375,17 +412,13 @@ scrollbar slider {
     background-color: #404E57;
 }
 
-.scrolled_window_mesh_profiles {
+.overlay_background {
     background-color: rgba(0, 0, 0, 0.4); 
 }
 
 .scrolled_window_bed_level {
     background-color: #001d24; 
     border-radius: 1em;
-}
-
-textview .time {
-    color: #93a1a1; /*base1*/
 }
 
 .popup {
@@ -512,4 +545,26 @@ textview .time {
 
 .pb-06rem {
   padding-bottom: 0.6rem;
+}
+
+.p-10px {
+  padding: 10px;
+}
+
+.textview_logs {
+  background: rgba(255, 255, 255, 0.3);
+  font-size: 1em;
+  border: .2em solid #13181C;
+  border-radius: 1em;
+  padding: .25em;
+  font-family: sans-serif;
+  min-width: 50px;
+}
+
+textview .time {
+  color: #93a1a1; /*base1*/
+}
+
+.placeholder * {
+  color: grey;
 }

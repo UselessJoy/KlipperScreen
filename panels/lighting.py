@@ -17,7 +17,7 @@ class Panel(ScreenPanel):
         self.labels['set_default'].set_sensitive(self.enabled)
         self.labels['set_default'].connect("clicked", self.set_default_color)
         self.labels['turn_off_led'] = self._gtk.Button("shutdown", _("Turn off"), "color2")
-        self.labels['turn_off_led'].set_label(_("Turn on") if self.enabled else _("Turn off"))
+        self.labels['turn_off_led'].set_label(_("Turn on neopixel") if self.enabled else _("Turn off neopixel"))
         self.labels['turn_off_led'].connect("clicked", self.turn_off_led)
         self.colorWheel.connect("changed", self.color_changed)
         self.labels['actions'] = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
@@ -63,9 +63,9 @@ class Panel(ScreenPanel):
     def update_power_button(self, enabled):
         self.enabled = enabled
         if self.enabled:
-            self.labels['turn_off_led'].set_label(_("Turn off"))
+            self.labels['turn_off_led'].set_label(_("Turn off neopixel"))
         else:
-            self.labels['turn_off_led'].set_label(_("Turn on"))
+            self.labels['turn_off_led'].set_label(_("Turn on neopixel"))
         self.labels['turn_off_led'].set_sensitive(True)
         self.labels['set_default'].set_sensitive(self.enabled)
         self.colorWheel.set_sensitive(self.enabled)

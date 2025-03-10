@@ -2,7 +2,7 @@ import logging
 import re
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from gi.repository import Gtk, Pango
 
 class BaseRule:
     @staticmethod
@@ -82,8 +82,8 @@ class SpaceRule(BaseRule):
         return True
          
 class TypedEntry(Gtk.Entry):
-    def __init__(self, entry_rule=BaseRule, update_callback=None, max=None, text="", hexpand=False, sensitive=True):
-        super().__init__(text = text, hexpand = hexpand, sensitive = sensitive)
+    def __init__(self, entry_rule=BaseRule, update_callback=None, max=None, text="", hexpand=False, sensitive=True, placeholder_text=""):
+        super().__init__(text = text, hexpand = hexpand, sensitive = sensitive, placeholder_text = placeholder_text)
         self.rule = entry_rule
         self.update_callback = update_callback
         self.max = max
@@ -108,4 +108,38 @@ class TypedEntry(Gtk.Entry):
                         self.automatic_insert('.')
             if self.update_callback:
                 self.update_callback(self)
-                    
+                
+
+class TextView(Gtk.TextView):
+  def __init__(self, placeholder_text = "", hexpand=True, vexpand=True, wrap_mode=Pango.WrapMode.CHAR):
+    super().__init__(hexpand=hexpand, vexpand=vexpand, wrap_mode=wrap_mode)
+    self.buffer = self.get_buffer()
+    self.placeholder = placeholder_text
+    self.buffer.set_text(self.placeholder)
+    if self.placeholder:
+      self.get_style_context().add_class("placeholder")
+    self.connect("focus-in-event", self.on_focus_in)
+    self.connect("focus-out-event", self.on_focus_out)
+
+  def get_text(self):
+    return self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter(), False)
+
+  def update_entry(self, key):
+    if key == "⌫":
+        self.buffer.backspace(self.buffer.get_iter_at_mark(self.buffer.get_insert()) ,True, True)
+    else:
+      self.buffer.insert_at_cursor(key, 1)
+      
+      
+  def on_focus_in(self, event, *args):
+    if (self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter(), True) == self.placeholder):
+        self.get_style_context().remove_class("placeholder")
+        self.buffer.set_text("")
+    return False
+
+
+  def on_focus_out(self, event, *args):
+      if (self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter(), True) == ""):
+          self.buffer.set_text(self.placeholder)
+          self.get_style_context().add_class("placeholder")
+      return False

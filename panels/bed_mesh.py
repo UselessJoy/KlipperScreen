@@ -605,7 +605,7 @@ class Panel(ScreenPanel):
         self.scroll.set_hexpand(True)
         self.scroll.set_halign(Gtk.Align.FILL)
         self.scroll.set_min_content_width(self.overlayBoxWidth)
-        self.scroll.get_style_context().add_class("scrolled_window_mesh_profiles")
+        self.scroll.get_style_context().add_class("overlay_background")
         self.overlayBox.pack_start(self.scroll, True, True, 0)
         self.overlayBox.set_vexpand(False)
         self.overlayBox.set_hexpand(True)

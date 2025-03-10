@@ -10,9 +10,10 @@ from cairo import Context as cairoContext
 
 
 class HeaterGraph(Gtk.DrawingArea):
-    def __init__(self, screen, printer, font_size, fullscreen=False, store=None):
+    def __init__(self, screen, printer, font_size, fullscreen=False, store=None, dialog = None):
         super().__init__()
         self._gtk = screen.gtk
+        self.dialog = dialog
         self.set_hexpand(True)
         self.set_vexpand(True)
         self.get_style_context().add_class('heatergraph')
@@ -28,24 +29,28 @@ class HeaterGraph(Gtk.DrawingArea):
         self.fullscreen = fullscreen
         if fullscreen:
             GLib.timeout_add_seconds(1, self.update_graph)
-        self.fs_graph = None
 
     def update_graph(self):
         self.queue_draw()
         return self.fullscreen
 
     def show_fullscreen_graph(self):
-        self.fs_graph = HeaterGraph(self._screen, self.printer, self.font_size * 2, fullscreen=True, store=self.store)
-        self._gtk.Dialog(None, self.fs_graph, _("Temperature"), self.close_fullscreen_graph)
+        box = Gtk.Box(vexpand=True, hexpand=True)
+        box.set_size_request(self._screen.width, self._screen.height)
+        fs_hg = HeaterGraph(self._screen, self.printer, self.font_size * 2, fullscreen=True, store=self.store)
+        box.add(fs_hg)
+        fs_dialog = self._gtk.Dialog(None, box, _("Temperature"), self.close_fullscreen_graph)
+        fs_hg.dialog = fs_dialog
 
-    def close_fullscreen_graph(self, dialog, response_id):
+    def close_fullscreen_graph(self, dialog = None, response_id = None):
         logging.info("Closing graph")
-        self.fs_graph.fullscreen = False
-        self._gtk.remove_dialog(dialog)
+        if self.dialog:
+          self._gtk.remove_dialog(self.dialog)
 
     def event_cb(self, da, ev):
         if ev.type == Gdk.EventType.BUTTON_PRESS:
             if self.fullscreen:
+                self.close_fullscreen_graph()
                 logging.info(f"Graph area: {ev.x} {ev.y}")
             else:
                 self.show_fullscreen_graph()

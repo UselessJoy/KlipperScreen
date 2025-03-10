@@ -244,6 +244,8 @@ msgstr "Отменить выбор"
 msgid "Failed to open"
 msgstr "Не удалось получить ответ от"
 
+msgid ".\nPlease, check camera connection and restart crowsnest"
+msgstr ".\nПожалуйста, проверьте соединение с камерой и перезапустите службу crowsnest"
 msgid "Disable Motors"
 msgstr "Откл. моторы"
 
@@ -546,6 +548,18 @@ msgstr "Ускорения торможения"
 msgid "Max Velocity"
 msgstr "Скорость"
 
+msgid "Delete frames"
+msgstr "Удаление кадров"
+
+msgid "Save frames"
+msgstr "Сохранение кадров"
+
+msgid "Render"
+msgstr "Рендер"
+
+msgid "Render settings"
+msgstr "Настройки рендера"
+
 msgid "Maximum"
 msgstr "Максимум"
 
@@ -590,6 +604,81 @@ msgstr "Дистанция перемещения (мм)"
 
 msgid "Name"
 msgstr "Имя"
+
+msgid "Fullname"
+msgstr "ФИО"
+
+msgid "Phone"
+msgstr "Номер\nтелефона"
+
+msgid "Email"
+msgstr "Почта"
+
+msgid "Description"
+msgstr "Опишите\nпроблему"
+
+msgid "Serial number"
+msgstr "Серийный\nномер"
+
+msgid "Send logs"
+msgstr "Сообщить об ошибке"
+
+msgid "Message sended"
+msgstr "Сообщение отправлено"
+
+msgid "Cannot be empty"
+msgstr "Должно быть заполнено"
+
+msgid "Must contain only 6 numbers"
+msgstr "Серийный номер должен иметь 6 цифр"
+
+msgid "Not valid email"
+msgstr "Неверный формат данных"
+
+msgid "Internal memory"
+msgstr "Внутренняя память"
+
+msgid "SD memory"
+msgstr "Память SD-карты"
+
+msgid "Optionally"
+msgstr "Необязательно"
+
+msgid "Necessary"
+msgstr "Обязательно"
+
+msgid "Can't send message: connection lost. Please, check your internet access"
+msgstr "Не удалось отправить сообщение: соединение потеряно. Пожалуйста, проверьте соединение с интернетом"
+
+msgid "DPMS has failed and has been disabled"
+msgstr "Ошибка DPMS: он был отключен"
+
+msgid "Contact us"
+msgstr "Связаться с нами"
+
+msgid "Turn on"
+msgstr "Включен"
+
+msgid "Autorender"
+msgstr "Авторендер"
+
+msgid "Variable FPS"
+msgstr "Переменный FPS"
+
+msgid "Output framerate"
+msgstr "Выходная частота кадров"
+
+msgid "Duplicate last frame"
+msgstr "Дублирование последних кадров"
+
+msgid "Preview image"
+msgstr "Создавать скриншот"
+
+msgid "Constant Rate Factor"
+msgstr "Константный фактор скорости"
+
+msgid "timelapse"
+msgstr "Интервальная сьемка"
 
 msgid "Network"
 msgstr "Сеть"
@@ -738,6 +827,15 @@ msgstr "Перезагрузка"
 
 msgid "Shutdown on cooling"
 msgstr "Выключить после охлаждения"
+
+msgid "System fixes are not fully installed"
+msgstr "Системные исправления установлены не полностью"
+
+msgid "Repeat Update"
+msgstr "Повторить попытку"
+
+msgid "Network Panel"
+msgstr "Меню \"Сеть\""
 
 msgid "Resume"
 msgstr "Продолжить"
@@ -1240,10 +1338,10 @@ msgstr "Синхронизировать время"
 msgid "Set Default"
 msgstr "Установить цвет по умолчанию"
 
-msgid "Turn off"
+msgid "Turn off neopixel"
 msgstr "Выключить подсветку"
 
-msgid "Turn on"
+msgid "Turn on neopixel"
 msgstr "Включить подсветку"
 
 msgid "Poweroff now"

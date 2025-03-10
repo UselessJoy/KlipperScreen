@@ -213,8 +213,8 @@ class KlippyGtk:
                 spinner.stop()
             widget.set_sensitive(True)
 
-    def Dialog(self, buttons, content, title=None, callback=None, *args, width=None, height=None, style=None):
-        dialog = Gtk.Dialog()
+    def Dialog(self, buttons, content, title=None, callback=None, *args, width=None, height=None, style=None, resizable=False):
+        dialog = Gtk.Dialog(modal=True, transient_for=self.screen)
         if title:
             dialog.set_title(title)
         if not width:
@@ -227,9 +227,7 @@ class KlippyGtk:
                 dialog.set_size_request(width, height)
             else:
                 dialog.set_size_request(width, self.screen.height)
-        dialog.set_resizable(False)
-        dialog.set_transient_for(self.screen)
-        dialog.set_modal(True)
+        dialog.set_resizable(resizable)
         
         if buttons:
           for button in buttons:
@@ -254,9 +252,11 @@ class KlippyGtk:
                   b.set_size_request(button_hsize - 30, round(self.height / 5))
               format_label(button, 3)
         else:
-          dialog.connect("button-release-event", callback, *args)
+          if callback:
+            dialog.connect("button-release-event", callback, *args)
         dialog.connect("response", self.screen.reset_screensaver_timeout)
-        dialog.connect("response", callback, *args)
+        if callback:
+          dialog.connect("response", callback, *args)
         if style is not None:
             for cl in style:   
                 dialog.get_style_context().add_class(cl)
@@ -265,7 +265,7 @@ class KlippyGtk:
         content_area.set_margin_start(15)
         content_area.set_margin_end(15)
         content_area.set_margin_top(15)
-        content_area.set_margin_bottom(15)
+        content_area.set_margin_bottom(15)        
         content.set_valign(Gtk.Align.CENTER)
         content_area.add(content)
         self.screen.base_panel.main_grid.set_opacity(0.2)

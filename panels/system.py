@@ -15,6 +15,8 @@ class Panel(ScreenPanel):
         self.grid = Gtk.Grid(column_spacing=10, row_spacing=5)
 
         self.sysinfo = screen.printer.system_info
+        self.config_usage = screen.apiclient.send_request("server/files/get_root_usage?root=config")
+        self.gcodes_usage = screen.apiclient.send_request("server/files/get_root_usage?root=gcodes")
         if not self.sysinfo:
             logging.debug("Asking for info")
             self.sysinfo = screen.apiclient.send_request("machine/system_info")
@@ -57,7 +59,40 @@ class Panel(ScreenPanel):
         )
         self.grid.attach(self.scales["memory_usage"], 1, self.current_row, 1, 1)
         self.current_row += 1
-
+        
+        self.labels['internal_memory'] = Gtk.Label(xalign=0)
+        self.labels["internal_memory"].set_label(
+                _("Internal memory")
+                + f': {(self.config_usage["result"]["disk_usage"]["used"] / self.config_usage["result"]["disk_usage"]["total"]) * 100:.0f}%'
+            )
+        
+        self.grid.attach(self.labels['internal_memory'], 0, self.current_row, 1, 1)
+        self.scales["internal_usage"] = Gtk.ProgressBar(
+            hexpand=True, show_text=False, fraction=0
+        )
+        self.scales["internal_usage"].set_fraction(
+                float(self.config_usage["result"]["disk_usage"]["used"])
+                / float(self.config_usage["result"]["disk_usage"]["total"])
+            )
+        self.grid.attach(self.scales["internal_usage"], 1, self.current_row, 1, 1)
+        self.current_row += 1
+        if self.config_usage != self.gcodes_usage:
+          self.labels['sd_memory'] = Gtk.Label(xalign=0)
+          self.labels["sd_memory"].set_label(
+                  _("SD memory")
+                  + f': {(self.gcodes_usage["result"]["disk_usage"]["used"] / self.gcodes_usage["result"]["disk_usage"]["total"]) * 100:.0f}%'
+              )
+        
+          self.grid.attach(self.labels["sd_memory"], 0, self.current_row, 1, 1)
+          self.scales["sd_usage"] = Gtk.ProgressBar(
+              hexpand=True, show_text=False, fraction=0
+          )
+          self.scales["sd_usage"].set_fraction(
+                float(self.gcodes_usage["result"]["disk_usage"]["used"])
+                / float(self.gcodes_usage["result"]["disk_usage"]["total"])
+            )
+          self.grid.attach(self.scales["sd_usage"], 1, self.current_row, 1, 1)
+          self.current_row += 1
         self.grid.attach(Gtk.Separator(), 0, self.current_row, 2, 1)
         self.current_row += 1
         self.populate_info()
@@ -65,6 +100,32 @@ class Panel(ScreenPanel):
         scroll = self._gtk.ScrolledWindow()
         scroll.add(self.grid)
         return scroll
+
+    def activate(self):
+      if "internal_usage" in self.scales:
+        self.config_usage = self._apiclient.send_request("server/files/get_root_usage?root=config")
+        self.scales["internal_usage"].set_fraction(
+                float(self.config_usage["result"]["disk_usage"]["used"])
+                / float(self.config_usage["result"]["disk_usage"]["total"])
+            )
+        
+        if "internal_memory" in self.labels:
+          self.labels["internal_memory"].set_label(
+                  _("Internal memory")
+                  + f': {(self.config_usage["result"]["disk_usage"]["used"] / self.config_usage["result"]["disk_usage"]["total"]) * 100:.0f}%'
+              )
+        
+      if "sd_usage" in self.scales:
+        self.gcodes_usage = self._apiclient.send_request("server/files/get_root_usage?root=gcodes")
+        self.scales["sd_usage"].set_fraction(
+                float(self.gcodes_usage["result"]["disk_usage"]["used"])
+                / float(self.gcodes_usage["result"]["disk_usage"]["total"])
+            )
+        if "sd_memory" in self.labels:
+          self.labels["sd_memory"].set_label(
+                    _("SD memory")
+                    + f': {(self.gcodes_usage["result"]["disk_usage"]["used"] / self.gcodes_usage["result"]["disk_usage"]["total"]) * 100:.0f}%'
+                )
 
     def set_mem_multiplier(self, data):
         memory_units = data.get("memory_units", "kB").lower()

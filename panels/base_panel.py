@@ -2,6 +2,7 @@
 import contextlib
 import logging
 import os
+import socket
 import subprocess
 import time
 import gi
@@ -18,21 +19,28 @@ from ks_includes.KlippyGcodes import KlippyGcodes
 class BasePanel(ScreenPanel):
     def __init__(self, screen, title):
         super().__init__(screen, title)
+
         self.current_panel = None
         self.time_min = -1
         self.time_format = self._config.get_main_config().getboolean("24htime", True)
         self.time_update = None
-        self.interrupt_dialog = None
-        self.autooff_dialog = None
-        self.autooff_enable = None
-        self.power_dialog = None
-        self.titlebar_items = []
-        self.check_temp = False
-        self.titlebar_name_type = None
-        self.last_time_message = None
+
         self.hours = None
         self.minutes = None
+        self.last_time_message = None
+
+        self.interrupt_dialog = None
+        self.autooff_dialog = self.autooff_enable = None
+        self.power_dialog = None
+        self.restart_dialog_label = self.restart_dialog_message = self.restart_dialog = self.can_reboot = self.restart_button_grid = self.system_fix_grid = None
+        self.require_internet = self.has_uninstalled_updates = False
+        self.fix_dialog_open = False
+        self.titlebar_items = []
+        self.titlebar_name_type = None
+
+        self.check_temp = False
         self.current_extruder = None
+
         self.last_usage_report = datetime.datetime.now()
         self.usage_report = 0
         self.timezone = ""
@@ -123,18 +131,27 @@ class BasePanel(ScreenPanel):
         self.unsaved_config_box = Gtk.EventBox()
         self.unsaved_config_box.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
         self.unsaved_config_box.add_events(Gdk.EventMask.TOUCH_MASK)
-        self.unsaved_config_box.connect("button_release_event", self.on_popover_clicked)
+        self.unsaved_config_box.connect("button_release_event", self.on_unsaved_config_clicked)
 
         self.on_unsaved_config = Gtk.Image()
         self.on_unsaved_config.set_margin_left(15)
         self.unsaved_config_box.add(self.on_unsaved_config)
 
-        self.unsaved_config_popover = Gtk.Popover()
-        self.unsaved_config_popover.get_style_context().add_class("message_popup")
-        self.unsaved_config_popover.set_halign(Gtk.Align.CENTER)
-        self.unsaved_config_popover.add(Gtk.Label(label=_("Have unsaved options")))
-        self.unsaved_config_popover.set_relative_to(self.unsaved_config_box)
-        self.unsaved_config_popover.set_position(Gtk.PositionType.BOTTOM)
+        self.uninstalled_updates_box = Gtk.EventBox()
+        self.uninstalled_updates_box.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+        self.uninstalled_updates_box.add_events(Gdk.EventMask.TOUCH_MASK)
+        self.uninstalled_updates_box.connect("button_release_event", self.on_uninstalled_updates_clicked)
+
+        self.on_uninstalled_updates = Gtk.Image()
+        self.on_uninstalled_updates.set_margin_left(15)
+        self.uninstalled_updates_box.add(self.on_uninstalled_updates)
+
+        self.uninstalled_updates_popover = Gtk.Popover()
+        self.uninstalled_updates_popover.get_style_context().add_class("message_popup")
+        self.uninstalled_updates_popover.set_halign(Gtk.Align.CENTER)
+        self.uninstalled_updates_popover.add(Gtk.Label(label=_("System fixes are not fully installed")))
+        self.uninstalled_updates_popover.set_relative_to(self.uninstalled_updates_box)
+        self.uninstalled_updates_popover.set_position(Gtk.PositionType.BOTTOM)
 
         self.stop_pid_button = Gtk.Button(label=_("Stop PID"), hexpand=True, halign=Gtk.Align.CENTER)
         self.stop_pid_button.get_style_context().add_class('stop_pid')
@@ -159,6 +176,7 @@ class BasePanel(ScreenPanel):
         self.titlebar.add(self.network_status_image)
         self.titlebar.add(self.on_connecting_spinner)
         self.titlebar.add(self.unsaved_config_box)
+        self.titlebar.add(self.uninstalled_updates_box)
         self.titlebar.add(self.magnet_probe_image)
         self.titlebar.add(self.titlelbl)
         self.titlebar.add(self.stop_bed_mesh_button)
@@ -181,8 +199,13 @@ class BasePanel(ScreenPanel):
         self.update_time()
         GLib.timeout_add_seconds(1, self.update_connected_network_status)
 
-    def on_popover_clicked(self, widget, event):
+    def on_unsaved_config_clicked(self, widget, event):
         self.unsaved_config_popover.show_all()
+
+    def on_uninstalled_updates_clicked(self, widget, event):
+      if self.fix_dialog_open:
+        self.show_system_fix_dialog()
+        self.restart_dialog = self._gtk.Dialog([], self.system_fix_grid, _("Restart"), None, width = 1, height = 1)
 
     def create_time_modal(self, widget, event):
         
@@ -448,7 +471,7 @@ class BasePanel(ScreenPanel):
             error = "message_popup_error"
             ctx = self.titlebar.get_style_context()
             msg = f"CPU: {cpu:2.0f}%    RAM: {memory:2.0f}%"
-            if cpu > 80 or memory > 85:
+            if cpu > 95 or memory > 95:
                 if self.usage_report < 3:
                     self.usage_report += 1
                     return
@@ -513,7 +536,7 @@ class BasePanel(ScreenPanel):
               self.stop_bed_mesh_button.hide()
         if 'configfile' in data:
                 if 'save_config_pending' in data['configfile']:
-                    if data['configfile']['save_config_pending'] == True:
+                    if data['configfile']['save_config_pending']:
                         if not self.on_unsaved_config.get_pixbuf():
                             self._screen.gtk.update_image(self.on_unsaved_config, "unsaved_config", self.img_titlebar_size, self.img_titlebar_size)
                         self.on_unsaved_config.show()
@@ -557,16 +580,143 @@ class BasePanel(ScreenPanel):
                if self.interrupt_dialog and not data['virtual_sdcard']['show_interrupt']:
                   self._gtk.remove_dialog(self.interrupt_dialog)
                   self.interrupt_dialog = None    
+        if 'fixing' in data:
+            if 'open_dialog' in data['fixing']:
+              self.fix_dialog_open = data['fixing']['open_dialog']
+              if not self.restart_dialog and data['fixing']['open_dialog']:
+                logging.info("showing restart dialog")
+                self.show_system_fix_dialog()
+            if 'dialog_message' in data['fixing']:
+                self.restart_dialog_message = data['fixing']['dialog_message']
+                if self.restart_dialog_label:
+                  self.restart_dialog_label.set_label(self.restart_dialog_message)
+            if 'has_uninstalled_updates' in data['fixing']:
+                self.has_uninstalled_updates = data['fixing']['has_uninstalled_updates']
+                if self.has_uninstalled_updates:
+                    if not self.on_uninstalled_updates.get_pixbuf():
+                        self._screen.gtk.update_image(self.on_uninstalled_updates, "exclamation", self.img_titlebar_size, self.img_titlebar_size)
+                    self.on_uninstalled_updates.show()
+                else:
+                    self.on_uninstalled_updates.hide()
+                    if self.restart_dialog:
+                      self.action_area_done_fixing()
+                      self.restart_dialog.set_sensitive(True)
+            if 'require_internet' in data['fixing']:
+              self.require_internet = data['fixing']['require_internet']
+              if self.require_internet:
+                  if self.restart_dialog:
+                      self.action_area_require_internet()
+                      self.restart_dialog.set_sensitive(True)
+            if 'can_reboot' in data['fixing']:
+              self.can_reboot = data['fixing']['can_reboot']
+              if self.restart_dialog:
+                self.action_area_done_fixing()
+                self.restart_dialog.set_sensitive(True)
         with contextlib.suppress(Exception):
           if 'messages' in data:
             msg = data['messages']
             if msg['is_open']:
               if msg["message"] != "" and msg['message_type'] != "":
-                  logging.info(f"show popup from messages open {msg['message_type']} {msg['message']}")
                   lvl = 1 if msg['message_type'] == 'success' else 2 if msg['message_type'] != 'error' else 3
                   self._screen.show_popup_message(msg['message'], level=lvl, just_popup=True)
         return False
-                    
+
+    def action_area_done_fixing(self):
+      for ch in self.restart_button_grid.get_children():
+        self.restart_button_grid.remove(ch)
+      btns =  [
+                  {"name": _("Close"), "response": Gtk.ResponseType.YES, "style": "color1", "callback": self.close},
+              ]
+      if self.can_reboot:
+        btns.append({"name": _("Restart"), "response": Gtk.ResponseType.OK, "style": "color2", 'callback': self.accept_reboot})
+      new_btns = []
+      for i, button in enumerate(btns):
+        new_btns.append(self._gtk.Button(None, button['name'], button['style']))
+        new_btns[i].connect("clicked", button['callback'], self.restart_dialog, btns[i]['response'])
+        self.restart_button_grid.add(new_btns[i])
+      self.restart_button_grid.show_all()
+    
+    def action_area_require_internet(self):
+      for ch in self.restart_button_grid.get_children():
+        self.restart_button_grid.remove(ch)
+      btns =  [
+                  {"name": _("Close"), "response": Gtk.ResponseType.YES, "style": "color1", "callback": self.close},
+                  {"name": _("Repeat Update"), "response": Gtk.ResponseType.YES, "style": "color1", "callback": self.repeat},
+                  {"name": _("Network Panel"), "response": Gtk.ResponseType.OK, "style": "color2", "callback": self.open_network_panel},
+              ]
+      new_btns = []
+      for i, button in enumerate(btns):
+        new_btns.append(self._gtk.Button(None, button['name'], button['style']))
+        new_btns[i].connect("clicked", button['callback'], self.restart_dialog, btns[i]['response'])
+        self.restart_button_grid.add(new_btns[i])
+      self.restart_button_grid.show_all()
+
+    def show_system_fix_dialog(self, widget=None):
+        if self.require_internet:
+          btns =  [
+                      {"name": _("Close"), "response": Gtk.ResponseType.YES, "style": "color1", "callback": self.close},
+                      {"name": _("Repeat Update"), "response": Gtk.ResponseType.YES, "style": "color1", "callback": self.repeat},
+                      {"name": _("Network Panel"), "response": Gtk.ResponseType.OK, "style": "color2", "callback": self.open_network_panel},
+                  ]
+        elif not self.has_uninstalled_updates:
+          btns =  [
+                      {"name": _("Close"), "response": Gtk.ResponseType.YES, "style": "color1", "callback": self.close_dialog},
+                  ]
+          if self.can_reboot:
+              btns.append({"name": _("Restart"), "response": Gtk.ResponseType.OK, "style": "color2", 'callback': self.accept_reboot})
+        else:
+          btns =  [
+                      {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color1", "callback": self.close},
+                      {"name": _("Restart"), "response": Gtk.ResponseType.OK, "style": "color2", 'callback': self.accept_reboot}
+                  ]
+        self.system_fix_grid = self._gtk.HomogeneousGrid()
+        self.restart_button_grid = self._gtk.HomogeneousGrid()
+        self.restart_button_grid.set_margin_top(20)
+        restart_buttons = []
+        for i, button in enumerate(btns):
+          restart_buttons.append(self._gtk.Button(None, button['name'], button['style']))
+          restart_buttons[i].connect("clicked", button['callback'], self.restart_dialog, btns[i]['response'])
+          self.restart_button_grid.attach(restart_buttons[i], i, 0, 1, 1)
+        self.system_fix_grid = self._gtk.HomogeneousGrid()
+        self.restart_dialog_label = Gtk.Label(label=self.restart_dialog_message)
+        self.restart_dialog_label.set_line_wrap(True)
+        self.restart_dialog_label.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        self.restart_dialog_label.set_max_width_chars(40)
+        self.restart_dialog_label.set_hexpand(True)
+        self.restart_dialog_label.set_vexpand(True)
+        self.restart_dialog_label.set_valign(Gtk.Align.CENTER)
+        self.restart_dialog_label.set_halign(Gtk.Align.CENTER)
+        self.restart_dialog_label.set_justify(Gtk.Justification.CENTER)
+        self.system_fix_grid.attach(self.restart_dialog_label, 0, 0, 1, 1)
+        self.system_fix_grid.attach(self.restart_button_grid, 0, 1, 1, 1)
+
+    def check_system_fix_dialog(self):
+      # После инициализации всего, чтобы диалог не закрывался в процессе загрузки
+      if self.fix_dialog_open:
+        self.show_system_fix_dialog()
+        self.restart_dialog = self._gtk.Dialog([], self.system_fix_grid, _("Restart"), None, width = 1, height = 1)
+
+    def close(self, btn, dialog, response_id):
+      self._gtk.remove_dialog(self.restart_dialog)
+
+    def close_dialog(self, btn, dialog, response_id):
+      self._gtk.remove_dialog(self.restart_dialog)
+      self._screen._ws.klippy.close_dialog()
+      
+    def repeat(self, btn, dialog, response_id):
+      self._gtk.remove_dialog(self.restart_dialog)
+      self._screen._ws.klippy.repeat_update(callback = self.on_repeat_fix)
+
+    def on_repeat_fix(self, *args):
+      self.check_system_fix_dialog()
+
+    def open_network_panel(self, btn, dialog, response_id):
+      self._gtk.remove_dialog(self.restart_dialog)
+      self._screen.show_panel("network", _("Network"))
+    
+    def accept_reboot(self, btn, dialog, response_id):
+      self._screen._ws.send_method("machine.reboot")
+            
     def show_autooff_dialog(self):
         buttons = [
             {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color1"},

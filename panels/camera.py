@@ -119,6 +119,6 @@ class Panel(ScreenPanel):
         if loglevel == 'error':
           self.has_errors = True
           if message.startswith('Failed to open'):
-              message = _("Failed to open") + message[14:]
+              message = _("Failed to open") + message[14:] + _(".\nPlease, check camera connection and restart crowsnest")
           self.message += message
         logging.debug(f'[{loglevel}] {component}: {message}')

@@ -10,6 +10,7 @@ class ScreenPanel:
     _files = None
     _printer = None
     _gtk = None
+    _apiclient = None
     ks_printer_cfg = None
 
     def __init__(self, screen, title, **kwargs):
@@ -19,6 +20,7 @@ class ScreenPanel:
         ScreenPanel._files = screen.files
         ScreenPanel._printer = screen.printer
         ScreenPanel._gtk = screen.gtk
+        ScreenPanel._apiclient = screen.apiclient
         self.labels = {}
         self.control = {}
         self.title = title

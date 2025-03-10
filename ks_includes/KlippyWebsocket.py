@@ -426,7 +426,69 @@ class MoonrakerApi:
             callback,
             *args
         )
+        
+    def repeat_update(self, callback=None, *args):
+        logging.debug("Sending printer.fixing.repeat_update")
+        return self._ws.send_method(
+            "printer.fixing.repeat_update",
+            {},
+            callback,
+            *args
+        )
+    
+    def send_logs(self, n, p, e, sn, d, callback=None, *args):
+      logging.debug("Sending server.bot.send_logs")
+      return self._ws.send_method(
+            "server.bot.send_logs",
+            {
+              'name': n,
+              'phone': p,
+              'email': e,
+              'serial_number': sn,
+              'description': d
+            },
+            callback,
+            *args
+      )
 
+    def close_dialog(self, callback=None, *args):
+        logging.debug("Sending printer.fixing.close_dialog")
+        return self._ws.send_method(
+            "printer.fixing.close_dialog",
+            {},
+            callback,
+            *args
+        )
+
+    def get_old_frames(self, callback=None, *args):
+      logging.debug("Sending machine.timelapse.old_frames")
+      return self._ws.send_method(
+          "machine.timelapse.old_frames",
+          {},
+          callback,
+          *args
+      )
+    
+    def timelapse_set_settings(self, settings, callback=None, *args):
+      logging.debug("Sending machine.timelapse.post_settings")
+      return self._ws.send_method(
+        "machine.timelapse.post_settings",
+        {
+          settings
+        },
+        callback,
+        *args
+      )
+      
+    def run_timelapse_method(self, method, callback=None, *args):
+      logging.debug(f"Sending machine.timelapse.{method}")
+      return self._ws.send_method(
+        f"machine.timelapse.{method}",
+        {},
+        callback,
+        *args
+      )
+    
     def set_neopixel_color(self, name, r, g, b, callback=None, *args):
         logging.debug(f"Sending set_led: {KlippyGcodes.set_led(name, r, g, b)}")
         return self._ws.send_method(
@@ -534,6 +596,14 @@ class MoonrakerApi:
     def stop_pid_calibrate(self, callback=None, *args):
         return self._ws.send_method(
             "printer.pid_calibrate.stop_pid_calibrate",
+            {},
+            callback,
+            *args
+        )
+
+    def timelapse_old_frames(self, callback=None, *args):
+        return self._ws.send_method(
+            "machine.timelapse.old_frames",
             {},
             callback,
             *args

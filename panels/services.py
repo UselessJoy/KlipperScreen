@@ -23,7 +23,7 @@ class Panel(ScreenPanel):
         service_state = system_info["service_state"]
         available_services = system_info["available_services"]
 
-        return [{"name": name, "state": service_state[name] or None} for name in available_services if name not in ['klipper-mcu', 'crowsnest']]
+        return [{"name": name, "state": service_state[name] or None} for name in available_services if name not in ['klipper-mcu']]
     
     def activate(self):
       logging.info("activate")
@@ -49,7 +49,7 @@ class Panel(ScreenPanel):
         button_grid.set_hexpand(True)
         button_grid.set_halign(Gtk.Align.END)
         for j, b in enumerate(buttons):
-            buttons[b].set_size_request(self._screen.width / 5, 1)
+            buttons[b].set_size_request(self._screen.width * 0.33, 1)
             button_grid.attach(buttons[b], j, 0, 1, 1)
         service_grid.attach(label_name, 1, i, 1, 1)
         service_grid.attach(button_grid, 2, i, 1, 1)
@@ -67,17 +67,25 @@ class Panel(ScreenPanel):
               f'{_("Are you sure?")}\n\n' f'{_("Restart service")}: {service}',
               "machine.services.restart",
               {"service": service},
+              callback=self.on_restart_service
         )
         self._gtk.Button_busy(self.service_row[service]['restart'], True)
     
+    def on_restart_service(self, result, method, params):
+      self._gtk.Button_busy(self.service_row[params['service']]['restart'], False)
+
     def start(self, widget, service):
         self._screen._confirm_send_action(
                 widget,
                 f'{_("Are you sure?")}\n\n' f'{_("Start service")}: {service}',
                 "machine.services.start",
                 {"service": service},
+                callback=self.on_start_service
         )
         self._gtk.Button_busy(self.service_row[service]['start'], True)
+    
+    def on_start_service(self, result, method, params):
+      self._gtk.Button_busy(self.service_row[params['service']]['start'], False)
 
     def stop(self, widget, service):
         self._screen._confirm_send_action(
@@ -85,5 +93,9 @@ class Panel(ScreenPanel):
                 f'{_("Are you sure?")}\n\n' f'{_("Stop service")}: {service}',
                 "machine.services.stop",
                 {"service": service},
+                callback=self.on_stop_service
         )
         self._gtk.Button_busy(self.service_row[service]['stop'], True)
+
+    def on_stop_service(self, result, method, params):
+      self._gtk.Button_busy(self.service_row[params['service']]['stop'], False)
