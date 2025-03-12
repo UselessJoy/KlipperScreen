@@ -97,7 +97,7 @@ class MovementArea(Gtk.EventBox):
         self.add_events(Gdk.EventMask.POINTER_MOTION_MASK)
         # Сигнал "size-allocate" срабатывает при каждом движении по полю
         #self.movement_area.connect("size-allocate", self.init_sizes)
-        GLib.timeout_add(200, self.init_sizes)
+        GLib.timeout_add(300, self.init_sizes)
         
     def init_sizes(self, *args):
         self.init = False
