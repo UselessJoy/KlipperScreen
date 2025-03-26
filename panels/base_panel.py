@@ -652,7 +652,7 @@ class BasePanel(ScreenPanel):
       self.restart_button_grid.show_all()
 
     def show_system_fix_dialog(self, widget=None):
-        if self.require_internet:
+        if self.require_internet and self.has_uninstalled_updates:
           btns =  [
                       {"name": _("Close"), "response": Gtk.ResponseType.YES, "style": "color1", "callback": self.close},
                       {"name": _("Repeat Update"), "response": Gtk.ResponseType.YES, "style": "color1", "callback": self.repeat},

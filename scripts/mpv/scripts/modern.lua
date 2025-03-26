@@ -1111,10 +1111,10 @@ layouts = function ()
     lo.style = osc_styles.Ctrl3
     lo.visible = (osc_param.playresx >= 650)
 
-    lo = add_layout('tog_fs')
-    lo.geometry = {x = osc_geo.w - 37, y = refY - 40, an = 5, w = 24, h = 24}
-    lo.style = osc_styles.Ctrl3
-    lo.visible = (osc_param.playresx >= 540)
+    -- lo = add_layout('tog_fs')
+    -- lo.geometry = {x = osc_geo.w - 37, y = refY - 40, an = 5, w = 24, h = 24}
+    -- lo.style = osc_styles.Ctrl3
+    -- lo.visible = (osc_param.playresx >= 540)
 
     lo = add_layout('tog_info')
     lo.geometry = {x = osc_geo.w - 87, y = refY - 40, an = 5, w = 24, h = 24}
@@ -1338,17 +1338,17 @@ function osc_init()
         function () mp.commandv('cycle', 'mute') end
         
     --tog_fs
-    ne = new_element('tog_fs', 'button')
-    ne.content = function ()
-        if (state.fullscreen) then
-            return ('\xEF\x85\xAC')
-        else
-            return ('\xEF\x85\xAD')
-        end
-    end
-    ne.visible = (osc_param.playresx >= 540)
-    ne.eventresponder['mbtn_left_up'] =
-        function () mp.commandv('cycle', 'fullscreen') end
+    -- ne = new_element('tog_fs', 'button')
+    -- ne.content = function ()
+    --     if (state.fullscreen) then
+    --         return ('\xEF\x85\xAC')
+    --     else
+    --         return ('\xEF\x85\xAD')
+    --     end
+    -- end
+    -- ne.visible = (osc_param.playresx >= 540)
+    -- ne.eventresponder['mbtn_left_up'] =
+    --     function () mp.commandv('cycle', 'fullscreen') end
 
     --tog_info
     ne = new_element('tog_info', 'button')

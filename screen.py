@@ -133,7 +133,7 @@ class KlipperScreen(Gtk.Window):
         self.env = Environment(extensions=["jinja2.ext.i18n"], autoescape=True)
         self.env.install_gettext_translations(self._config.get_lang())
 
-        self.connect("key-press-event", self._key_press_event)
+        # self.connect("key-press-event", self._key_press_event)
         self.connect("configure_event", self.update_size)
         display = Gdk.Display.get_default()
         monitor_amount = Gdk.Display.get_n_monitors(display)
@@ -1173,13 +1173,15 @@ class KlipperScreen(Gtk.Window):
 
         return False
 
-    def show_keyboard(self, entry=None, event=None, accept_function=None):
+    def show_keyboard(self, entry=None, event=None, accept_function=None, backspace_function = None, reject_function = None):
         if self.keyboard is not None:
             return
         if entry is None:
             logging.debug("Error: no entry provided for keyboard")
-            return   
-        self.keyboard = Keyboard(self, self.remove_keyboard, accept_function, entry=entry)
+            return
+        if not reject_function:
+          reject_function = self.remove_keyboard
+        self.keyboard = Keyboard(self, reject_function, accept_function, entry=entry, backspace_cb=backspace_function)
         self.base_panel.content.add(self.keyboard)
         self.base_panel.content.show_all()
         
@@ -1235,12 +1237,12 @@ class KlipperScreen(Gtk.Window):
         self.base_panel.content.remove(self.keyboard)
         self.keyboard = None
     
-    def _key_press_event(self, widget, event):
-        keyval_name = Gdk.keyval_name(event.keyval)
-        if keyval_name == "Escape":
-            self._menu_go_back(home=True)
-        elif keyval_name == "BackSpace" and len(self._cur_panels) > 1 and self.keyboard is None:
-            self.base_panel.back()
+    # def _key_press_event(self, widget, event):
+    #     keyval_name = Gdk.keyval_name(event.keyval)
+    #     if keyval_name == "Escape":
+    #         self._menu_go_back(home=True)
+    #     elif keyval_name == "BackSpace" and len(self._cur_panels) > 1 and self.keyboard is None:
+    #         self.base_panel.back()
 
     def update_size(self, *args):
         width, height = self.get_size()

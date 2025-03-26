@@ -473,9 +473,7 @@ class MoonrakerApi:
       logging.debug("Sending machine.timelapse.post_settings")
       return self._ws.send_method(
         "machine.timelapse.post_settings",
-        {
-          settings
-        },
+        settings,
         callback,
         *args
       )

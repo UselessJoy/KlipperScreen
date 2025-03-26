@@ -7,12 +7,13 @@ from gi.repository import Gtk, GLib
 
 class Keyboard(Gtk.Box):
     langs = ["de", "en", "fr", "es"]
-    def __init__(self, screen, reject_cb = None, accept_cb = None, entry = None):
+    def __init__(self, screen, reject_cb = None, accept_cb = None, entry = None, backspace_cb = None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
         self.get_style_context().add_class("keyboard")
         self.reject_cb = reject_cb
         self.accept_cb = accept_cb
-        #self.keyboard = Gtk.Grid()
+        self.backspace_cb = backspace_cb
+        self.pressing = False
         self.keyboard = screen.gtk.HomogeneousGrid()
         self.keyboard.set_direction(Gtk.TextDirection.LTR)
         self.timeout = self.clear_timeout = None
@@ -79,7 +80,7 @@ class Keyboard(Gtk.Box):
                     self.buttons[p][r][k].set_hexpand(True)
                     self.buttons[p][r][k].set_vexpand(True)
                     self.buttons[p][r][k].set_can_focus(False)
-                    self.buttons[p][r][k].connect('button-press-event', self.repeat, key)
+                    self.buttons[p][r][k].connect('button-press-event', self.press, key)
                     self.buttons[p][r][k].connect('button-release-event', self.release)
                     self.buttons[p][r][k].get_style_context().add_class("keyboard_pad")
 
@@ -126,20 +127,34 @@ class Keyboard(Gtk.Box):
             self.keyboard.attach(self.buttons[p][4][2], 16, 4, 4, 1)  # ✔
         self.show_all()
 
-    def repeat(self, widget, event, key):
-        # Button-press
-        self.update_entry(widget, key)
-        if self.timeout is None and key == "⌫":
-            # Hold for repeat, hold longer to clear the field
-            #self.clear_timeout = GLib.timeout_add_seconds(3, self.clear, widget)
-            # This can be used to repeat all the keys,
-            # but I don't find it useful on the console
-            self.timeout = GLib.timeout_add(500, self.repeat, widget, None, key)
-        widget.get_style_context().add_class("active")
+    def press(self, widget, event, key):
+      if self.pressing:
+        return
+      self.pressing = True
+      widget.get_style_context().add_class("active")
+      if key == "⌫"and self.backspace_cb:
+          self.backspace_cb()
+          if not self.timeout:
+            self.timeout = GLib.timeout_add(300, self.on_wait, widget, key)
+            return
+      self.update_entry(widget, key)
+      if not self.timeout:
+        self.timeout = GLib.timeout_add(300, self.on_wait, widget, key)
+        return
+
+    def on_wait(self, widget, key):
+      self.timeout = GLib.timeout_add(40, self.repeat, widget, key)
+
+    def repeat(self, widget, key):
+      if key == "⌫" and self.backspace_cb:
+        self.backspace_cb()
         return True
+      self.update_entry(widget, key)
+      return True
 
     def release(self, widget, event):
         # Button-release
+        self.pressing = False
         if self.timeout is not None:
             GLib.source_remove(self.timeout)
             self.timeout = None

@@ -21,11 +21,18 @@ msgstr ""
 msgid "Warning"
 msgstr "Предупреждение"
 
+#,"Reconnecting"
+#,"Переодключение"
 msgid "Reconnecting"
-msgstr "Переподключение"
+msgstr "Подключение к принтеру"
 
+#,"Unable to get printer info from moonraker"
+#,"Ошибка moonraker: не удалось получить информацию о принтере"
 msgid "Unable to get printer info from moonraker"
-msgstr "Ошибка moonraker: не удалось получить информацию о принтере"
+msgstr "Подключение к принтеру"
+
+msgid "Frames saved. Viewing is available via the web interface"
+msgstr "Кадры сохранены. Просмотр доступен через web-интерфейс"
 
 msgid "Error getting printer configuration"
 msgstr "Ошибка при получении конфигурации принтера"
@@ -222,6 +229,9 @@ msgstr "Соединен с  %s"
 
 msgid "Console"
 msgstr "Консоль"
+
+msgid "Terminal"
+msgstr "Терминал"
 
 msgid "Continue"
 msgstr "Продолжить"
@@ -558,7 +568,13 @@ msgid "Render"
 msgstr "Рендер"
 
 msgid "Render settings"
-msgstr "Настройки рендера"
+msgstr "Настройки"
+
+msgid "Moonraker shutdown. Please, reboot moonraker"
+msgstr "Moonraker отключен. Пожалуйста, перезапустите сервис"
+
+msgid "Moonraker load error"
+msgstr "Ошибка при загрузке moonraker"
 
 msgid "Maximum"
 msgstr "Максимум"
@@ -1174,6 +1190,15 @@ msgstr "Пароль должен содержать минимум 8 симво
 
 msgid "Failed to connect to the requested network"
 msgstr "Не удалось подключиться к запрашиваемой сети"
+
+msgid "Rendering Video successful: %s"
+msgstr "Рендер видео успешно завершен: %s"
+
+msgid "Saving frames failed"
+msgstr "Ошибка при сохранении кадров"
+
+msgid"Render failed"
+msgstr "Ошибка при рендере"
 
 msgid "No mesh profile has been loaded"
 msgstr "Ни один профиль не был загружен"
