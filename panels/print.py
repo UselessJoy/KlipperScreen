@@ -571,13 +571,15 @@ class Panel(ScreenPanel):
             self._create_rename_box(fullpath)
         self.content.add(self.labels['rename_file'])
         self.labels['new_name'].set_text(fullpath[7:])
+        self.labels['new_name'].connect("button-press-event", self.on_change_entry)
         self.labels['new_name'].grab_focus_without_selecting()
+        self.on_change_entry(self.labels['new_name'])
         self.showing_rename = True
 
-    def on_change_entry(self, entry, event):
+    def on_change_entry(self, entry, event=None):
         self._screen.show_keyboard(entry=entry)
         self._screen.keyboard.change_entry(entry=entry)
-    
+
     def _create_rename_box(self, fullpath):
         lbl = Gtk.Label(label=_("Rename/Move:"), halign=Gtk.Align.START, hexpand=False)
         self.labels['new_name'] = TypedEntry()

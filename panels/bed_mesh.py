@@ -538,7 +538,10 @@ class Panel(ScreenPanel):
         return True
 
     def on_focus_in_entry(self, entry, event, keyboard_class = Keyboard):
-      self.keyboard = keyboard_class(self._screen, entry=entry)
+      if isinstance(keyboard_class, Keyboard):
+        self.keyboard = keyboard_class(self._screen, entry=entry, accept_function=self.on_accept_keyboard_dutton, reject_function=self.on_accept_keyboard_dutton)
+      else:
+        self.keyboard = keyboard_class(self._screen, entry=entry)
       self.keyboard.change_entry(entry=entry)
       self.keyboard.set_vexpand(False)
       self.keyboard.set_hexpand(True)
@@ -546,6 +549,9 @@ class Panel(ScreenPanel):
         self.keyboard.set_size_request(1, self._screen.height * RESOLUTION_K[(self._screen.width, self._screen.height)])
       self.content.add(self.keyboard)
       self.content.show_all()
+
+    def on_accept_keyboard_dutton(self):
+        self._screen.remove_keyboard()
 
     def start_calibrate(self, widget=None, event=None):
         profiles_dict = self.get_new_profiles_grid_parameters_as_dict()

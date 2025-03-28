@@ -127,7 +127,6 @@ class KlipperScreen(Gtk.Window):
         # Для просмотра дерева виджетов
         # self.set_interactive_debugging(True)
         configfile = os.path.normpath(os.path.expanduser(args.configfile))
-
         self._config = KlipperScreenConfig(configfile, self)
         self.lang_ltr = set_text_direction(self._config.get_main_config().get("language", None))
         self.env = Environment(extensions=["jinja2.ext.i18n"], autoescape=True)
@@ -1173,7 +1172,7 @@ class KlipperScreen(Gtk.Window):
 
         return False
 
-    def show_keyboard(self, entry=None, event=None, accept_function=None, backspace_function = None, reject_function = None):
+    def show_keyboard(self, entry=None, event=None, accept_function=None, backspace_function=None, reject_function=None):
         if self.keyboard is not None:
             return
         if entry is None:
@@ -1182,9 +1181,17 @@ class KlipperScreen(Gtk.Window):
         if not reject_function:
           reject_function = self.remove_keyboard
         self.keyboard = Keyboard(self, reject_function, accept_function, entry=entry, backspace_cb=backspace_function)
-        self.base_panel.content.add(self.keyboard)
+        self.base_panel.content.pack_end(self.keyboard, True, True, 5)
         self.base_panel.content.show_all()
-        
+
+    def remove_keyboard(self, widget=None, event=None):
+        if self.keyboard is None:
+            return
+        if 'process' in self.keyboard:
+            os.kill(self.keyboard['process'].pid, SIGTERM)
+        self.base_panel.content.remove(self.keyboard)
+        self.keyboard = None
+
     def show_numpad(self, entry=None, event=None, accept_function=None): 
         if self.numpad is not None:
                 return
@@ -1229,14 +1236,6 @@ class KlipperScreen(Gtk.Window):
         }
         return
 
-    def remove_keyboard(self, widget=None, event=None):
-        if self.keyboard is None:
-            return
-        if 'process' in self.keyboard:
-            os.kill(self.keyboard['process'].pid, SIGTERM)
-        self.base_panel.content.remove(self.keyboard)
-        self.keyboard = None
-    
     # def _key_press_event(self, widget, event):
     #     keyval_name = Gdk.keyval_name(event.keyval)
     #     if keyval_name == "Escape":

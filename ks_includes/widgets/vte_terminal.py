@@ -4,12 +4,9 @@ gi.require_version('Vte', '2.91')
 from gi.repository import Vte, Gdk
 from gi.repository import GLib
 import os
-
 class Terminal(Vte.Terminal):
-
     def __init__(self):
         super(Vte.Terminal, self).__init__()
-
         self.spawn_async(Vte.PtyFlags.DEFAULT, 
             os.path.expanduser("~"),
             ["/bin/bash"],
@@ -21,7 +18,6 @@ class Terminal(Vte.Terminal):
             None,
             None
             )
-            
         self.set_font_scale(0.9)
         self.set_scroll_on_output(True)
         self.set_scroll_on_keystroke(True)
@@ -30,12 +26,12 @@ class Terminal(Vte.Terminal):
         self.set_color_highlight(Gdk.RGBA(0.3, 0.3, 0.9, 1.0))
         self.set_color_highlight_foreground(Gdk.RGBA(0.8, 0.8, 0.8, 1.0))
         self.connect("key_press_event", self.copy_or_paste)
-
         self.set_scrollback_lines(-1)
         self.set_audible_bell(0)
 
     def update_entry(self, key):
-      self.feed_child(key.encode('utf8'))
+      if key != "⌫":
+        self.feed_child(key.encode())
 
     def copy_or_paste(self, widget, event):
         control_key = Gdk.ModifierType.CONTROL_MASK

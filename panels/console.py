@@ -85,8 +85,7 @@ class Panel(ScreenPanel):
     def on_change_entry(self, entry, event):
         self._screen.show_keyboard(entry=entry)
         self._screen.keyboard.change_entry(entry=entry)
-        
-        
+
     def clear(self, widget=None):
         self.labels['tb'].set_text("")
 

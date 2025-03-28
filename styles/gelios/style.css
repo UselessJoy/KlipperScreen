@@ -91,7 +91,7 @@ button {
     padding-bottom: 10px;
 }
 
-button:active, .round_button:active {
+button:active, .round_button:active, .shadow:active {
     background-color: #cb4b16; /*solarized-orange*/
 }
 
@@ -101,6 +101,12 @@ button:active, .round_button:active {
     border-style: solid;
     border-radius: 1em;
     /*background-color: inherit;#073642;base02*/
+}
+
+button.shadow {
+  background-color: rgba(80, 80, 80, 0.623);/*#073642; base02*/
+  box-shadow: -8px 11px 10px 2px rgba(34, 60, 80, 0.2) inset;
+  border-radius: 1em;
 }
 
 button.color1 {

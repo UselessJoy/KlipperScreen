@@ -120,7 +120,7 @@ class Panel(ScreenPanel):
     def on_change_entry(self, entry, event):
         self._screen.show_keyboard(entry=entry)
         self._screen.keyboard.change_entry(entry=entry)
-    
+
     def run_gcode_macro(self, widget, macro):
         params = ""
         for param in self.macros[macro]["params"]:
