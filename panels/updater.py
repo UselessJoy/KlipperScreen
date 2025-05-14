@@ -194,6 +194,8 @@ class Panel(ScreenPanel):
     def show_update_dialog(self, widget):
       v_info = self.update_status["version_info"]
       scroll = self._gtk.ScrolledWindow(steppers=False)
+      scroll.set_vexpand(True)
+      scroll.set_min_content_height(self._gtk.content_height * 0.4)
       scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
       labelBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
       for prog in v_info:
