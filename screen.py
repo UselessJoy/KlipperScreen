@@ -123,6 +123,7 @@ class KlipperScreen(Gtk.Window):
         self.apiclient = None
         self.dialogs = []
         self.confirm = None
+        self.last_window_class = ""
         self.last_popup_time = datetime.now()
         # Для просмотра дерева виджетов
         # self.set_interactive_debugging(True)
@@ -273,6 +274,7 @@ class KlipperScreen(Gtk.Window):
                 "safety_printing": ["safety_enabled", "is_doors_open", "is_hood_open", "luft_timeout", "luft_overload"],
                 "power_button": ["state"],
                 "tmc2209 stepper_x": ["quite_mode"],
+                "resonance_tester": ["shaping"],
                 "bed_mesh": ["profile_name", "mesh_max", "mesh_min", "probed_matrix", "profiles", "unsaved_profiles", "is_calibrating"],
                 "configfile": ["config", "save_config_pending", "save_config_pending_items"],
                 "display_status": ["progress", "message"],
@@ -303,7 +305,7 @@ class KlipperScreen(Gtk.Window):
         }
         for extruder in self.printer.get_tools():
             requested_updates['objects'][extruder] = [
-                "target", "temperature", "pressure_advance", "smooth_time", "power"]
+                "target", "temperature", "pressure_advance", "smooth_time", "power", "nozzle_diameter"]
         for h in self.printer.get_heaters():
             requested_updates['objects'][h] = ["target", "temperature", "power"]
         for t in self.printer.get_temp_sensors():
@@ -698,7 +700,10 @@ class KlipperScreen(Gtk.Window):
     ####      NEW      ####
     def set_autooff(self, autooff_enable):
         self._ws.klippy.set_autooff(autooff_enable)
-    
+
+    def set_nozzle_diameter(self, value: str):
+        self._ws.klippy.set_nozzle_diameter(value)
+
     def set_safety(self, safety):
         self._ws.klippy.set_safety(safety)
     

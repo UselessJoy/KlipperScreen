@@ -114,6 +114,7 @@ class KlippyWebsocket(threading.Thread):
         return
 
     def send_method(self, method, params=None, callback=None, *args):
+        # logging.info(f"sending:\n method: {method}, params: {params}, callback: {callback}, args: {args}")
         if not self.connected:
             return False
         if params is None:
@@ -126,8 +127,9 @@ class KlippyWebsocket(threading.Thread):
             if self._screen.printer.get_stat("heaters", "is_waiting"):
                 self.send_method(
                     "printer.open_message",
-                    {   'message_type': "warning",
-                        'message': "on_wait_temperature"
+                    {
+                      'message_type': "warning",
+                      'message': "on_wait_temperature"
                     },
                     None
                 )
@@ -247,7 +249,7 @@ class MoonrakerApi:
         )
 
     def power_device_on(self, device, callback=None, *args):
-        logging.debug("Sending machine.device_power.on {device}")
+        logging.debug(f"Sending machine.device_power.on {device}")
         return self._ws.send_method(
             "machine.device_power.on",
             {device: False},
@@ -314,6 +316,15 @@ class MoonrakerApi:
             callback,
             *args
         )
+    
+    def turn_off_all_heaters(self, callback=None, *args):
+        logging.debug(f"Sending heater turn_off_all_heaters")
+        return self._ws.send_method(
+            "printer.turn_off_heaters",
+            {},
+            callback,
+            *args
+      )
 
     def set_temp_fan_temp(self, temp_fan, target, callback=None, *args):
         logging.debug(f"Sending temperature fan {temp_fan} to temp: {target}")
@@ -388,6 +399,17 @@ class MoonrakerApi:
             "printer.setSafetyPrinting",
             {
                 "safety_enabled": safety
+            },
+            callback,
+            *args
+        )
+    
+    def set_nozzle_diameter(self, nozzle_diameter, callback=None, *args):
+        logging.debug("Sending printer.set_nozzle_diameter")
+        return self._ws.send_method(
+            "printer.set_nozzle_diameter",
+            {
+                "nozzle_diameter": nozzle_diameter
             },
             callback,
             *args
@@ -602,6 +624,24 @@ class MoonrakerApi:
     def timelapse_old_frames(self, callback=None, *args):
         return self._ws.send_method(
             "machine.timelapse.old_frames",
+            {},
+            callback,
+            *args
+        )
+    
+    def test_heating(self, heater, callback=None, *args):
+        return self._ws.send_method(
+            "printer.heaters.test_temperature",
+            {
+              "heater": heater
+            },
+            callback,
+            *args
+        )
+        
+    def test_magnet_probe(self, callback=None, *args):
+        return self._ws.send_method(
+            "printer.magnet_probe.test_magnet_probe",
             {},
             callback,
             *args

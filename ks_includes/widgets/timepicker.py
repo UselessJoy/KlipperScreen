@@ -12,7 +12,7 @@ class Timepicker(Gtk.Box):
         self._screen = screen
         self.change_value_cb = change_value_cb
         self.change_switch_cb = change_switch_cb
-        self.change_timezone_cd = change_timezone_cb
+        self.change_timezone_cb = change_timezone_cb
         now = datetime.now()
         hours = int(f'{now:%H}')
         minutes = int(f'{now:%M}')
@@ -99,9 +99,9 @@ class Timepicker(Gtk.Box):
     def on_city_changed(self, widget, city, combo_regions):
       cur_region = combo_regions.get_text()
       if cur_region == "UTC":
-        self.change_timezone_cd(cur_region)
+        self.change_timezone_cb(cur_region)
       else:
-        self.change_timezone_cd(f"{cur_region}/{city}")
+        self.change_timezone_cb(f"{cur_region}/{city}")
         
     def on_change_value(self, spinbutton, name):
         value = int(spinbutton.get_value())

@@ -10,6 +10,7 @@ class KlippyGcodes:
     MOVE = "G1"
     MOVE_ABSOLUTE = "G90"
     MOVE_RELATIVE = "G91"
+    DISABLE_MOTORS = "M18"
 
     EXTRUDE_ABS = "M82"
     EXTRUDE_REL = "M83"
@@ -45,8 +46,8 @@ class KlippyGcodes:
         return f"M104 T{tool} S{temp}"
 
     @staticmethod
-    def set_heater_temp(heater, temp):
-        return f'SET_HEATER_TEMPERATURE heater="{heater}" target={temp}'
+    def set_heater_temp(heater, temp, wait=False):
+        return f'SET_HEATER_TEMPERATURE heater="{heater}" target={temp} wait={wait}'
 
     @staticmethod
     def set_temp_fan_temp(temp_fan, temp):

@@ -1,16 +1,14 @@
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-from ks_includes.screen_panel import ScreenPanel
 
-class Panel(ScreenPanel):
-    def __init__(self, screen, title):
-        super().__init__(screen, title)
-        self.colorWheel = Gtk.HSV()
-        self.colorWheel.set_metrics(self._gtk.content_width/3,self._gtk.content_width/30)
+class KSColorWheel(Gtk.HSV):
+    def __init__(self, screen):
+        super().__init__()
+        self.set_metrics(screen.gtk.content_width/3, screen.gtk.content_width/30)
         self.colors = self.get_default_color()
         hsv = Gtk.rgb_to_hsv(self.colors[0], self.colors[1], self.colors[2])
-        self.colorWheel.set_color(hsv[0], hsv[1], hsv[2])
+        self.set_color(hsv[0], hsv[1], hsv[2])
         self.enabled: bool = self._printer.get('led_control', 'enabled', False)
         self.colorWheel.set_sensitive(self.enabled)
         self.labels['set_default'] = self._gtk.Button("complete", _("Set Default"), "color1")
@@ -37,10 +35,10 @@ class Panel(ScreenPanel):
         self.content.show_all()
         
     def color_changed(self, widget):
-        self.colors = self.colorWheel.get_color()
-        self.colors = self.colorWheel.to_rgb(self.colors[0], self.colors[1], self.colors[2])
-        if not self.colorWheel.is_adjusting():
-          self._screen._ws.klippy.set_neopixel_color(self.neopixel, self.colors[0], self.colors[1], self.colors[2])
+        self.colors = self.get_color()
+        self.colors = self.to_rgb(self.colors[0], self.colors[1], self.colors[2])
+        if not self.is_adjusting():
+            self._screen._ws.klippy.set_neopixel_color(self.neopixel, self.colors[0], self.colors[1], self.colors[2])
     
     def process_update(self, action, data):
         if action == "notify_status_update":

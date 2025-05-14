@@ -461,12 +461,10 @@ class Panel(ScreenPanel):
             "printer.gcode.script",
             script
         )
-        # self.pid_scroll.set_sensititve(True)
         self.close_left_pid_panel()
         
     def switch_left_pid_panel(self, temper, is_active):
         self.is_active = is_active
-        # Добавлять в scroll контейнер, содержащий rows
         if is_active:
             self.create_left_pid_panel()
         else:
@@ -510,13 +508,11 @@ class Panel(ScreenPanel):
         self.grid.show_all()
         
     def add_tempearture(self, temp=0):
-        # Здесь в контейнер, содержащий rows надо добавлять (возвращать None)
         label = Gtk.Label(label=_("Temperature") + f"       {temp}")
         self.temperatures.append(temp)
         delete_button = self._gtk.Button("delete", None, None, .66)
         delete_button.set_hexpand(False)
         delete_button.set_vexpand(False)
-        # self._gtk.Button(image, _(devname), None, self.bts, Gtk.PositionType.LEFT, 1)
         row_temp = Gtk.Box(spacing = 5)
         row_temp.pack_start(label, False, False, 0)
         row_temp.pack_end(delete_button, False, False, 0)

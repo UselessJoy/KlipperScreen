@@ -267,14 +267,20 @@ class KlipperScreenConfig:
                     {"name": _("gelios") + " " + _("(default)"), "value": "gelios"}]}},
 
             {"nozzle_diameter": {
-                "section": "main", "name": _("Nozzle Diameter"), "type": "dropdown",
-                "value": "0.4", "options": [
-                    {"name": "0.4" + " " + _("(default)"), "value": "0.4"},
-                    {"name": "0.25", "value": "0.25"},
-                    {"name": "0.6", "value": "0.6"},
-                    {"name": "0.8", "value": "0.8"},
-                    {"name": "1.0", "value": "1.0"},
-                    ]}},
+                "section": "main", 
+                "name": _("Nozzle Diameter"), 
+                "type": "dropdown",
+                "value": "0.4",
+                "callback": screen.set_nozzle_diameter, 
+                "options": [
+                  {"name": "0.4" + " " + _("(default)"), "value": "0.4"},
+                  {"name": "0.25", "value": "0.25"},
+                  {"name": "0.6", "value": "0.6"},
+                  {"name": "0.8", "value": "0.8"},
+                  {"name": "1.0", "value": "1.0"},
+                ]
+              }
+             },
             {"print_estimate_method": {
                 "section": "main", "name": _("Estimated Time Method"), "type": "dropdown",
                 "value": "auto", "options": [
@@ -283,9 +289,17 @@ class KlipperScreenConfig:
                     {"name": _("Filament Used"), "value": "filament"},
                     {"name": _("Slicer"), "value": "slicer"}]}},
             {"screen_blanking": {
-                "section": "main", "name": _("Screen Power Off Time"), "type": "dropdown",
-                "value": "3600", "callback": screen.set_screenblanking_timeout, "options": [
-                    {"name": _("Never"), "value": "off"}]
+                "section": "main", 
+                "name": _("Screen Power Off Time"), 
+                "type": "dropdown",
+                "value": "3600", 
+                "callback": screen.set_screenblanking_timeout, 
+                "options": [
+                    {
+                      "name": _("Never"), 
+                      "value": "off"
+                    }
+                ]
             }},
             ####      NEW      ####
             {"quite_mode": {"section": "main", "name": _("Quite Mode"), "type": "binary",

@@ -1,3 +1,4 @@
+import logging
 import gi
 from ks_includes.widgets.keyboard import Keyboard
 gi.require_version("Gtk", "3.0")
@@ -13,26 +14,45 @@ class Panel(ScreenPanel):
         self.dnd_text = Gtk.TargetEntry.new("text/plain", 0, 4294967293)
         self.controller = Controller()
         self.terminal = Terminal()
+        self.terminal.connect("button-press-event", self.open_terminal)
         self.terminal.drag_dest_set(Gtk.DestDefaults.ALL, self.dnd_list, Gdk.DragAction.COPY)
         self.terminal.drag_dest_set_target_list(self.dnd_list)
-        t_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, vexpand=True, hexpand=True, spacing=10)
-        terminal_scroll = Gtk.ScrolledWindow()
-        terminal_scroll.set_min_content_height(screen.gtk.content_height * 0.5)
-        terminal_scroll.add(self.terminal)
-        t_box.add(terminal_scroll)
-        self.keyboard = Keyboard(screen, self.pass_function, self.virtual_enter, self.terminal, self.virtual_backspace, False, False)
+        self.t_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, vexpand=True, hexpand=True, spacing=5)
+        self.terminal_scroll = Gtk.ScrolledWindow()
+        self.terminal_scroll.set_min_content_height(screen.gtk.content_height * 0.5)
+        self.terminal_scroll.add(self.terminal)
+        self.t_box.add(self.terminal_scroll)
+        self.keyboard = Keyboard(screen, self.close_keyboard, self.virtual_enter, self.terminal, self.virtual_backspace, acc_cb_destroy=False)
         self.keyboard.get_style_context().remove_class("keyboard")
         self.keyboard.set_hexpand(True)
-        t_box.add(self.keyboard)
+        self.t_box.pack_end(self.keyboard, True, True, 0)
         self.overlayBox = None
         self.terminal.grab_focus()
         self.overlay = Gtk.Overlay()
-        self.overlay.add_overlay(t_box)
+        self.overlay.add_overlay(self.t_box)
         self.overlay.add_overlay(self.InfoButton())
         self.content.add(self.overlay)
 
-    def pass_function(self):
-      return
+    def open_terminal(self, *args):
+      logging.info("oppening terminal")
+      if self.keyboard:
+        return
+      logging.info("terminal is none")
+      self.keyboard = Keyboard(self._screen, self.close_keyboard, self.virtual_enter, self.terminal, self.virtual_backspace, acc_cb_destroy=False)
+      self.keyboard.get_style_context().remove_class("keyboard")
+      self.keyboard.set_hexpand(True)
+      self.terminal_scroll.set_min_content_height(self._screen.gtk.content_height * 0.5)
+      self.t_box.pack_end(self.keyboard, True, True, 0)
+      self.t_box.show_all()
+      logging.info("terminal show_all")
+
+    def close_keyboard(self):
+      logging.info("closing termnial")
+      if not self.keyboard:
+        return
+      self.t_box.remove(self.keyboard)
+      self.terminal_scroll.set_min_content_height(self._screen.gtk.content_height - 5)
+      self.keyboard = None
 
     def InfoButton(self):
       info_button = self._gtk.Button("info", style="round_button", scale=0.7)

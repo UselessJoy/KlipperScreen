@@ -68,7 +68,7 @@ class Panel(ScreenPanel):
                     
         if 'safety_printing' in data:
             if 'safety_enabled' in data['safety_printing']:
-                logging.info(f"safety_printing changed to {data['virtual_sdcard']['watch_bed_mesh']}")
+                logging.info(f"safety_printing changed to {data['safety_printing']['safety_enabled']}")
                 for child in self.options_data['safety_printing']['row']:
                     if hasattr(child, "set_active"):
                         child.set_active(data['safety_printing']['safety_enabled'])
@@ -91,6 +91,27 @@ class Panel(ScreenPanel):
                     if hasattr(child, "set_active"):
                         child.set_active(data['virtual_sdcard']['autoload_bed_mesh'])
         
+        if 'extruder' in data:
+          if 'nozzle_diameter' in data['extruder']:
+            logging.info(f"nozzle_diameter changed to {data['extruder']['nozzle_diameter']}")
+            for child in self.options_data['nozzle_diameter']['row']:
+              if hasattr(child, "get_model"):
+                found_value = False
+                model = child.get_model()
+                i = 0
+                for _, value in model:
+                  logging.info(f"{int(float(value) * 100)} == {int(float(data['extruder']['nozzle_diameter']) * 100)}")
+                  if int(float(value) * 100) == int(float(data['extruder']['nozzle_diameter']) * 100):
+                    child.set_active(i)
+                    found_value = True
+                    break
+                  i += 1
+                if not found_value:
+                  child.append(str(data['extruder']['nozzle_diameter']), str(data['extruder']['nozzle_diameter']))
+                  child.set_active(i)
+            child.show_all()
+            logging.info(f"{self._printer.get_stat('extruder')}")
+
     def activate(self):
         while len(self.menu) > 1:
             self.unload_menu()

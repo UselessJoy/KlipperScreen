@@ -119,7 +119,7 @@ class Printer:
         for x in (self.get_temp_devices() + self.get_filament_sensors()):
             if x in data:
                 for i in data[x]:
-                    self.set_dev_stat(x, i, data[x][i])
+                  self.set_dev_stat(x, i, data[x][i])
         for x in data:
             if x == "configfile":
                 if not 'save_config_pending' in data[x] or not 'save_config_pending_items' in data[x]:
@@ -196,11 +196,11 @@ class Printer:
             False,
         )
 
-    def get_fans(self) -> list:
+    def get_fans(self, fan_types = ["controller_fan", "fan_generic", "heater_fan"], append_fan = True) -> list:
         fans = []
-        if self.config_section_exists("fan"):
+        if append_fan and self.config_section_exists("fan"):
             fans.append("fan")
-        for fan_type in ["controller_fan", "fan_generic", "heater_fan"]:
+        for fan_type in fan_types:
             fans.extend(iter(self.get_config_section_list(f"{fan_type} ")))
         return fans
 
@@ -415,7 +415,6 @@ class Printer:
     def set_dev_stat(self, dev, stat, value) -> None:
         if dev not in self.devices:
             return
-
         self.devices[dev][stat] = value
 
     def _update_temp_store(self) -> bool:

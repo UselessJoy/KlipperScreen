@@ -1,3 +1,4 @@
+import logging
 import re
 import gi
 gi.require_version("Gtk", "3.0")
@@ -22,6 +23,9 @@ class Panel(ScreenPanel):
         self.calibrate_btn.set_sensitive(True)
         self.calibrating_axis = None
         self.calibrating_axis = None
+        self.stop_shaper_btn = self._gtk.Button(label=_("Stop"))
+        self.stop_shaper_btn.set_sensitive(False)
+        self.stop_shaper_btn.connect("clicked", self.stop_shaper)
 
         auto_calibration_label = Gtk.Label(wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR)
         auto_calibration_label.set_markup('<big><b>%s</b></big>' % _("Auto Calibration"))
@@ -55,6 +59,7 @@ class Panel(ScreenPanel):
         
         scroll_grid = Gtk.Grid()
         self.sw = Gtk.ScrolledWindow()
+        self.sw.set_max_content_height(screen.gtk.content_height * 0.4)
         self.sw.set_policy(Gtk.PolicyType.EXTERNAL, Gtk.PolicyType.AUTOMATIC)
         self.sw.set_vexpand(True)
         self.sw.set_hexpand(True)
@@ -67,30 +72,37 @@ class Panel(ScreenPanel):
         tv.connect("size-allocate", self._autoscroll)
         self.sw.add(tv)
         scroll_grid.attach(self.sw, 0, 0, 1, 1)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         box.add(auto_grid)
         box.add(input_grid)
+        lbl = Gtk.Label(label=_("Don't touch the printer until calibration end"), wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR)
+        lbl.get_style_context().add_class("label_chars")
+        box.add(lbl)
         box.add(scroll_grid)
-
         self.content.add(box)
 
-        pobox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.pobox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         test_x = self._gtk.Button(label=_("Measure X"))
         test_x.connect("clicked", self.start_calibration, "x")
-        pobox.pack_start(test_x, True, True, 5)
+        self.pobox.pack_start(test_x, True, True, 5)
         test_y = self._gtk.Button(label=_("Measure Y"))
         test_y.connect("clicked", self.start_calibration, "y")
-        pobox.pack_start(test_y, True, True, 5)
+        self.pobox.pack_start(test_y, True, True, 5)
         test_both = self._gtk.Button(label=_("Measure Both"))
         test_both.connect("clicked", self.start_calibration, "both")
-        pobox.pack_start(test_both, True, True, 5)
+        self.pobox.pack_start(test_both, True, True, 5)
+        self.pobox.pack_start(self.stop_shaper_btn, True, True, 5)
         self.labels['popover'] = Gtk.Popover()
-        self.labels['popover'].add(pobox)
+        self.labels['popover'].add(self.pobox)
         self.labels['popover'].set_position(Gtk.PositionType.LEFT)
 
     def on_popover_clicked(self, widget):
         self.labels['popover'].set_relative_to(widget)
         self.labels['popover'].show_all()
+
+    def stop_shaper(self, widget):
+      self.labels['popover'].popdown()
+      self._screen._ws.klippy.run_async_command('ASYNC_STOP_SHAPER')
 
     def start_calibration(self, widget, method):
         self.labels['popover'].popdown()
@@ -102,8 +114,8 @@ class Panel(ScreenPanel):
         if method == "both":
             self._screen._ws.klippy.gcode_script('SHAPER_CALIBRATE')
 
-        self.calibrate_btn.set_label(_('Calibrating') + '...')
-        self.calibrate_btn.set_sensitive(False)
+        # self.calibrate_btn.set_label(_('Calibrating') + '...')
+        # self.calibrate_btn.set_sensitive(False)
 
     def set_opt_value(self, widget, opt, *args):
         shaper_freq_x = self.freq_xy_adj['shaper_freq_x'].get_value()
@@ -123,27 +135,40 @@ class Panel(ScreenPanel):
         # This will return the current values
         self._screen._ws.klippy.gcode_script('SET_INPUT_SHAPER')
 
-    
     def _autoscroll(self, *args):
         adj = self.sw.get_vadjustment()
         adj.set_value(adj.get_upper() - adj.get_page_size())
-    
+
     def process_update(self, action, data):
-        if action != "notify_gcode_response":
+        if action == "notify_status_update":
+          if 'resonance_tester' in data:
+            if 'shaping' in data['resonance_tester']:
+              for child in self.pobox:
+                child.set_sensitive(not data['resonance_tester']['shaping'])
+              self.stop_shaper_btn.set_sensitive(data['resonance_tester']['shaping'])
+              #Эта хуйня расширяет дисплей в высоту в 2 раза - не спрашивайте
+              # if data['resonance_tester']['shaping']:
+              #   self.calibrate_btn.set_label(_('Calibrating') + '...')
+              # else:
+              #   self.calibrate_btn.set_label(_('Auto-calibrate'))
+          return
+        elif action != "notify_gcode_response":
             return
+        if data.startswith("(warning)"):
+          data = data[10:]
         self.tb.insert_markup(
             self.tb.get_end_iter(),
             f"\n<span >{data.replace('shaper_', '').replace('damping_', '').replace('// ', '')}</span>", -1)
-        data = data.lower()
-        if 'got 0' in data:
-            self.calibrate_btn.set_label(_('Check ADXL Wiring'))
-            self.calibrate_btn.set_sensitive(False)
-        if 'unknown command:"accelerometer_query"' in data:
-            self.calibrate_btn.set_label(_('ADXL Not Configured'))
-            self.calibrate_btn.set_sensitive(False)
-        if 'adxl345 values' in data or 'axes noise' in data:
-            self.calibrate_btn.set_sensitive(True)
-            self.calibrate_btn.set_label(_('Auto-calibrate'))
+        data: str = data.lower()
+        # if 'got 0' in data:
+        #     self.calibrate_btn.set_label(_('Check ADXL Wiring'))
+        #     self.calibrate_btn.set_sensitive(False)
+        # if 'unknown command:"accelerometer_query"' in data:
+        #     self.calibrate_btn.set_label(_('ADXL Not Configured'))
+        #     self.calibrate_btn.set_sensitive(False)
+        # if 'adxl345 values' in data or 'axes noise' in data:
+        #     self.calibrate_btn.set_sensitive(True)
+            # self.calibrate_btn.set_label(_('Auto-calibrate'))
         # Recommended shaper_type_y = ei, shaper_freq_y = 48.4 Hz
         if 'recommended shaper_type_' in data:
             results = re.search(r'shaper_type_(?P<axis>[xy])\s*=\s*(?P<shaper_type>.*?), shaper_freq_.\s*=\s*('
@@ -152,9 +177,9 @@ class Panel(ScreenPanel):
                 results = results.groupdict()
                 self.freq_xy_adj['shaper_freq_' + results['axis']].set_value(float(results['shaper_freq']))
                 self.freq_xy_combo['shaper_type_' + results['axis']].set_active(SHAPERS.index(results['shaper_type']))
-                if self.calibrating_axis == results['axis'] or (self.calibrating_axis == "both" and results['axis'] == 'y'):
-                    self.calibrate_btn.set_sensitive(True)
-                    self.calibrate_btn.set_label(_('Calibrated'))
+                # if self.calibrating_axis == results['axis'] or (self.calibrating_axis == "both" and results['axis'] == 'y'):
+                #     self.calibrate_btn.set_sensitive(True)
+                #     self.calibrate_btn.set_label(_('Calibrated'))
         # shaper_type_y:ei shaper_freq_y:48.400 damping_ratio_y:0.100000
         if 'shaper_type_' in data:
             results = re.search(r'shaper_type_(?P<axis>[xy]):(?P<shaper_type>.*?) shaper_freq_.:('

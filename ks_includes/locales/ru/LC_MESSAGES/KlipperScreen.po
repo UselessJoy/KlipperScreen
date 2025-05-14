@@ -77,11 +77,20 @@ msgstr "Ускорение:"
 msgid "Accept"
 msgstr "Применить"
 
+msgid "Stop"
+msgstr "Остановить"
+
+msgid "Diagnostic"
+msgstr "Диагностика"
+
 msgid "Actions"
 msgstr "Действия"
 
 msgid "Add profile"
 msgstr "Добавить профиль"
+
+msgid "Add"
+msgstr "Добавить"
 
 msgid "Apply"
 msgstr "Применить"
@@ -673,7 +682,7 @@ msgid "Contact us"
 msgstr "Связаться с нами"
 
 msgid "Turn on"
-msgstr "Включен"
+msgstr "Включить"
 
 msgid "Autorender"
 msgstr "Авторендер"
@@ -1053,6 +1062,9 @@ msgstr "Выключить принтер"
 
 msgid "Temp (°C)"
 msgstr "Темп.  (°С)"
+
+msgid "Don't touch the printer until calibration end"
+msgstr "Не трогайте принтер в течение процесса калибровки"
 
 msgid "Temperature"
 msgstr "Tемпература"
@@ -1510,7 +1522,174 @@ msgstr "ЗБ"
 msgid "YB"
 msgstr "ЙБ"
 
+#, python-format
+msgid "Please check that %s is working"
+msgstr "Пожалуйта, проверьте, что %s работает"
 
+#, python-format
+msgid "Error with pin %s: please, contact the service center"
+msgstr "Ошибка с пином %s: пожалуйста, обратитесь в сервисный центр"
+
+msgid "Repeat"
+msgstr "Повторить"
+
+msgid "Checking extruder. Please, wait..."
+msgstr "Проверка экструдера. Пожалуйста, подождите..."
+
+msgid "Checking heater bed. Please, wait..."
+msgstr "Проверка стола. Пожалуйста, подождите..."
+
+msgid "Calibrations and services"
+msgstr "Калибровки и сервисы"
+
+msgid "Test magnet probe"
+msgstr "Тест магнитной\nпробы"
+
+msgid "Heating extruder"
+msgstr "Тест нагрева\nэкструдера"
+
+msgid "Heating heater bed"
+msgstr "Тест нагрева\nстола"
+
+msgid "Next"
+msgstr "Дальше"
+
+msgid "End diagnosis"
+msgstr "Завершить диагностику"
+
+msgid "Back"
+msgstr "Назад"
+
+msgid ""
+"1. Please, install the glass on the table if it is missing.\n\n"
+"2. When checking the extruder motor, the filament must be removed\n\n"
+"3. Аll diagnosis will take a few minutes."
+msgstr ""
+"1. Пожалуйста, установите стекло на стол в случае его отсутствия.\n\n"
+"2. При проверке мотора экструдера филамент должен быть извлечен.\n\n"
+"3. Полная диагностика займет несколько минут."
+
+msgid "Select all"
+msgstr "Выбрать все"
+
+msgid "Disable all"
+msgstr "Отменить все"
+
+msgid "Start diagnosis"
+msgstr "Начать диагностику"
+
+msgid "Turn off"
+msgstr "Выключить"
+
+#, python-format
+msgid "Check that endstop state is changing correctly"
+msgstr "Проверьте, что состояние концевика меняется правильно"
+
+msgid "closed"
+msgid_plural "closed"
+msgstr[0] "закрыта"
+msgstr[1] "закрыты"
+msgstr[2] "закрыты"
+
+msgid "opened"
+msgid_plural "opened"
+msgstr[0] "открыта"
+msgstr[1] "открыты"
+msgstr[2] "открыты"
+
+
+msgid "Z motor"
+msgstr "Мотор Z"
+
+msgid "Before checking the movement,\nmake sure that there are no\nforeign objects under the table"
+msgstr "Перед проверкой движения\nубедитесь,что под столом\nнет посторонних предметов"
+
+msgid "XY motors"
+msgstr "Моторы XY"
+
+msgid "Bed down"
+msgstr "Опустить стол"
+
+msgid "Turn off motors"
+msgstr "Выключить моторы"
+
+msgid "Manually move the extruder to the middle of the work area to avoid damaging the printer during the inspection"
+msgstr "Переместите экструдер вручную в середину рабочей области во избежание повреждения принтера во время проверки"
+
+msgid "Pass diagnostic"
+msgstr "Пропустить"
+
+msgid ""
+"If the movement is in the opposite direction:\n"
+"1. Check the engine cables.\n"
+"2. Check the engine settings in the printer configuration file.\n\n"
+"If the movement is diagonal:\n"
+"1. One of the engines is not working. Check the motors, cables and their connection.\n"
+"2. The pulley is not fixed on the motor shaft. Check the tightening of the pulley locking screws."
+msgstr ""
+"Если движение происходит в пртивоположном направлении:\n"
+"1. Проверить шлейфы двигателей.\n"
+"2. Проверить настройки двигателей в файле конфигурации принтера.\n\n"
+"Если движение происходит по диагонали:\n"
+"1. Не работает один из двигателей. Проверить двигатели, шлейфы и их подключение.\n"
+"2. Шкиф не зафиксирован на валу двигателя. Проверить затяжку стопорных винтов шкива."
+
+msgid "Extrusion"
+msgstr "Экструзия"
+
+msgid "Remove the plastic from the extruder before checking"
+msgstr "Перед проверкой извлеките пластик из экструдера"
+
+msgid "Self diagnosis"
+msgstr "Самодиагностика"
+
+msgid "Passed"
+msgstr "Пропущен"
+
+msgid "Elecronic fan"
+msgstr "Вентилятор электроники"
+
+msgid "begin"
+msgstr "Начало"
+
+msgid "choise"
+msgstr "Выбор"
+msgid "extruder_fan"
+msgstr "Вентилятор\nэкструдера"
+msgid "model_fan"
+msgstr "Вентиляторы\nобдува модели"
+msgid "camera_fan"
+msgstr "Вентилятор\nкамеры"
+msgid "back_fan"
+msgstr "Вентилятор\nэлектроники"
+msgid "doors_endstop"
+msgstr "Концевик\nдверей"
+msgid "hood_endstop"
+msgstr "Концевик\nкрышки"
+msgid "z_motor"
+msgstr "Мотор Z"
+msgid "xy_motors"
+msgstr "Моторы XY"
+msgid "extruder_motor"
+msgstr "Мотор\nэкструдера"
+msgid "neopixel"
+msgstr "Подсветка"
+msgid "self_diagnostic"
+msgstr "Самодиагностика"
+msgid "results"
+msgstr "Результаты"
+
+msgid "Request error: %s"
+msgstr "Ошибка запроса: %s"
+
+msgid "Doors"
+msgstr "Двери"
+
+msgid "Hood"
+msgstr "Крышка"
+
+msgid "Pid settings"
+msgstr "Настройки PID"
 # ###    END NEW    ####
 #~ msgid "Decrease"
 #~ msgstr "Уменьшить"
