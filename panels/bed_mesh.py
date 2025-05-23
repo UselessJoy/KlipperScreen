@@ -158,7 +158,7 @@ class Panel(ScreenPanel):
                         self.profiles[pr]["button_grid"].remove_column(0)
                         del self.profiles[pr]["clear"]
                     if "load" not in self.profiles[pr]:
-                        self.profiles[pr]["name"].set_markup("<b>%s</b>" % (locale_name))
+                        self.profiles[pr]["name"].set_markup("<b>%s</b>" % (self.profiles[pr]["locale_name"]))
                         self.profiles[pr]["load"] = self._gtk.Button("complete", _("Load profile"), "color4", self.bts)
                         self.profiles[pr]["load"].connect("clicked", self.send_load_mesh, pr)
                         self.profiles[pr]["button_grid"].insert_column(0)
@@ -248,6 +248,7 @@ class Panel(ScreenPanel):
         box.pack_end(button_grid, True, True, 5)
         self.profiles[profile] = {
             "name": name,
+            "locale_name": locale_name,
             "row": box,
             "button_grid": button_grid
         }
