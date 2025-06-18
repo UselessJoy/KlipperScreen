@@ -98,7 +98,6 @@ class KlipperScreen(Gtk.Window):
     popup_message = None
     screensaver = None
     printers = printer = None
-    updating = False
     _ws = None
     screensaver_timeout = None
     reinit_count = 0
@@ -592,8 +591,8 @@ class KlipperScreen(Gtk.Window):
     def _remove_all_panels(self):
         for _ in self.base_panel.content.get_children():
             self.base_panel.content.remove(_)
-        for dialog in self.dialogs:
-            self.gtk.remove_dialog(dialog)
+        # for dialog in self.dialogs:
+        #     self.gtk.remove_dialog(dialog)
         for panel in list(self.panels):
             if hasattr(self.panels[panel], "deactivate"):
                 self.panels[panel].deactivate()
@@ -816,8 +815,6 @@ class KlipperScreen(Gtk.Window):
 
     def state_paused(self):
         self.close_screensaver()
-        for dialog in self.dialogs:
-            self.gtk.remove_dialog(dialog)
         self.show_panel("job_status", _("Printing"), remove_all=True)
         if self._config.get_main_config().getboolean("auto_open_extrude", fallback=True):
             self.show_panel("extrude", _("Extrude"))
@@ -829,8 +826,6 @@ class KlipperScreen(Gtk.Window):
 
     def state_printing(self):
         self.close_screensaver()
-        for dialog in self.dialogs:
-            self.gtk.remove_dialog(dialog)
         self.show_panel("job_status", _("Printing"), remove_all=True)
         ####      NEW      ####
         self.last_window_class = "window-printing"
@@ -934,7 +929,7 @@ class KlipperScreen(Gtk.Window):
             self.files.request_metadata(data['filename'])
             return
         elif action == "notify_update_response":
-            if 'message' in data and 'Error' in data['message']:
+            if 'message' in data and 'error' in data['message'].lower():
                 logging.error(f"{action}:{data['message']}")
                 self.show_popup_message(data['message'], 3)
                 if "KlipperScreen" in data['message']:

@@ -499,12 +499,10 @@ class BasePanel(ScreenPanel):
                 if self.update_dialog is not None:
                     try:
                         self.update_dialog.set_response_sensitive(Gtk.ResponseType.OK, True)
-                        self.update_dialog.get_widget_for_response(Gtk.ResponseType.OK).show()
-                    except AttributeError:
-                        logging.error("error trying to show the updater button the dialog might be closed")
-                        self._screen.updating = False
-                        for dialog in self._screen.dialogs:
-                            self._gtk.remove_dialog(dialog)
+                        # self.update_dialog.get_widget_for_response(Gtk.ResponseType.OK).show()
+                    except AttributeError as e:
+                        self.close_update_dialog()
+                        self._screen.show_popup_message(f"error trying to show updater button, error is: {e}.\nUpdate dialog closed", 3)
             return
         if action != "notify_status_update" or self._screen.printer is None:
             return
@@ -839,26 +837,15 @@ class BasePanel(ScreenPanel):
         self.labels['update_scroll'].set_property("overlay-scrolling", True)
         self.labels['update_scroll'].add(self.labels['update_progress'])
         self.labels['update_scroll'].connect("size-allocate", self._autoscroll)
-        dialog = self._gtk.Dialog(button, self.labels['update_scroll'], _("Updating"), self.finish_updating)
-        # dialog.connect("delete-event", self.close_update_dialog)
+        dialog = self._gtk.Dialog(button, self.labels['update_scroll'], _("Updating"), self.close_update_dialog)
         dialog.set_response_sensitive(Gtk.ResponseType.OK, False)
-        dialog.get_widget_for_response(Gtk.ResponseType.OK).hide()
+        # dialog.get_widget_for_response(Gtk.ResponseType.OK).hide()
         self.update_dialog = dialog
-        self._screen.updating = True
         dialog.show_all()
 
-    def finish_updating(self, dialog, response_id):
-        if response_id != Gtk.ResponseType.OK:
-            return
-        logging.info("Finishing update")
-        self._screen.updating = False
-        self._gtk.remove_dialog(dialog)
-        self._screen._menu_go_back(home=True)
-
     def close_update_dialog(self, *args):
-        logging.info("Closing update dialog")
-        if self.update_dialog in self._screen.dialogs:
-            self._screen.dialogs.remove(self.update_dialog)
+      if self.update_dialog:
+        self._gtk.remove_dialog(self.update_dialog)
         self.update_dialog = None
         self._screen._menu_go_back(home=True)
 
