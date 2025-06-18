@@ -275,8 +275,6 @@ class Panel(ScreenPanel):
         self.send_update_method('recover_needed', _("Starting recovering..."), apps)
 
     def send_update_method(self, method, msg, apps = {}):
-        if self._screen.updating:
-          return
         self._screen.base_panel.show_update_dialog()
         self._screen._websocket_callback(
             "notify_update_response",

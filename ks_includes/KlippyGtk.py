@@ -283,8 +283,6 @@ class KlippyGtk:
         return dialog
 
     def remove_dialog(self, dialog, *args):
-        if self.screen.updating:
-            return
         dialog.destroy()
         self.screen.base_panel.main_grid.set_opacity(1)
         self.screen.base_panel.main_grid.set_sensitive(True)

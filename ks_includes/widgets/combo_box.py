@@ -10,7 +10,7 @@ class KSComboBox(Gtk.Box):
   }
   def __init__(self, screen, text = ""):
     super().__init__()
-    self.button = screen.gtk.Button("triangle-down", text, position = Gtk.PositionType.RIGHT, scale=0.65)
+    self.button = screen.gtk.Button("triangle-down", _(text), position = Gtk.PositionType.RIGHT, scale=0.65)
     self.add(self.button)
     self.popover = KSPopover(self, screen)
     self.button.connect("clicked", self.open_popover)
@@ -20,14 +20,14 @@ class KSComboBox(Gtk.Box):
     return Gdk.EVENT_STOP
 
   def set_active_text(self, text):
-    self.button.set_label(text)
+    self.button.set_label(_(text))
     self.emit("selected", text)
 
   def set_active_num(self, num):
     fields = self.popover.get_fields()
     for i, child in enumerate(fields):
       if num == i:  
-        self.button.set_label(fields[i])
+        self.button.set_label(_(fields[i]))
         self.emit("selected", fields[i])
         break
     
@@ -49,7 +49,7 @@ class KSPopover(Gtk.Popover):
     self.relative_to = relative_to
     scroll = screen.gtk.ScrolledWindow()
     scroll.set_hexpand(True)
-    scroll.set_min_content_height(screen.gtk.content_height * 0.4)
+    scroll.set_min_content_height(screen.gtk.content_height * 0.3)
     scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.ALWAYS)
     self.content_box = Gtk.Box(orientation = Gtk.Orientation.VERTICAL, spacing = 6)
     scroll.add(self.content_box)
@@ -60,14 +60,14 @@ class KSPopover(Gtk.Popover):
       self.content_box.remove(ch)
 
   def add_field(self, field):
-    field_label = Gtk.Button(label = field, hexpand = True, vexpand = True)
+    field_label = Gtk.Button(label = _(field), hexpand = True, vexpand = True)
     field_label.get_style_context().add_class("hide_button")
-    field_label.connect("clicked", self.on_field_select)
+    field_label.connect("clicked", self.on_field_select, field)
     self.content_box.add(field_label)
 
   def get_fields(self):
     return [ch.get_label() for ch in self.content_box]
 
-  def on_field_select(self, btn):
-    self.relative_to.set_active_text(btn.get_label())
+  def on_field_select(self, btn, field):
+    self.relative_to.set_active_text(field)
     self.popdown()

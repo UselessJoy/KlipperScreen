@@ -275,7 +275,7 @@ class KlipperScreen(Gtk.Window):
                 "power_button": ["state"],
                 "tmc2209 stepper_x": ["quite_mode"],
                 "resonance_tester": ["shaping"],
-                "bed_mesh": ["profile_name", "mesh_max", "mesh_min", "probed_matrix", "profiles", "unsaved_profiles", "is_calibrating"],
+                "bed_mesh": ["profile_name", "mesh_max", "mesh_min", "probed_matrix", "profiles", "unsaved_profiles", "is_calibrating", "group_bed_mesh_len", "group_current_mesh", "is_preheating"],
                 "configfile": ["config", "save_config_pending", "save_config_pending_items"],
                 "display_status": ["progress", "message"],
                 "fan": ["speed"],

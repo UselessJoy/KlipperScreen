@@ -25,13 +25,15 @@ class Panel(ScreenPanel):
         self.overlay = Gtk.Overlay()
         self.overlayBox = None
         self.scroll_clicked = False
+        self.is_calibrating = False
+        self.pressed = False
         try:
             self.is_using_magnet = self._screen.apiclient.send_request("printer/objects/query?probe")['result']['status']['probe']['is_using_magnet_probe']
         except Exception as e:
             raise f"Can't get probe info from moonraker: {e}"
 
-        self.buttons[True] = self._gtk.Button("magnetOff",_("Return Magnet Probe"), "color4", self.bts)
-        self.buttons[False] = self._gtk.Button("magnetOn", _("Get Magnet Probe"), "color4", self.bts)
+        self.buttons[True] = self._gtk.Button("magnetOff",_("Return Magnet Probe"), "color1", self.bts)#, hexpand=False, vexpand=False)
+        self.buttons[False] = self._gtk.Button("magnetOn", _("Get Magnet Probe"), "color3", self.bts)#, hexpand=False, vexpand=False)
         self.buttons[True].connect("clicked", self.return_magnet)
         self.buttons[False].connect("clicked", self.get_magnet)
         
@@ -44,9 +46,10 @@ class Panel(ScreenPanel):
             except Exception as e:
                 raise f"Can't get screws_tilt_adjust info from moonraker: {e}"
             self.buttons['screws_tilt_calibrate'] = self.CalibrateButton()
-            self.buttons['stop_screws_tilt_calibrate'] = self._gtk.Button("screws_adjust", _("Stop calibrating"), "color4", self.bts)
+            self.buttons['stop_screws_tilt_calibrate'] = self._gtk.Button("cancel", _("Stop calibrating"), "color2", self.bts)#, hexpand=False, vexpand=False)
             self.buttons['stop_screws_tilt_calibrate'].connect("clicked", self.stop_screws_tilt_calibrate)
-            self.buttons['stop_screw_calibrate'] = self._gtk.Button("screws_adjust", _("Next screw"), "color4", self.bts)
+            self.buttons['stop_screws_tilt_calibrate'].connect("realize", self.on_realize)
+            self.buttons['stop_screw_calibrate'] = self._gtk.Button("refresh", _("Next screw"), "color3", self.bts)#, hexpand=False, vexpand=False)
             self.buttons['stop_screw_calibrate'].connect("clicked", self.stop_screw_calibrate)
             self.buttonGrid.attach(self.buttons['screws_tilt_calibrate'], 0, 2, 1, 1)
             self.screws = self._get_screws("screws_tilt_adjust")
@@ -125,6 +128,7 @@ class Panel(ScreenPanel):
           rotation = 0
 
         self.bedgrid = Gtk.Grid(column_homogeneous=True)
+        self.bedbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, spacing=10)
         nscrews = len(self.screws)
 
         if nscrews in {4, 6, 8}:
@@ -253,6 +257,11 @@ class Panel(ScreenPanel):
                 self.popover[screw]['popover'].set_position(Gtk.PositionType.TOP)
         self.content.add(self.overlay)
 
+    def on_realize(self, widget):
+      if self.pressed:
+        return
+      self._gtk.Button_busy(widget, False)
+
     def on_info_button_clicked(self, widget, event, popover):
       popover.show_all()
       return Gdk.EVENT_STOP
@@ -298,12 +307,13 @@ class Panel(ScreenPanel):
     def show_calibration_overlay(self, widget):
         self.overlayBox = Gtk.EventBox()
         self.scroll = self._gtk.ScrolledWindow()
+        self.scroll.set_policy(Gtk.PolicyType.EXTERNAL, Gtk.PolicyType.EXTERNAL)
         self.scroll.add(self.buttonGrid)
         self.scroll.set_vexpand(False)
         self.scroll.set_halign(Gtk.Align.CENTER)
         self.scroll.set_valign(Gtk.Align.CENTER)
-        self.scroll.set_min_content_width(self._gtk.content_width * 0.5)
-        self.scroll.set_min_content_height(self._gtk.content_height * 0.7)
+        self.scroll.set_min_content_width(self._gtk.content_width * 0.4)
+        self.scroll.set_min_content_height(self._gtk.content_height * 0.6)
         self.scroll.get_style_context().add_class("scrolled_window_bed_level")
         self.overlayBox.add(self.scroll)
         self.overlayBox.set_vexpand(True)
@@ -312,9 +322,9 @@ class Panel(ScreenPanel):
         self.overlayBox.add_events(Gdk.EventMask.BUTTON_RELEASE_MASK)
         self.overlayBox.connect("button-release-event", self.close_calibration_manager)
         self.overlayBox.show_all()
-        for child in self.overlay:
-            child.set_opacity(0.5)
-            child.set_sensitive(False)
+        # for child in self.overlay:
+        #     child.set_opacity(0.8)
+        #     child.set_sensitive(False)
         self.overlay.add_overlay(self.overlayBox)
 
     def clicked_in_scroll(self, *args):
@@ -344,6 +354,7 @@ class Panel(ScreenPanel):
         for key, value in self.screw_dict.items():
             if value:
                 self.buttons[key].set_label(f"{value[2]}")
+                self.buttons[key].get_style_context().remove_class("bed-level-chars")
 
     def go_to_position(self, widget, position):
         if self._printer.get_stat("toolhead", "homed_axes") != "xyz":
@@ -382,10 +393,12 @@ class Panel(ScreenPanel):
                                     if screw_res['is_base']:
                                         self.buttons[key].set_label(_("Reference"))
                                     elif screw_res['adjust'] == "00:00":
+                                        self.buttons[key].get_style_context().add_class("bed-level-chars")
                                         self.buttons[key].set_label(f"✔ {screw_res['adjust']}")
                                         continue
                                     else:
                                         self.buttons[key].set_label(f"↶ {screw_res['adjust']}") if screw_res['sign'] == "CCW" else self.buttons[key].set_label(f"↷ {screw_res['adjust']}")
+                                        self.buttons[key].get_style_context().add_class("bed-level-chars")
                     else:
                         self.activate()
                 if 'base_screw' in data['screws_tilt_adjust']:
@@ -428,6 +441,8 @@ class Panel(ScreenPanel):
                                   self.popover[key]['next_screw_calibrate'].set_sensitive(False)
                       else:
                           for btn in ['stop_screws_tilt_calibrate', 'stop_screw_calibrate']:
+                              self._gtk.Button_busy(self.buttons[btn], False)
+                              self.pressed = False
                               if self.buttons[btn] in self.buttonGrid:
                                   self.buttonGrid.remove(self.buttons[btn])
                           if self.buttons['screws_tilt_calibrate'] not in self.buttonGrid:
@@ -474,6 +489,8 @@ class Panel(ScreenPanel):
         self._screen._ws.klippy.gcode_script(f"SET_BASE_SCREW SCREW={self.screw_dict[screw][3]}")
 
     def stop_screws_tilt_calibrate(self, widget):
+        self._gtk.Button_busy(widget, True)
+        self.pressed = True
         self._screen._ws.klippy.run_async_command("ASYNC_STOP_SCREWS_TILT_CALIBRATE")
 
     def stop_screw_calibrate(self, widget):

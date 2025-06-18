@@ -90,7 +90,6 @@ class Panel(ScreenPanel):
                 for child in self.options_data['autoload_bed_mesh']['row']:
                     if hasattr(child, "set_active"):
                         child.set_active(data['virtual_sdcard']['autoload_bed_mesh'])
-        
         if 'extruder' in data:
           if 'nozzle_diameter' in data['extruder']:
             logging.info(f"nozzle_diameter changed to {data['extruder']['nozzle_diameter']}")
@@ -193,9 +192,9 @@ class Panel(ScreenPanel):
             "row": dev
         }
         self.options_data[opt_name] = opt_array[opt_name]
-        opts = sorted(list(opt_array), key=lambda x: opt_array[x]['name'])
-        pos = opts.index(opt_name)
+        # opts = sorted(list(opt_array), key=lambda x: opt_array[x]['name'])
+        # pos = opts.index(opt_name)
 
-        self.labels[boxname].insert_row(pos)
-        self.labels[boxname].attach(opt_array[opt_name]['row'], 0, pos, 1, 1)
+        self.labels[boxname].insert_row(len(opt_array))
+        self.labels[boxname].attach(opt_array[opt_name]['row'], 0, len(opt_array), 1, 1)
         self.labels[boxname].show_all()

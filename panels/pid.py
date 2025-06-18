@@ -28,9 +28,9 @@ class Panel(ScreenPanel):
         self.add_button.set_hexpand(False)
         
         self.pid_scroll = self._screen.gtk.ScrolledWindow()
-        self.pid_scroll.set_min_content_height(self._gtk.content_height * 0.9)
+        self.pid_scroll.set_min_content_height(self._gtk.content_height * 0.65)
         self.pid_scroll.set_min_content_width(self._gtk.content_width * .3)
-        self.pid_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL)
+        self.pid_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         
         pid_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing = 15)
         pid_box.add(self.rows_box)
@@ -40,41 +40,63 @@ class Panel(ScreenPanel):
         
         self.update_temp_grid()
         
-        self.heater_combo_box = KSComboBox(screen, _("extruder"))
-        self.heater_combo_box.set_hexpand(False)
-        self.heater_combo_box.append(_("extruder"))
-        self.heater_combo_box.append(_("heater_bed"))
-        self.heater_combo_box.connect("selected", self.on_heater_changed)
+        self.heater_box = self._gtk.HomogeneousGrid()
+        
+        
+        h_buttons = [
+          self._gtk.Button(None, _("extruder"), "active-disabled"),
+          self._gtk.Button(None, _("heater_bed"), "active-disabled")
+        ]
+        for btn in h_buttons:
+          btn.set_size_request(1, 50)
+        h_buttons[0].set_sensitive(False)
+        h_buttons[0].connect("clicked", self.on_heater_changed, "extruder", h_buttons[1])
+        h_buttons[1].connect("clicked", self.on_heater_changed, "heater_bed", h_buttons[0])
+        for btn in h_buttons:
+          self.heater_box.add(btn)
         self.temperatures_grid = self._gtk.HomogeneousGrid()
 
         self.left_box = Gtk.Box(orientation = Gtk.Orientation.VERTICAL, valign = Gtk.Align.START)
-        self.left_box.add(self.heater_combo_box)
+        self.left_box.add(self.heater_box)
         self.left_box.add(self.pid_scroll)
 
         self.heater_image = self._gtk.Image('extruder', self._gtk.content_width * .3, self._gtk.content_height * .3)
-        self.temp_label = Gtk.Label()
+        # self.heater_image.set_margin_bottom(10)
+        self.temp_label = Gtk.Label(label="--- °C")
         self.temp_label.get_style_context().add_class("label_chars")
+        self.temp_label.set_size_request(-1, 35)
+        
+        temp_label_align = Gtk.Alignment.new(0.5, 0.5, 0, 0)
+        temp_label_align.add(self.temp_label)
         
         image_box = Gtk.Box(orientation = Gtk.Orientation.VERTICAL, vexpand=True, hexpand=True, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
-        image_box.add(self.heater_image)
-        image_box.add(self.temp_label)
+        image_box.pack_start(self.heater_image, False, False, 0)
+        image_box.pack_start(temp_label_align, False, False, 0)
 
         self.right_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        
         self.right_box.add(image_box)
-        self.calibrate_button = self._gtk.Button("heat-up", _("Calibrate"), "color3", hexpand=False, vexpand=False)
-        self.calibrate_button.connect("clicked", self.pid_calibrate)
+        self.calibrate_button = self._gtk.Button(None, _("Calibrate"), "color4")
+        self.calibrate_button.set_size_request((self._screen.width - 30) / 4, self._screen.height / 5)
         self.calibrate_button.set_valign(Gtk.Align.END)
-        self.right_box.add(self.calibrate_button)
+        self.calibrate_button.set_halign(Gtk.Align.END)
+        self.calibrate_button.connect("clicked", self.pid_calibrate)
 
         self.main_box = Gtk.Box(spacing = 15)
 
         self.main_box.add(self.left_box)
         self.main_box.add(self.right_box)
-        self.content.add(self.main_box)
+        cb = Gtk.Box(orientation = Gtk.Orientation.VERTICAL)
+        cb.add(self.main_box)
+        cb.add(self.calibrate_button)
+        self.content.add(cb)
 
-    def on_heater_changed(self, widget, heater):
+    def on_heater_changed(self, widget, heater, neighbour):
+      self.temperatures = []
+      widget.set_sensitive(False)
+      neighbour.set_sensitive(True)
       self.active_heater, img_name = ('heater_bed', 'bed') if self.active_heater == 'extruder' else ('extruder', 'extruder')
-      self._screen.gtk.update_image(self.heater_image, img_name, self._gtk.content_width * .2, self._gtk.content_height * .5)
+      self._screen.gtk.update_image(self.heater_image, img_name, self._gtk.content_width * .2, self._gtk.content_height * .4)
       self.update_temp_grid()
 
     def pid_calibrate(self, widget=None):
@@ -83,7 +105,7 @@ class Panel(ScreenPanel):
         script = {"script": f"CALIBRATE_HEATER_PID HEATER={self.active_heater} TEMPERATURES={str_temps}"}
         self._screen._confirm_send_action(
             None,
-            # :D
+                                                                              # :D
             _("Initiate a PID calibration for") + f" {_(self.active_heater)}{_('а.')} {_('Choosen temps:')} {str_temps} °C" 
             + "\n\n" + _("It may take more than 5 minutes depending on the heater power."),
             "printer.gcode.script",
@@ -92,10 +114,7 @@ class Panel(ScreenPanel):
         self.close_left_pid_panel()
 
     def update_temp_grid(self):
-        if self.active_heater == "extruder":
-          temps = [215, 235]
-        elif self.active_heater == "heater_bed":
-          temps = [65, 85, 110]
+        temps = self._config.get_default_heater_preheats(self.active_heater)
         for child in self.rows_box:
           self.rows_box.remove(child)
         for temp in temps:
@@ -163,8 +182,7 @@ class Panel(ScreenPanel):
         self.is_calibrating = data['pid_calibrate']['is_calibrating']
       cur_temp = self._printer.get_dev_stat(self.active_heater, "temperature")
       cur_target = self._printer.get_dev_stat(self.active_heater, "target")
-      new_label_text = f"{int(cur_temp):3}"
+      temp_text = f"{int(cur_temp):3}" if cur_temp else "---"
       if cur_target:
-        new_label_text += f"/{int(cur_target)}"
-      new_label_text += " °C"
-      self.temp_label.set_label(new_label_text)
+          temp_text += f"/{int(cur_target)}"
+      self.temp_label.set_label(temp_text + " °C")

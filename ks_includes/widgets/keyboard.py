@@ -243,13 +243,13 @@ class Keyboard(Gtk.Box):
             if self.accept_cb:
               self.accept_cb()
             else:
-              self.get_parent().remove()
+              self.get_parent().remove(self)
             return not self.acc_cb_destroy
         elif key == "✕":
             if self.reject_cb:
               self.reject_cb()
             else:
-              self.get_parent().remove()
+              self.get_parent().remove(self)
             return not self.rej_cb_destroy
           
 

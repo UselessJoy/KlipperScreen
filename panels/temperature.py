@@ -55,9 +55,9 @@ class Panel(ScreenPanel):
         self.content.add(self.grid)
 
     def create_right_panel(self):
-      cooldown = self._gtk.Button('cool-down', _('Cooldown'), "color4", self.bts, Gtk.PositionType.LEFT, 1)
-      adjust = self._gtk.Button('fine-tune', None, "color3", self.bts * 1.4, Gtk.PositionType.LEFT, 1)
-      change_temp = self._gtk.Button('heat-up', None, "color2", self.bts * 1.4, Gtk.PositionType.LEFT, 1)
+      cooldown = self._gtk.Button('cool-down', _('Cooldown'), "color3", self.bts, Gtk.PositionType.LEFT, 1)
+      adjust = self._gtk.Button('fine-tune', None, "color4", self.bts * 1.4, Gtk.PositionType.LEFT, 1)
+      change_temp = self._gtk.Button('settings', None, "color2", self.bts * 1.4, Gtk.PositionType.LEFT, 1)
       change_temp.connect("clicked", self.menu_item_clicked, {"panel": "preheat_changer", "name": _("Preheat")})
       cooldown.connect("clicked", self.set_temperature, "cooldown")
       adjust.connect("clicked", self.switch_preheat_adjust)
@@ -471,10 +471,7 @@ class Panel(ScreenPanel):
             self.close_left_pid_panel()
     
     def create_left_pid_panel(self):
-        if self.active_heater == "extruder":
-          temps = [215, 235]
-        elif self.active_heater == "heater_bed":
-          temps = [65, 85, 110]
+        temps = self._config.get_default_heater_preheats(self.active_heater)
         self.rows_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing = 15)
         for temp in temps:
             row_temp = self.add_tempearture(temp)

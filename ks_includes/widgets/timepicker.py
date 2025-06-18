@@ -45,9 +45,9 @@ class Timepicker(Gtk.Box):
         
         list_timezones = subprocess.check_output("timedatectl list-timezones", universal_newlines=True, shell=True).split('\n')
         cur_timezone = subprocess.check_output("timedatectl status | grep -i 'Time zone:' | awk '{print $3}'", universal_newlines=True, shell=True)
-        cur_region, cur_sep, self.cur_city = cur_timezone.partition('/')
+        self.cur_region, cur_sep, self.cur_city = cur_timezone.partition('/')
         self.cur_city = self.cur_city.rstrip('\n')
-        regions_combo_box = KSComboBox(self._screen, cur_region)
+        regions_combo_box = KSComboBox(self._screen, self.cur_region)
         cities_combo_box = KSComboBox(self._screen, self.cur_city)
         if not self.cur_city:
           cities_combo_box.set_sensitive(False)
@@ -59,7 +59,7 @@ class Timepicker(Gtk.Box):
             regions_combo_box.append(region)
           if region:
             self.timezones[region].append(city)
-          if region == cur_region:
+          if region == self.cur_region:
             cities_combo_box.append(city)
         regions_combo_box.connect("selected", self.on_region_changed, cities_combo_box)
         cities_combo_box.connect("selected", self.on_city_changed, regions_combo_box)
@@ -88,20 +88,21 @@ class Timepicker(Gtk.Box):
         
     def on_region_changed(self, widget, region, cities_combo_box):
       cities_combo_box.remove_all()
+      self.cur_region = region
       for city in self.timezones[region]:
         cities_combo_box.append(city)
       if self.cur_city and self.cur_city in self.timezones[region]:
-        cities_combo_box.set_active_text(self.cur_city)
+        cities_combo_box.set_active_text(_(self.cur_city))
       else:
         cities_combo_box.set_active_num(0)
       cities_combo_box.set_sensitive(True)
 
     def on_city_changed(self, widget, city, combo_regions):
-      cur_region = combo_regions.get_text()
-      if cur_region == "UTC":
-        self.change_timezone_cb(cur_region)
+      self.cur_city = city
+      if self.cur_region == "UTC":
+        self.change_timezone_cb(self.cur_region)
       else:
-        self.change_timezone_cb(f"{cur_region}/{city}")
+        self.change_timezone_cb(f"{self.cur_region}/{self.cur_city}")
         
     def on_change_value(self, spinbutton, name):
         value = int(spinbutton.get_value())

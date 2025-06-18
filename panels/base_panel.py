@@ -273,7 +273,6 @@ class BasePanel(ScreenPanel):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         box.add(grid)
         box.add(button_grid)
-        # grid.attach(button, 0, 1, 1, 1)
         self.power_dialog = self._gtk.Dialog([], box, _("Power Manager"), self.close_power_dialog, width = 1, height = 1)
         for i, button in enumerate(b):
           button.connect("clicked", self.close_power_dialog, self.power_dialog, buttons[i]['response'])
@@ -833,10 +832,7 @@ class BasePanel(ScreenPanel):
                 self.titlebar_items = []
 
     def show_update_dialog(self):
-        if self.update_dialog is not None:
-            return
-
-        button = [{"name": _("Finish"), "response": Gtk.ResponseType.OK}]
+        button = [{"name": _("Finish"), "response": Gtk.ResponseType.OK, "style": "color4"}]
         self.labels['update_progress'] = Gtk.Label(hexpand=True, vexpand=True, ellipsize=Pango.EllipsizeMode.END)
         self.labels['update_scroll'] = self._gtk.ScrolledWindow(steppers=False)
         self.labels['update_scroll'].set_min_content_height(self._gtk.content_height * 0.7)
@@ -844,7 +840,7 @@ class BasePanel(ScreenPanel):
         self.labels['update_scroll'].add(self.labels['update_progress'])
         self.labels['update_scroll'].connect("size-allocate", self._autoscroll)
         dialog = self._gtk.Dialog(button, self.labels['update_scroll'], _("Updating"), self.finish_updating)
-        dialog.connect("delete-event", self.close_update_dialog)
+        # dialog.connect("delete-event", self.close_update_dialog)
         dialog.set_response_sensitive(Gtk.ResponseType.OK, False)
         dialog.get_widget_for_response(Gtk.ResponseType.OK).hide()
         self.update_dialog = dialog
@@ -866,9 +862,9 @@ class BasePanel(ScreenPanel):
         self.update_dialog = None
         self._screen._menu_go_back(home=True)
 
-    def send_stop_pid(self, widget):
+    def send_stop_pid(self, *args):
         self._screen._ws.klippy.stop_pid_calibrate()
     
-    def send_stop_bed_mesh(self, widget):
+    def send_stop_bed_mesh(self, *args):
       self._screen._ws.klippy.run_async_command("ASYNC_STOP_BED_MESH_CALIBRATE")
       return True

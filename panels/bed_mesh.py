@@ -18,12 +18,14 @@ class Panel(ScreenPanel):
     def __init__(self, screen, title):
         super().__init__(screen, title)
         self.overlayBoxWidth = self._gtk.content_width / 1.2
+        self.is_preheating = False
+        self.group_current_mesh = self.group_bed_mesh_len = 1
         self.show_create = False
         self.active_mesh = None
         self.keyboard = None
         self.scroll = None
         self.was_child_scrolled = False
-        self.overlayBox = None
+        self.overlayBox = self.calibration_dialog = None
         self.new_default_profile_name = ""
         self.profiles = {}
         self.preheat_popups = []
@@ -197,6 +199,28 @@ class Panel(ScreenPanel):
         matrix = 'probed_matrix'
         return bm[matrix]
 
+    def show_calibration_dialog(self, widget=None):
+        label= Gtk.Label(_("Bed mesh calibrating\nit can take a few minutes"), vexpand=True, hexpand=True, halign=Gtk.Align.CENTER, justify=Gtk.Justification.CENTER)
+        label.get_style_context().add_class("label_chars")
+        self.calibration_status_label = Gtk.Label(vexpand=True, hexpand=True, margin_bottom=15, halign=Gtk.Align.CENTER)
+        labelbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        labelbox.add(label)
+        labelbox.add(self.calibration_status_label)
+        
+        button = self._gtk.Button(None, _("Stop bed mesh"), "color2")
+        button.set_valign(Gtk.Align.END)
+        button.set_halign(Gtk.Align.CENTER)
+        button.set_size_request(self._screen.width * 0.3, self._screen.height * 0.2)
+        button.connect("clicked", self.stop_current_mesh)
+        
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        box.add(labelbox)
+        box.add(button)
+        self.calibration_dialog = self._gtk.Dialog([], box, _("Bed Mesh"), self.stop_current_mesh, width = 1, height = 1)
+
+    def stop_current_mesh(self, *args):
+        self._screen.base_panel.send_stop_bed_mesh()
+
     def update_graph(self, widget=None, profile=None):
         self.labels['map'].update_bm(self.retrieve_bm(profile))
         self.labels['map'].queue_draw()
@@ -303,9 +327,21 @@ class Panel(ScreenPanel):
             if button != 'show_profiles':
                 self.buttons[button].set_sensitive((not busy))
         self.labels['profiles'].set_sensitive((not busy))
-                
+    
+    def update_calibration_status(self, temp, target, power):
+        show_target = bool(target)
+        if show_target and self.is_preheating:
+            self.calibration_status_label.set_label(_("Wait preheat: %s") % f"{int(temp):3}°/{int(target)}°  {int(power * 100):3}%")
+        else:
+          self.calibration_status_label.set_label(_("Calibration %d of %d, waiting...") % (self.group_current_mesh, self.group_bed_mesh_len))
+        
     
     def process_update(self, action, data):
+        if self.calibration_dialog:
+          temp = self._printer.get_dev_stat("heater_bed", "temperature")
+          target = self._printer.get_dev_stat("heater_bed", "target")
+          power = self._printer.get_dev_stat("heater_bed", "power")
+          self.update_calibration_status(temp, target, power)
         if action == "notify_status_update":
             if 'bed_mesh' in data and 'profiles' in data['bed_mesh']:
                 delete_profiles = [del_prof for del_prof in self.profiles if del_prof not in data['bed_mesh']['profiles']]
@@ -320,6 +356,23 @@ class Panel(ScreenPanel):
                 self.activate_mesh(data['bed_mesh']['profile_name'], self._printer.get_stat("bed_mesh", "unsaved_profiles"))
             if 'bed_mesh' in data and 'unsaved_profiles' in data['bed_mesh']:
                 self.saving_profile(data['bed_mesh']['unsaved_profiles'])
+            if 'bed_mesh' in data:
+              if 'group_current_mesh' in data['bed_mesh']:
+                self.group_current_mesh = data['bed_mesh']['group_current_mesh']
+              if 'group_bed_mesh_len' in data['bed_mesh']:
+                self.group_bed_mesh_len = data['bed_mesh']['group_bed_mesh_len']
+              if 'is_preheating' in data['bed_mesh']:
+                self.is_preheating = data['bed_mesh']['is_preheating']
+              if 'is_calibrating' in data['bed_mesh']:
+                if data['bed_mesh']['is_calibrating']:
+                  if not self.calibration_dialog:
+                    self.show_calibration_dialog()
+                elif self.calibration_dialog:
+                    self.close_calibration_dialog()
+
+    def close_calibration_dialog(self, *args):
+      self._gtk.remove_dialog(self.calibration_dialog)
+      self.calibration_dialog = None
 
     def remove_create(self):
         if self.show_create is False:
@@ -364,8 +417,25 @@ class Panel(ScreenPanel):
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.new_profiles_grid = Gtk.Grid()
-        new_profile_row = self.create_new_profile_row()
-        self.new_profiles_grid.add(new_profile_row)
+        
+        preheats = self._config.get_default_preheats()
+        # merge temp profiles to one with the same preheat temp
+        #{"temp": ["profile_for_temp"]}
+        merged: dict[int, list[str]] = {}
+        for name in preheats:
+          if preheats[name]['bed'] not in merged:
+            merged[preheats[name]['bed']] = [name]
+          else:
+            merged[preheats[name]['bed']].append(name)
+
+        for i, temp in enumerate(merged):
+          params = {
+            'name': "/".join(merged[temp]),
+            'preheat_temp': str(temp),
+            'save': True
+          }
+          new_profile_row = self.create_new_profile_row(params)
+          self.new_profiles_grid.attach(new_profile_row, 0, i, 1, 1)
         plusButton = self._screen.gtk.Button("plus", None, "round_button", scale=1)
         plusButton.connect("clicked", self.add_profile_row)
         plusButton.set_hexpand(True)
@@ -464,7 +534,14 @@ class Panel(ScreenPanel):
                               new_profiles_dict[i]['save'] = child.get_active()
         return new_profiles_dict       
             
-    def create_new_profile_row(self):
+    def create_new_profile_row(self, params=None):
+        '''
+        params = {\n
+          name str,\n
+          preheat_temp str,\n
+          save bool
+        }
+        '''
         profile_label = Gtk.Label(label=_("Profile Name:"), hexpand=True, halign=Gtk.Align.START)
         profile_entry = TypedEntry(SpaceRule)
         i = self.count_new_default_profiles()
@@ -472,7 +549,10 @@ class Panel(ScreenPanel):
         locale_name = _("profile_%d") % i
 
         profile_entry.set_placeholder_text(_(locale_name))
-        profile_entry.set_text('')
+        if 'name' in params:
+          profile_entry.set_text(params['name'])
+        else:
+          profile_entry.set_text('')
         profile_entry.set_hexpand(True)
         profile_entry.set_vexpand(False)
         profile_entry.connect("focus-in-event", self.on_focus_in_entry)
@@ -484,11 +564,15 @@ class Panel(ScreenPanel):
         preheat_entry.connect("focus-out-event", self.on_focus_out_entry)
         preheat_entry.connect("button_release_event", self.click_to_entry)
         preheat_entry.set_no_show_all(True)
-        preheat_entry.hide()
         locale_preheat_placeholder = _("Set temperature")
         preheat_entry.set_placeholder_text(_(locale_preheat_placeholder))
-
         preheat_switch = Gtk.Switch()
+        if 'preheat_temp' in params:
+          preheat_entry.set_text(params['preheat_temp'])
+          preheat_entry.show()
+          preheat_switch.set_active(True)
+        else:
+          preheat_entry.hide()
         preheat_switch.connect("notify::active", self.on_switch_preheat, preheat_entry)
 
         preheat_switch_box = Gtk.Box()
@@ -503,7 +587,10 @@ class Panel(ScreenPanel):
 
         save_box = Gtk.Box()
         save_box.add(Gtk.Label(label=_("Save after calibrate")))
-        save_box.add(Gtk.Switch())
+        save_switch = Gtk.Switch()
+        if 'save' in params and params['save']:
+          save_switch.set_active(True)
+        save_box.add(save_switch)
 
         profile_box = Gtk.Box()
         profile_box.add(profile_entry)
@@ -530,19 +617,19 @@ class Panel(ScreenPanel):
         else:
             self.was_child_scrolled = False
         
-    def on_focus_out_entry(self, entry, event):
+    def on_focus_out_entry(self, *args):
         if self.keyboard:
           self.content.remove(self.keyboard)
         self.keyboard = None
 
-    def click_to_entry(self, entry, event):
+    def click_to_entry(self, *args):
         return True
 
     def on_focus_in_entry(self, entry, event, keyboard_class = Keyboard):
       if isinstance(keyboard_class, Keyboard):
         self.keyboard = keyboard_class(self._screen, entry=entry, accept_function=self.on_accept_keyboard_dutton, reject_function=self.on_accept_keyboard_dutton)
       else:
-        self.keyboard = keyboard_class(self._screen, entry=entry)
+        self.keyboard = keyboard_class(self._screen, entry=entry, accept_cb=self.on_accept_keyboard_dutton)
       self.keyboard.change_entry(entry=entry)
       self.keyboard.set_vexpand(False)
       self.keyboard.set_hexpand(True)
@@ -552,14 +639,15 @@ class Panel(ScreenPanel):
       self.content.show_all()
 
     def on_accept_keyboard_dutton(self):
-        self._screen.remove_keyboard()
+        self._screen.set_focus(None)
 
     def start_calibrate(self, widget=None, event=None):
         profiles_dict = self.get_new_profiles_grid_parameters_as_dict()
-        cmd = ""
         has_incorrect_data = False
+        cmd_profiles = []
+        cmd_preheats = []
+        cmd_saves = []
         for profile_i in profiles_dict:
-            cmd = cmd + f"BED_MESH_CALIBRATE PROFILE={profiles_dict[profile_i]['profile_name']} SAVE_PERMANENTLY={str(profiles_dict[profile_i]['save']).upper()}\n"
             if profiles_dict[profile_i]['preheat']:
                 prh_t = profiles_dict[profile_i]['preheat_temp']
                 if prh_t == '':
@@ -579,13 +667,21 @@ class Panel(ScreenPanel):
                     self.preheat_popups.append(popup)
                     has_incorrect_data = True
                 else:
-                  cmd = cmd + f"M190 S{prh_t}\n"
+                  cmd_profiles.append(profiles_dict[profile_i]['profile_name'])
+                  cmd_preheats.append(prh_t if prh_t else 0)
+                  cmd_saves.append(str(profiles_dict[profile_i]['save']))
+                  # cmd = cmd + f"BED_MESH_CALIBRATE PROFILE={profiles_dict[profile_i]['profile_name']} SAVE_PERMANENTLY={str(profiles_dict[profile_i]['save']).upper()} PREHEAT={prh_t if prh_t else 0}\n"
         if has_incorrect_data:
             GLib.timeout_add_seconds(5, self.close_preheat_popups)
             return Gdk.EVENT_STOP
-        cmd_array = cmd.split('\n')
-        cmd_array.reverse()
-        cmd = "\n".join(cmd_array)
+        # cmd += ""
+        # cmd_array = cmd.split('\n')
+        # cmd_array.reverse()
+        # cmd = "\n".join(cmd_array)
+        cmd_profiles.reverse()
+        cmd_preheats.reverse()
+        cmd_saves.reverse()
+        cmd = f"BED_MESH_CALIBRATE_GROUP PROFILES={','.join(cmd_profiles)} PREHEATS={','.join(cmd_preheats)} SAVES={','.join(cmd_saves)}"
         self._screen._ws.klippy.gcode_script(cmd)
         self.remove_create()
 

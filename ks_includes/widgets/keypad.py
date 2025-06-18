@@ -38,6 +38,7 @@ class Keypad(Gtk.Box):
                 self.labels[k_id] = self._gtk.Button("complete", scale=1)
             else:
                 self.labels[k_id] = Gtk.Button(label=keys[i][0])
+                self.labels[k_id].get_style_context().add_class("numpad_chars")
             self.labels[k_id].connect('clicked', self.update_entry, keys[i][0])
             self.labels[k_id].set_can_focus(False)
             self.labels[k_id].get_style_context().add_class(keys[i][1])

@@ -257,15 +257,16 @@ class KlipperScreenConfig:
     def _create_configurable_options(self, screen):
         aut = "False"
         self.configurable_options = [
-            {"language": {
-                "section": "main", "name": _("Language"), "type": None, "value": "system_lang",
-                "callback": screen.change_language, "options": [
-                    {"name": _("System") + " " + _("(default)"), "value": "system_lang"}]}},
-            {"theme": {
-                "section": "main", "name": _("Icon Theme"), "type": "dropdown",
-                "value": "gelios", "callback": screen.restart_ks, "options": [
-                    {"name": _("gelios") + " " + _("(default)"), "value": "gelios"}]}},
-
+            {"autooff_enable": {"section": "main", "name": _("Enable autooff after print"), "type": "binary",
+                                "value": "False", "callback": screen.set_autooff}},
+            {"safety_printing": {"section": "main", "name": _("Enable safety printing"), "type": "binary",
+                                "value": "False", "callback": screen.set_safety}},
+            {"quite_mode": {"section": "main", "name": _("Quite Mode"), "type": "binary",
+                                "value": "False", "callback": screen.set_quite_mode}},
+            {"watch_bed_mesh": {"section": "main", "name": _("Watch bed mesh"), "type": "binary",
+                                "value": "False", "callback": screen.set_watch_bed_mesh}},
+            {"autoload_bed_mesh": {"section": "main", "name": _("Autoload bed mesh"), "type": "binary",
+                                "value": "False", "callback": screen.set_autoload_bed_mesh}},
             {"nozzle_diameter": {
                 "section": "main", 
                 "name": _("Nozzle Diameter"), 
@@ -301,18 +302,6 @@ class KlipperScreenConfig:
                     }
                 ]
             }},
-            ####      NEW      ####
-            {"quite_mode": {"section": "main", "name": _("Quite Mode"), "type": "binary",
-                                "value": "False", "callback": screen.set_quite_mode}},
-            {"autooff_enable": {"section": "main", "name": _("Enable autooff after print"), "type": "binary",
-                                "value": "False", "callback": screen.set_autooff}},
-            {"safety_printing": {"section": "main", "name": _("Enable safety printing"), "type": "binary",
-                                "value": "False", "callback": screen.set_safety}},
-            {"watch_bed_mesh": {"section": "main", "name": _("Watch bed mesh"), "type": "binary",
-                                "value": "False", "callback": screen.set_watch_bed_mesh}},
-            {"autoload_bed_mesh": {"section": "main", "name": _("Autoload bed mesh"), "type": "binary",
-                                "value": "False", "callback": screen.set_autoload_bed_mesh}},
-            ####    END NEW    ####
             {"24htime": {"section": "main", "name": _("24 Hour Time"), "type": "binary", "value": "True"}},
             {"side_macro_shortcut": {
                 "section": "main", "name": _("Macro shortcut on sidebar"), "type": "binary",
@@ -339,6 +328,14 @@ class KlipperScreenConfig:
                                       "value": "False"}},
             {"auto_open_extrude": {"section": "main", "name": _("Auto-open Extrude On Pause"), "type": "binary",
                                    "value": "True"}},
+            {"language": {
+                "section": "main", "name": _("Language"), "type": None, "value": "system_lang",
+                "callback": screen.change_language, "options": [
+                    {"name": _("System") + " " + _("(default)"), "value": "system_lang"}]}},
+            {"theme": {
+                "section": "main", "name": _("Icon Theme"), "type": "dropdown",
+                "value": "gelios", "callback": screen.restart_ks, "options": [
+                    {"name": _("gelios") + " " + _("(default)"), "value": "gelios"}]}},
             # {"": {"section": "main", "name": _(""), "type": ""}}
         ]
 
@@ -359,7 +356,9 @@ class KlipperScreenConfig:
         t_path = os.path.join(klipperscreendir, 'styles')
         themes = [d for d in os.listdir(t_path) if (not os.path.isfile(os.path.join(t_path, d)) and d != "z-bolt")]
         themes.sort()
-        theme_opt = self.configurable_options[1]['theme']['options']
+        index = self.configurable_options.index(
+            [i for i in self.configurable_options if list(i)[0] == "theme"][0])
+        theme_opt = self.configurable_options[index]['theme']['options']
 
         for theme in themes:
             if theme != theme_opt[0]['value']:
@@ -398,6 +397,15 @@ class KlipperScreenConfig:
       if not p:
         return DEF_PREHEATS
       return p
+    
+    def get_default_heater_preheats(self, heater):
+      # for heater_bed
+      heater = re.sub("heater_", "", heater)
+      if heater not in ["bed", "extruder"]:
+        logging.error(f"heater must be 'bed' or 'extruder', got: {heater}")
+        return []
+      preheats = self.get_default_preheats()
+      return list(dict.fromkeys([preheats[preheat][heater] for preheat in preheats]))
 
     def exclude_from_config(self, config):
         exclude_list = ['preheat']
