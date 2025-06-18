@@ -648,6 +648,8 @@ class Panel(ScreenPanel):
         cmd_preheats = []
         cmd_saves = []
         for profile_i in profiles_dict:
+            cmd_profiles.append(profiles_dict[profile_i]['profile_name'])
+            prh_t = ''
             if profiles_dict[profile_i]['preheat']:
                 prh_t = profiles_dict[profile_i]['preheat_temp']
                 if prh_t == '':
@@ -666,10 +668,8 @@ class Panel(ScreenPanel):
                     popup.show_all()
                     self.preheat_popups.append(popup)
                     has_incorrect_data = True
-                else:
-                  cmd_profiles.append(profiles_dict[profile_i]['profile_name'])
-                  cmd_preheats.append(prh_t if prh_t else 0)
-                  cmd_saves.append(str(profiles_dict[profile_i]['save']))
+            cmd_preheats.append(prh_t if prh_t else 0)
+            cmd_saves.append(str(profiles_dict[profile_i]['save']))
                   # cmd = cmd + f"BED_MESH_CALIBRATE PROFILE={profiles_dict[profile_i]['profile_name']} SAVE_PERMANENTLY={str(profiles_dict[profile_i]['save']).upper()} PREHEAT={prh_t if prh_t else 0}\n"
         if has_incorrect_data:
             GLib.timeout_add_seconds(5, self.close_preheat_popups)
