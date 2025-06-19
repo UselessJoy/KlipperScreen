@@ -211,14 +211,16 @@ class Panel(ScreenPanel):
         button.set_valign(Gtk.Align.END)
         button.set_halign(Gtk.Align.CENTER)
         button.set_size_request(self._screen.width * 0.3, self._screen.height * 0.2)
-        button.connect("clicked", self.stop_current_mesh)
         
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         box.add(labelbox)
         box.add(button)
         self.calibration_dialog = self._gtk.Dialog([], box, _("Bed Mesh"), self.stop_current_mesh, width = 1, height = 1)
+        button.connect("clicked", self.stop_current_mesh, self.calibration_dialog, Gtk.ResponseType.OK)
 
-    def stop_current_mesh(self, *args):
+    def stop_current_mesh(self, widget, dialog, response_id):
+        if response_id != Gtk.ResponseType.OK:
+          return
         self._screen.base_panel.send_stop_bed_mesh()
 
     def update_graph(self, widget=None, profile=None):

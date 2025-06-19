@@ -24,6 +24,8 @@ class BasePanel(ScreenPanel):
         self.time_min = -1
         self.time_format = self._config.get_main_config().getboolean("24htime", True)
         self.time_update = None
+        self.new_popup_msg = ""
+        self.new_popup_level = 1
 
         self.hours = None
         self.minutes = None
@@ -501,7 +503,7 @@ class BasePanel(ScreenPanel):
                         self.update_dialog.set_response_sensitive(Gtk.ResponseType.OK, True)
                         # self.update_dialog.get_widget_for_response(Gtk.ResponseType.OK).show()
                     except AttributeError as e:
-                        self.close_update_dialog()
+                        self.close_update_dialog(None, None, Gtk.ResponseType.OK)
                         self._screen.show_popup_message(f"error trying to show updater button, error is: {e}.\nUpdate dialog closed", 3)
             return
         if action != "notify_status_update" or self._screen.printer is None:
@@ -615,8 +617,17 @@ class BasePanel(ScreenPanel):
             if msg['is_open']:
               if msg["message"] != "" and msg['message_type'] != "":
                   lvl = 1 if msg['message_type'] == 'success' else 2 if msg['message_type'] != 'error' else 3
-                  self._screen.show_popup_message(msg['message'], level=lvl, just_popup=True)
+                  self.new_popup_msg = msg["message"]
+                  self.new_popup_level = lvl
+                  if len(self._screen.dialogs):
+                    GLib.timeout_add(300, self.new_popup)
+                  else:
+                    self.new_popup()
         return False
+
+    def new_popup(self, *args):
+      self._screen.show_popup_message(self.new_popup_msg, level=self.new_popup_level, just_popup=True)
+      return False
 
     def action_area_done_fixing(self):
       for ch in self.restart_button_grid.get_children():
@@ -843,7 +854,9 @@ class BasePanel(ScreenPanel):
         self.update_dialog = dialog
         dialog.show_all()
 
-    def close_update_dialog(self, *args):
+    def close_update_dialog(self, widget, dialog, response_id):
+      if response_id != Gtk.ResponseType.OK:
+        return
       if self.update_dialog:
         self._gtk.remove_dialog(self.update_dialog)
         self.update_dialog = None

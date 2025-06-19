@@ -382,7 +382,6 @@ class Panel(ScreenPanel):
                     if self.buttons[not self.is_using_magnet] in self.buttonGrid:
                         self.buttonGrid.remove(self.buttons[not self.is_using_magnet])
                     self.buttonGrid.attach(self.buttons[self.is_using_magnet], 0, 0, 1, 1)
-                    self.buttonGrid.show_all()
             if 'screws_tilt_adjust' in data:
                 if 'results' in data['screws_tilt_adjust']: 
                     if len(data['screws_tilt_adjust']['results']) != 0:
@@ -421,17 +420,15 @@ class Panel(ScreenPanel):
                                 self.popover[key]['next_screw_calibrate'].set_sensitive(True)
                 with contextlib.suppress(Exception):
                   if 'is_calibrating' in data['screws_tilt_adjust']:
+                      for btn in [True, False]:
+                        self.buttons[btn].set_sensitive(not data['screws_tilt_adjust']['is_calibrating'])
                       self.screws_adjust_data['is_calibrating'] = data['screws_tilt_adjust']['is_calibrating']
                       if self.screws_adjust_data['is_calibrating']:
                           if self.buttons['screws_tilt_calibrate'] in self.buttonGrid:
                               self.buttonGrid.remove(self.buttons['screws_tilt_calibrate'])
-                          # for btn in ['screws_tilt_calculate', 'screws_tilt_calibrate']:
-                          #     if self.buttons[btn] in self.buttonGrid:
-                          #         self.buttonGrid.remove(self.buttons[btn])
                           for btn in ['stop_screws_tilt_calibrate', 'stop_screw_calibrate']:
                               if self.buttons[btn] not in self.buttonGrid:
                                   self.buttonGrid.attach(self.buttons[btn], 0, len(self.buttonGrid.get_children()), 1, 1)
-                          self.buttonGrid.show_all()
                           for key, value in self.screw_dict.items():
                               self.popover[key]['set_as_base'].set_sensitive(False)
                               self.popover[key]['go_to_position'].set_sensitive(False)
@@ -455,6 +452,7 @@ class Panel(ScreenPanel):
                               if self.screws_adjust_data['base_screw'] != value[3]:
                                   self.popover[key]['set_as_base'].set_sensitive(True)
                               self.popover[key]['next_screw_calibrate'].set_sensitive(False)
+            self.buttonGrid.show_all()
 
     def _get_screws(self, config_section_name):
         screws = []

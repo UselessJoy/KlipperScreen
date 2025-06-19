@@ -92,6 +92,7 @@ class KlipperScreen(Gtk.Window):
     connecting_to_printer = None
     connected_printer = None
     files = None
+    new_popup_msg = ""
     keyboard = None
     numpad = None
     panels = {}
@@ -954,12 +955,20 @@ class KlipperScreen(Gtk.Window):
                 # elif data.startswith("(suggestion) "):
                 #   self.show_popup_message(data[13:], 10)
                 elif data.startswith("!! "):
-                    self.show_popup_message(data[3:], 3)
+                  self.new_popup_msg = data[3:]
+                  if len(self.dialogs):
+                    GLib.timeout_add(300, self.new_popup)
+                  else:
+                    self.new_popup()
                 elif "unknown" in data.lower() and \
                         not ("TESTZ" in data or "MEASURE_AXES_NOISE" in data or "ACCELEROMETER_QUERY" in data):
                     self.show_popup_message(data)
         self.process_update(action, data)
 
+    def new_popup(self, *args):
+      self.show_popup_message(self.new_popup_msg, 3, True)
+      return False
+    
     def process_update(self, *args):
         self.base_panel.process_update(*args)
         if self._cur_panels and hasattr(self.panels[self._cur_panels[-1]], "process_update"):
