@@ -267,11 +267,11 @@ if [ "$EUID" == 0 ]
 fi
 
 # Включение EPEL репозитория
-if ! rpm -q epel-release; then
-    echo_text "Enabling EPEL repository..."
-    sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-    sudo dnf config-manager --set-enabled powertools
-fi
+# if ! rpm -q epel-release; then
+#     echo_text "Enabling EPEL repository..."
+#     sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+#     sudo dnf config-manager --set-enabled powertools
+# fi
 
 check_requirements
 if [ -z "$SERVICE" ]; then
