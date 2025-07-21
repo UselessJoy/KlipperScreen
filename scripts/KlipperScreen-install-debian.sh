@@ -4,13 +4,12 @@ SCRIPTPATH=$(dirname -- "$(readlink -f -- "$0")")
 KSPATH=$(dirname "$SCRIPTPATH")
 KSENV="${KLIPPERSCREEN_VENV:-${HOME}/.KlipperScreen-env}"
 
-# Обновленные пакеты для РЕД ОС
-XSERVER="xorg-x11-xinit xorg-x11-server-utils xorg-x11-drv-evdev xorg-x11-drv-libinput xorg-x11-server-Xorg xorg-x11-drv-fbdev"
-CAGE="cage seatd xorg-x11-server-Xwayland"
-PYTHON="python3-virtualenv python3-libs python3-setuptools"
-PYGOBJECT="gobject-introspection-devel gcc cairo-devel pkgconf-pkg-config python3-devel gtk3-devel"
-MISC="librsvg2 openjpeg2 wireless-tools dbus-glib-devel autoconf"
-OPTIONAL="google-nanum-fonts vlgothic-fonts mpv-devel polkit NetworkManager chrony"
+XSERVER="xinit xinput x11-xserver-utils xserver-xorg-input-evdev xserver-xorg-input-libinput xserver-xorg-legacy xserver-xorg-video-fbdev"
+CAGE="cage seatd xwayland"
+PYTHON="python3-virtualenv virtualenv python3-distutils"
+PYGOBJECT="libgirepository1.0-dev gcc libcairo2-dev pkg-config python3-dev gir1.2-gtk-3.0"
+MISC="librsvg2-common libopenjp2-7 wireless-tools libdbus-glib-1-dev autoconf"
+OPTIONAL="fonts-nanum fonts-ipafont libmpv-dev policykit-1 network-manager systemd-timesyncd"
 
 Red='\033[0;31m'
 Green='\033[0;32m'
@@ -68,7 +67,19 @@ install_graphical_backend()
 install_packages()
 {
     echo_text "Update package data"
-    sudo dnf makecache
+    sudo dnf update
+
+    echo_text "Checking for broken packages..."
+    if dpkg-query -W -f='${db:Status-Abbrev} ${binary:Package}\n' | grep -E "^.[^nci]"; then
+        echo_text "Detected broken packages. Attempting to fix"
+        sudo dnf -f install
+        if dpkg-query -W -f='${db:Status-Abbrev} ${binary:Package}\n' | grep -E "^.[^nci]"; then
+            echo_error "Unable to fix broken packages. These must be fixed before KlipperScreen can be installed"
+            exit 1
+        fi
+    else
+        echo_ok "No broken packages"
+    fi
 
     echo_text "Installing KlipperScreen dependencies"
     sudo dnf install -y $OPTIONAL
@@ -112,21 +123,24 @@ create_virtualenv()
 
     source ${KSENV}/bin/activate
     pip --disable-pip-version-check install -r ${KSPATH}/scripts/KlipperScreen-requirements.txt
-    
-    # Для ARM-систем используем piwheels
     if [[ "$(uname -m)" =~ armv[67]l ]]; then
         echo_text "Using armv[67]l! Adding piwheels.org as extra index..."
         pip --disable-pip-version-check install --extra-index-url https://www.piwheels.org/simple -r ${KSPATH}/scripts/KlipperScreen-requirements.txt
     else
         pip --disable-pip-version-check install -r ${KSPATH}/scripts/KlipperScreen-requirements.txt
     fi
-    
     if [ $? -gt 0 ]; then
         echo_error "Error: pip install exited with status code $?"
         echo_text "Trying again with new tools..."
-        sudo dnf install -y gcc cmake make
-        pip install --upgrade pip setuptools
-        pip install -r ${KSPATH}/scripts/KlipperScreen-requirements.txt
+        sudo dnf install -y build-essential cmake
+        if [[ "$(uname -m)" =~ armv[67]l ]]; then
+            echo_text "Adding piwheels.org as extra index..."
+            pip install --extra-index-url https://www.piwheels.org/simple --upgrade pip setuptools
+            pip install --extra-index-url https://www.piwheels.org/simple -r ${KSPATH}/scripts/KlipperScreen-requirements.txt
+        else
+            pip install --upgrade pip setuptools
+            pip install -r ${KSPATH}/scripts/KlipperScreen-requirements.txt
+        fi
         if [ $? -gt 0 ]; then
             echo_error "Unable to install dependencies, aborting install."
             deactivate
@@ -152,7 +166,7 @@ install_systemd_service()
     sudo systemctl daemon-reload
     sudo systemctl enable KlipperScreen
     sudo systemctl set-default multi-user.target
-    sudo usermod -aG tty "$USER"
+    sudo adduser "$USER" tty
 }
 
 create_policy()
@@ -162,7 +176,7 @@ create_policy()
 
     echo_text "Installing KlipperScreen PolicyKit Rules"
     sudo groupadd -f klipperscreen
-    sudo usermod -aG netdev "$USER"
+    sudo adduser "$USER" netdev
     if [ ! -x "$(command -v pkaction)" ]; then
         echo "PolicyKit not installed"
         return
@@ -241,8 +255,15 @@ EOF
 
 fix_fbturbo()
 {
-    # Не требуется для РЕД ОС
-    return
+    if [ "$(dpkg-query -W -f='${Status}' xserver-xorg-video-fbturbo 2>/dev/null | grep -c "ok installed")" -eq 0 ]; then
+        FBCONFIG="/usr/share/X11/xorg.conf.d/99-fbturbo.conf"
+        if [ -e $FBCONFIG ]; then
+            echo_text "FBturbo not installed, but the configuration file exists"
+            echo_text "This will fail if the config is not removed or the package installed"
+            echo_text "moving the config to the home folder"
+            sudo mv $FBCONFIG ~/99-fbturbo-backup.conf
+        fi
+    fi
 }
 
 add_desktop_file()
@@ -264,14 +285,6 @@ if [ "$EUID" == 0 ]
     then echo_error "Please do not run this script as root"
     exit 1
 fi
-
-# Включение EPEL репозитория
-if ! rpm -q epel-release; then
-    echo_text "Enabling EPEL repository..."
-    sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-    sudo dnf config-manager --set-enabled powertools
-fi
-
 check_requirements
 if [ -z "$SERVICE" ]; then
     read -r -e -p "Install as a service? (This will enable boot to console) [Y/n]" SERVICE
