@@ -40,7 +40,7 @@ install_graphical_backend()
       read -r -e -p "Backend Xserver or Wayland (cage)? [X/w]" BACKEND
       if [[ "$BACKEND" =~ ^[wW]$ ]]; then
         echo_text "Installing Wayland Cage Kiosk"
-        if sudo apt install -y $CAGE; then
+        if sudo dnf install -y $CAGE; then
             echo_ok "Installed Cage"
             BACKEND="W"
             break
@@ -50,7 +50,7 @@ install_graphical_backend()
         fi
       else
         echo_text "Installing Xserver"
-        if sudo apt install -y $XSERVER; then
+        if sudo dnf install -y $XSERVER; then
             echo_ok "Installed X"
             update_x11
             BACKEND="X"
@@ -67,12 +67,12 @@ install_graphical_backend()
 install_packages()
 {
     echo_text "Update package data"
-    sudo apt update
+    sudo dnf update
 
     echo_text "Checking for broken packages..."
     if dpkg-query -W -f='${db:Status-Abbrev} ${binary:Package}\n' | grep -E "^.[^nci]"; then
         echo_text "Detected broken packages. Attempting to fix"
-        sudo apt -f install
+        sudo dnf -f install
         if dpkg-query -W -f='${db:Status-Abbrev} ${binary:Package}\n' | grep -E "^.[^nci]"; then
             echo_error "Unable to fix broken packages. These must be fixed before KlipperScreen can be installed"
             exit 1
@@ -82,21 +82,21 @@ install_packages()
     fi
 
     echo_text "Installing KlipperScreen dependencies"
-    sudo apt install -y $OPTIONAL
+    sudo dnf install -y $OPTIONAL
     echo "$_"
-    if sudo apt install -y $PYTHON; then
+    if sudo dnf install -y $PYTHON; then
         echo_ok "Installed Python dependencies"
     else
         echo_error "Installation of Python dependencies failed ($PYTHON)"
         exit 1
     fi
-    if sudo apt install -y $PYGOBJECT; then
+    if sudo dnf install -y $PYGOBJECT; then
         echo_ok "Installed PyGobject dependencies"
     else
         echo_error "Installation of PyGobject dependencies failed ($PYGOBJECT)"
         exit 1
     fi
-    if sudo apt install -y $MISC; then
+    if sudo dnf install -y $MISC; then
         echo_ok "Installed Misc packages"
     else
         echo_error "Installation of Misc packages failed ($MISC)"
@@ -132,7 +132,7 @@ create_virtualenv()
     if [ $? -gt 0 ]; then
         echo_error "Error: pip install exited with status code $?"
         echo_text "Trying again with new tools..."
-        sudo apt install -y build-essential cmake
+        sudo dnf install -y build-essential cmake
         if [[ "$(uname -m)" =~ armv[67]l ]]; then
             echo_text "Adding piwheels.org as extra index..."
             pip install --extra-index-url https://www.piwheels.org/simple --upgrade pip setuptools
