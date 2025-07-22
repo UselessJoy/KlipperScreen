@@ -855,6 +855,7 @@ class BasePanel(ScreenPanel):
         dialog.show_all()
 
     def close_update_dialog(self, widget, dialog, response_id):
+    def close_update_dialog(self, dialog, response_id):
       if response_id != Gtk.ResponseType.OK:
         return
       if self.update_dialog:
