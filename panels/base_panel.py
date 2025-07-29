@@ -500,8 +500,7 @@ class BasePanel(ScreenPanel):
                 logging.info("Update complete")
                 if self.update_dialog is not None:
                     try:
-                        self.update_dialog.set_response_sensitive(Gtk.ResponseType.OK, True)
-                        # self.update_dialog.get_widget_for_response(Gtk.ResponseType.OK).show()
+                        self.update_dialog.set_sensitive(True)
                     except AttributeError as e:
                         self.close_update_dialog(None, None, Gtk.ResponseType.OK)
                         self._screen.show_popup_message(f"error trying to show updater button, error is: {e}.\nUpdate dialog closed", 3)
@@ -841,20 +840,30 @@ class BasePanel(ScreenPanel):
                 self.titlebar_items = []
 
     def show_update_dialog(self):
-        button = [{"name": _("Finish"), "response": Gtk.ResponseType.OK, "style": "color4"}]
+        button_box = Gtk.Box(hexpand=True, halign=Gtk.Align.END)
+        button_box.set_margin_top(5)
+        btn_end = self._gtk.Button(None, _("Finish"), "color4", hexpand=False)
+        btn_end.set_size_request(self._screen.width / 3 - 30, round(self._screen.height / 5))
+        button_box.add(btn_end)
+
         self.labels['update_progress'] = Gtk.Label(hexpand=True, vexpand=True, ellipsize=Pango.EllipsizeMode.END)
         self.labels['update_scroll'] = self._gtk.ScrolledWindow(steppers=False)
         self.labels['update_scroll'].set_min_content_height(self._gtk.content_height * 0.7)
         self.labels['update_scroll'].set_property("overlay-scrolling", True)
         self.labels['update_scroll'].add(self.labels['update_progress'])
         self.labels['update_scroll'].connect("size-allocate", self._autoscroll)
-        dialog = self._gtk.Dialog(button, self.labels['update_scroll'], _("Updating"), self.close_update_dialog)
-        dialog.set_response_sensitive(Gtk.ResponseType.OK, False)
-        # dialog.get_widget_for_response(Gtk.ResponseType.OK).hide()
+
+        dialog_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        dialog_box.add(self.labels['update_scroll'])
+        dialog_box.add(button_box)
+
+        btn_end.connect("clicked", self.close_update_dialog, Gtk.ResponseType.OK)
+        dialog = self._gtk.Dialog([], dialog_box, _("Updating"), self.close_update_dialog)
         self.update_dialog = dialog
+        self.update_dialog.set_sensitive(False)
         dialog.show_all()
 
-    def close_update_dialog(self, dialog, response_id):
+    def close_update_dialog(self, widget, response_id):
       if response_id != Gtk.ResponseType.OK:
         return
       if self.update_dialog:
