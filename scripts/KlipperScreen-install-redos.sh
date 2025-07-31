@@ -6,7 +6,7 @@ KSENV="${KLIPPERSCREEN_VENV:-${HOME}/.KlipperScreen-env}"
 
 # Исправленные пакеты для РЕД ОС
 # xorg-x11-server-utils
-XSERVER="xorg-x11-xinit xorg-x11-drv-evdev xorg-x11-drv-libinput xorg-x11-server-Xorg xorg-x11-drv-fbdev xorg-x11-xauth"
+XSERVER="xorg-x11-xinit xorg-x11-drv-evdev xorg-x11-drv-libinput xorg-x11-server-Xorg xorg-x11-drv-fbdev xorg-x11-xauth xset"
 CAGE="cage seatd xorg-x11-server-Xwayland"
 PYTHON="python3-virtualenv python3-libs python3-setuptools"
 PYGOBJECT="gobject-introspection-devel gcc cairo-devel pkgconf-pkg-config python3-devel gtk3-devel"
