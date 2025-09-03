@@ -162,10 +162,10 @@ class BasePanel(ScreenPanel):
         self.stop_pid_button.set_no_show_all(True)
         self.stop_pid_button.hide()
         
-        self.stop_bed_mesh_button = self._gtk.Button("stop_bed_mesh", style='pb-06rem', scale=0.7, hexpand=False, vexpand=False)
-        self.stop_bed_mesh_button.connect('clicked', self.send_stop_bed_mesh)
-        self.stop_bed_mesh_button.set_no_show_all(True)
-        self.stop_bed_mesh_button.hide()
+        # self.stop_bed_mesh_button = self._gtk.Button("stop_bed_mesh", style='pb-06rem', scale=0.7, hexpand=False, vexpand=False)
+        # self.stop_bed_mesh_button.connect('clicked', self.send_stop_bed_mesh)
+        # self.stop_bed_mesh_button.set_no_show_all(True)
+        # self.stop_bed_mesh_button.hide()
 
         self.titlelbl = Gtk.Label(hexpand=True, halign=Gtk.Align.CENTER, ellipsize=Pango.EllipsizeMode.END)
         self.control['time'] = Gtk.Label("00:00 AM")
@@ -181,7 +181,7 @@ class BasePanel(ScreenPanel):
         self.titlebar.add(self.uninstalled_updates_box)
         self.titlebar.add(self.magnet_probe_image)
         self.titlebar.add(self.titlelbl)
-        self.titlebar.add(self.stop_bed_mesh_button)
+        # self.titlebar.add(self.stop_bed_mesh_button)
         self.titlebar.add(self.stop_pid_button)
         self.titlebar.add(self.control['time_box'])
         self.set_title(title)
@@ -229,11 +229,15 @@ class BasePanel(ScreenPanel):
         self._gtk.remove_dialog(dialog)
         if response_id == Gtk.ResponseType.OK:
             if not self.is_timesync:
+                subprocess.call(["systemctl", "stop", "chronyd.service"])
+                subprocess.call(["systemctl", "disable", "chronyd.service"])
                 subprocess.call(["systemctl", "stop", "systemd-timesyncd.service"])
                 subprocess.call(["systemctl", "disable", "systemd-timesyncd.service"])
                 os.system(f"timedatectl set-time {self.hours}:{self.minutes}:00")
                 logging.info(f"set time to {self.hours}:{self.minutes}")
             else:
+                subprocess.call(["systemctl", "start", "chronyd.service"])
+                subprocess.call(["systemctl", "enable", "chronyd.service"])
                 subprocess.call(["systemctl", "start", "systemd-timesyncd.service"])
                 subprocess.call(["systemctl", "enable", "systemd-timesyncd.service"])
                 logging.info("time synchromized")
@@ -526,12 +530,12 @@ class BasePanel(ScreenPanel):
                     self.stop_pid_button.show()
                 else:
                     self.stop_pid_button.hide()
-        if 'bed_mesh' in data:
-          if 'is_calibrating' in data['bed_mesh']:
-            if data['bed_mesh']['is_calibrating']:
-              self.stop_bed_mesh_button.show()
-            else:
-              self.stop_bed_mesh_button.hide()
+        # if 'bed_mesh' in data:
+        #   if 'is_calibrating' in data['bed_mesh']:
+        #     if data['bed_mesh']['is_calibrating']:
+        #       self.stop_bed_mesh_button.show()
+        #     else:
+        #       self.stop_bed_mesh_button.hide()
         if 'configfile' in data:
                 if 'save_config_pending' in data['configfile']:
                     if data['configfile']['save_config_pending']:

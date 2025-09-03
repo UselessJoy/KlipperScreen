@@ -2,6 +2,7 @@ import contextlib
 import logging
 import gi
 from ks_includes.KlippyGcodes import KlippyGcodes
+from ks_includes.widgets.color_picker import ColorPicker
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Pango
 from ks_includes.screen_panel import ScreenPanel
@@ -572,34 +573,31 @@ class Panel(ScreenPanel):
       box = Gtk.Box()
       title = Gtk.Label(label = _(self.states.current.data), vexpand = True, valign = Gtk.Align.END)
       title.get_style_context().add_class("label_chars")
-      colorWheel = Gtk.HSV(vexpand=True, hexpand=True, valign = Gtk.Align.END)
-      cw_size = self._gtk.content_width * 0.4
-      colorWheel.set_metrics(cw_size, cw_size * 0.1)
+      color_picker = ColorPicker(with_palette=False)
       colors = [
           float(self._printer.config['neopixel my_neopixel']['initial_red']),
           float(self._printer.config['neopixel my_neopixel']['initial_green']),
           float(self._printer.config['neopixel my_neopixel']['initial_blue'])
       ]
-      hsv = Gtk.rgb_to_hsv(colors[0], colors[1], colors[2])
-      colorWheel.set_color(hsv[0], hsv[1], hsv[2])
+      color_picker.set_rgb(colors[0], colors[1], colors[2])
       enabled = False
       try:
         enabled = self._screen.apiclient.send_request("printer/objects/query?led_control")['result']['status']['led_control']['enabled']
       except Exception as e:
         self._screen.show_popup_message(_("Request error: %s") % "printer/objects/query?led_control", just_popup=True)
         logging.info(f"Request error: {e}")
-      colorWheel.set_sensitive(enabled)
+      color_picker.set_sensitive(enabled)
       led_button = self._gtk.Button("shutdown", _("Turn off"), "color3")
       led_button.set_valign(Gtk.Align.CENTER)
       led_button.set_halign(Gtk.Align.END)
       led_button.set_size_request((self._screen.width - 30) / 3, self._screen.height / 5)
       led_button.set_label(_("Turn off neopixel") if enabled else _("Turn on neopixel"))
-      led_button.connect("clicked", self.turn_led, colorWheel)
-      colorWheel.connect("changed", self.color_changed)
+      led_button.connect("clicked", self.turn_led, color_picker)
+      color_picker.color_wheel.connect("color-changed", self.on_color_changed)
       
       main_box = self.VerticalBox()
       main_box.add(title)
-      box.add(colorWheel)
+      box.add(color_picker)
       box.add(led_button)
       main_box.add(box)
       return self.state_box(main_box)
@@ -614,11 +612,8 @@ class Panel(ScreenPanel):
       cw.set_sensitive(False)
       btn.set_label(_("Turn on neopixel"))
 
-    def color_changed(self, cw):
-      colors = cw.get_color()
-      colors = cw.to_rgb(colors[0], colors[1], colors[2])
-      if not cw.is_adjusting():
-        self._screen._ws.klippy.set_neopixel_color(self._printer.get_neopixels()[0][9:], colors[0], colors[1], colors[2])
+    def on_color_changed(self, widget, r, g, b):
+        self._screen._ws.klippy.set_neopixel_color(self._printer.get_neopixels()[0][9:], r, g, b)
     
     # Потребует переделки
     def SelfDiagnosticContent(self):

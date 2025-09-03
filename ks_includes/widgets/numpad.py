@@ -5,6 +5,8 @@ from gi.repository import Gtk, GLib, GObject
 
 
 class Numpad(Gtk.Box):
+    RESOLUTION_K = {(800, 480): 0.43}
+    
     def __init__(self, screen, accept_cb=None, entry=None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
 
@@ -91,3 +93,9 @@ class Numpad(Gtk.Box):
             self.get_parent().remove(self)
         else:
             self.entry.update_entry(key)
+    
+    def set_size_with_resolution(self, width, height):
+      if (width, height) in self.RESOLUTION_K:
+        self.set_size_request(1, height * self.RESOLUTION_K[(width, height)])
+      else:
+        self.set_size_request(1, height * 0.5)

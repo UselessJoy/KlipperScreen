@@ -595,6 +595,63 @@ msgstr "Moonraker отключен. Пожалуйста, перезапусти
 msgid "Moonraker load error"
 msgstr "Ошибка при загрузке moonraker"
 
+msgid "Error on launch %s"
+msgstr "Ошибка при запуске %s"
+
+msgid "Error on stop %s"
+msgstr "Ошибка при остановке %s"
+
+msgid "Stop service"
+msgstr "Остановить службу"
+
+msgid "Start service"
+msgstr "Запустить службу"
+
+msgid "Restart service"
+msgstr "Перезапустить службу"
+
+msgid "Render list:"
+msgstr "Список рендеров:"
+
+msgid "Flip horizontally"
+msgstr "Отразить по\nгоризонтали"
+
+msgid "Flip vertically"
+msgstr "Отразить по\nвертикали"
+
+msgid "Rotate by"
+msgstr "Повернуть на"
+
+msgid "Stream type"
+msgstr "Тип потока"
+
+msgid "Snapshot URL"
+msgstr "URL снимка камеры"
+
+msgid "Stream URL"
+msgstr "URL потока"
+
+msgid "mjpegstreamer-adaptive"
+msgstr "Адаптивный MJPEG"
+
+msgid "mjpegstreamer"
+msgstr "MJPEG поток"
+
+msgid "hlsstream"
+msgstr "Поток HLS"
+
+msgid "webrtc-camerastreamer"
+msgstr "IP Камера"
+
+msgid "ipstream"
+msgstr "Страница HTTP"
+
+msgid "iframe"
+msgstr "WebRTC (go2rtc)"
+
+msgid "webrtc-go2rtc"
+msgstr "WebRTC\n(camera-streamer)"
+
 msgid "Maximum"
 msgstr "Максимум"
 
@@ -926,6 +983,12 @@ msgstr "Сохранить смещение пробы"
 msgid "Save offset endstop"
 msgstr "Сохранить смещение Z"
 
+msgid "Save z-offset?"
+msgstr "Сохранить смещение Z?"
+
+msgid "Z-axis will be homed automatically"
+msgstr "Ось Z будет автоматически отхоумлена"
+
 msgid "Before adjusting, it is recommended to tighten all the screws until they stop"
 msgstr "Перед регулировкой рекомендуется закрутить все винты до упора"
 
@@ -1219,7 +1282,7 @@ msgstr "Рендер видео успешно завершен: %s"
 msgid "Saving frames failed"
 msgstr "Ошибка при сохранении кадров"
 
-msgid"Render failed"
+msgid "Render failed"
 msgstr "Ошибка при рендере"
 
 msgid "No mesh profile has been loaded"
@@ -1465,15 +1528,6 @@ msgstr "Использовать\nпароль"
 
 msgid "Load backup config"
 msgstr "Загрузить бэкап"
-
-msgid "Stop service"
-msgstr "Остановить службу"
-
-msgid "Start service"
-msgstr "Запустить службу"
-
-msgid "Restart service"
-msgstr "Перезапустить службу"
 
 msgid "Are you sure?"
 msgstr "Вы уверены?"

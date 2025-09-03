@@ -130,8 +130,10 @@ class Panel(ScreenPanel):
 
         self.buttons = {}
         self.create_buttons()
-        self.buttons['button_grid'] = self._gtk.HomogeneousGrid()
+        self.buttons['button_grid'] = Gtk.Grid()#self._gtk.HomogeneousGrid()
         self.buttons['button_grid'].set_vexpand(False)
+        self.buttons['button_grid'].set_hexpand(False)
+        self.buttons['button_grid'].set_halign(Gtk.Align.END)
         self.grid.attach(self.buttons['button_grid'], 0, 3, 4, 1)
 
         self.create_status_grid()
@@ -363,19 +365,21 @@ class Panel(ScreenPanel):
             'control': self._gtk.Button("settings", _("Settings"), "color3"),
             'fine_tune': self._gtk.Button("fine-tune", _("Fine Tuning"), "color4"),
             'menu': self._gtk.Button("complete", _("Main Menu"), "color4"),
-            'pause': self._gtk.Button("pause", _("Pause"), "color1"),
+            'paused': self._gtk.Button("pause", _("Pause"), "color1"),
             'restart': self._gtk.Button("refresh", _("Restart"), "color3"),
-            'resume': self._gtk.Button("resume", _("Resume"), "color1"),
+            'printing': self._gtk.Button("resume", _("Resume"), "color1"),
             'save_offset_endstop': self._gtk.Button("home-z", _("Save offset endstop"), "color2"),
         }
+        for btn in self.buttons:
+            self.buttons[btn].set_size_request(self._screen.width * 0.22, self._screen.height * 0.2)
         self.buttons['cancel'].connect("clicked", self.cancel)
         self.buttons['control'].connect("clicked", self._screen._go_to_submenu, "")
         self.buttons['fine_tune'].connect("clicked", self.menu_item_clicked, {
             "panel": "fine_tune", "name": _("Fine Tuning")})
         self.buttons['menu'].connect("clicked", self.close_panel)
-        self.buttons['pause'].connect("clicked", self.pause)
+        self.buttons['paused'].connect("clicked", self.pause)
         self.buttons['restart'].connect("clicked", self.restart)
-        self.buttons['resume'].connect("clicked", self.resume)
+        self.buttons['printing'].connect("clicked", self.resume)
         self.buttons['save_offset_endstop'].connect("clicked", self.save_offset)
 
     def save_offset(self, widget):
@@ -404,7 +408,10 @@ class Panel(ScreenPanel):
     def save_confirm(self, dialog, response_id):
         self._gtk.remove_dialog(dialog)
         if response_id == Gtk.ResponseType.APPLY:
-            self._screen._ws.klippy.gcode_script("Z_OFFSET_APPLY_ENDSTOP")
+            self._screen._ws.klippy.gcode_script("Z_OFFSET_APPLY_ENDSTOP", callback = self.on_apply_endstop)
+
+    def on_apply_endstop(self, *args):
+        return
 
     def restart(self, widget):
         if self.filename:
@@ -420,14 +427,20 @@ class Panel(ScreenPanel):
       self.enable_button("restart")
       
     def resume(self, widget):
-        self.disable_button("resume")
-        self._screen._ws.klippy.print_resume()
+        self.disable_button("printing")
+        self._screen._ws.klippy.print_resume(callback = self.on_resume_sended)
         self._screen.show_all()
 
+    def on_resume_sended(self, *args):
+      self.enable_button("printing")
+
     def pause(self, widget):
-        self.disable_button("pause")
-        self._screen._ws.klippy.print_pause()
+        self.disable_button("paused")
+        self._screen._ws.klippy.print_pause(callback = self.on_pause_sended)
         self._screen.show_all()
+
+    def on_pause_sended(self, *args):
+      self.enable_button("paused")
 
     def cancel(self, widget):
         buttons = [
@@ -479,13 +492,12 @@ class Panel(ScreenPanel):
         self.update_progress(0.0)
     
     def process_update(self, action, data):
-        safety_printing_data = self._printer.get('safety_printing')
-        if safety_printing_data:
-          if safety_printing_data['safety_enabled']:
-              if safety_printing_data['luft_overload']:
-                  self.disable_button("resume")
-              else:
-                  self.enable_button("resume")
+        # safety_printing_data = self._printer.get('safety_printing')
+        # if safety_printing_data:
+        #   if safety_printing_data['is_doors_open'] or safety_printing_data['is_hood_open']:
+        #       self.disable_button("resume")
+        #   else:
+        #       self.enable_button("resume")
         if action == "notify_metadata_update" and data['filename'] == self.filename:
             if self.retries < 5:
               self.update_file_metadata()
@@ -508,9 +520,9 @@ class Panel(ScreenPanel):
           if data['filament_watcher']['show_message'] == True:
               self._screen.close_popup_message()
               self._screen.show_popup_message(_("Printing with PLA filament. Please, turn on camera fan or disable safety printing and open doors or hood"), 2, True, -1)
-              #self._screen.set_can_close_message(False)
+              self._screen.set_can_close_message(False)
           else:
-              #self._screen.set_can_close_message(True)
+              self._screen.set_can_close_message(True)
               self._screen.close_popup_message()
 
         if "display_status" in data and "message" in data["display_status"]:
@@ -551,6 +563,7 @@ class Panel(ScreenPanel):
             if 'homing_origin' in data['gcode_move']:
                 self.zoffset = float(data['gcode_move']['homing_origin'][2])
                 self.labels['zoffset'].set_label(f"{self.zoffset:.3f} {self.mm}")
+                # self.show_buttons_for_state()
         if 'motion_report' in data:
             if 'live_position' in data['motion_report']:
                 self.labels['pos_x'].set_label(f"X: {data['motion_report']['live_position'][0]:6.2f}")
@@ -689,38 +702,38 @@ class Panel(ScreenPanel):
 
     def set_state(self, state, msg=""):
         if state == "printing":
-            self.disable_button("resume")
-            self.enable_button("pause")
+            self.disable_button("printing")
+            self.enable_button("paused")
             self.labels["status"].set_label(_("Printing"))
         elif state == "complete":
             self.retries = 0
-            self.disable_button("resume", "pause")
+            self.disable_button("printing", "paused")
             self.update_progress(1)
             self.labels["status"].set_label(_("Complete"))
             self.buttons['left'].set_label("-")
             self._add_timeout(self._config.get_main_config().getint("job_complete_timeout", 0))
         elif state == "error":
             self.retries = 0
-            self.disable_button("resume", "pause")
+            self.disable_button("printing", "paused")
             self._screen.show_popup_message(msg)
             self._add_timeout(self._config.get_main_config().getint("job_error_timeout", 0))
         elif state == "cancelling":
             self.retries = 0
-            self.disable_button("resume", "pause")
+            self.disable_button("printing", "paused")
             self.labels["status"].set_label(_("Cancelling"))
         elif state == "cancelled" or (state == "standby" and self.state == "cancelled"):
             self.retries = 0
-            self.disable_button("resume", "pause")
+            self.disable_button("printing", "paused")
             self.labels["status"].set_label(_("Cancelled"))
             self._add_timeout(self._config.get_main_config().getint("job_cancelled_timeout", 0))
         elif state == "paused":
-            self.enable_button("resume")
-            self.disable_button("pause")
+            self.enable_button("printing")
+            self.disable_button("paused")
             self.labels["status"].set_label(_("Paused"))
         elif state == "standby":
             self.retries = 0
-            self.enable_button("resume")
-            self.disable_button("pause")
+            self.enable_button("printing")
+            self.disable_button("paused")
             self.labels["status"].set_label(_("Standby"))
         if self.state != state:
             logging.debug(f"Changing job_status state from '{self.state}' to '{state}'")
@@ -735,17 +748,17 @@ class Panel(ScreenPanel):
     def show_buttons_for_state(self):
         self.buttons['button_grid'].remove_row(0)
         self.buttons['button_grid'].insert_row(0)
-        if self.state == "printing":
-            self.buttons['button_grid'].attach(self.buttons['pause'], 0, 0, 1, 1)
+        if self.state in ["printing", "paused"]:
+            btn_state = "paused" if self.state == "printing" else "printing"
+            self.buttons['button_grid'].attach(self.buttons[btn_state], 0, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['cancel'], 1, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['fine_tune'], 2, 0, 1, 1)
             self.buttons['button_grid'].attach(self.buttons['control'], 3, 0, 1, 1)
-            self.can_close = False
-        elif self.state == "paused":
-            self.buttons['button_grid'].attach(self.buttons['resume'], 0, 0, 1, 1)
-            self.buttons['button_grid'].attach(self.buttons['cancel'], 1, 0, 1, 1)
-            self.buttons['button_grid'].attach(self.buttons['fine_tune'], 2, 0, 1, 1)
-            self.buttons['button_grid'].attach(self.buttons['control'], 3, 0, 1, 1)
+            # if self.zoffset:
+            #   if self.buttons["save_offset_endstop"] not in self.buttons['button_grid']:
+            #     self.buttons['button_grid'].attach(self.buttons["save_offset_endstop"], 4, 0, 1, 1)
+            # elif self.buttons["save_offset_endstop"] in self.buttons['button_grid']:
+            #     self.buttons['button_grid'].remove_column(4)
             self.can_close = False
         else:
             offset = self._printer.get_stat("gcode_move", "homing_origin")

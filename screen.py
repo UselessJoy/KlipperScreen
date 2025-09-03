@@ -11,6 +11,8 @@ import traceback  # noqa
 import locale
 import sys
 import gi
+import distro
+from ks_includes.widgets import popup_message
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, GLib, Pango
 from importlib import import_module
@@ -104,7 +106,6 @@ class KlipperScreen(Gtk.Window):
     reinit_count = 0
     max_retries = 4
     initialized = initializing = False
-    popup_timeout = None
     wayland = False
     windowed = False
     notification_log = []
@@ -124,7 +125,6 @@ class KlipperScreen(Gtk.Window):
         self.dialogs = []
         self.confirm = None
         self.last_window_class = ""
-        self.last_popup_time = datetime.now()
         # Для просмотра дерева виджетов
         # self.set_interactive_debugging(True)
         configfile = os.path.normpath(os.path.expanduser(args.configfile))
@@ -169,7 +169,7 @@ class KlipperScreen(Gtk.Window):
         self.aspect_ratio = self.width / self.height
         self.vertical_mode = self.aspect_ratio < 1.0
         logging.info(f"Screen resolution: {self.width}x{self.height}")
-        self.theme = self._config.get_main_config().get('theme')
+        self.theme = "gelios"#self._config.get_main_config().get('theme')
         self.show_cursor = self._config.get_main_config().getboolean("show_cursor", fallback=False)
         self.gtk = KlippyGtk(self)
         self.init_style()
@@ -198,6 +198,12 @@ class KlipperScreen(Gtk.Window):
                                      _("Warning") + f" Python 3.7\n"
                                      + _("Ended official support in June 2023") + "\n"
                                      + _("KlipperScreen will drop support in June 2024"), 2)
+
+    def get_pwd(self):
+      dist: str = distro.name(pretty=True)
+      logging.info(f"distro name is {dist}")
+      # Пока системы всего две, то можно и так сделать
+      return "orangepi" if dist.lower().find("debian") != -1 else "user"
 
     def initial_connection(self):
         self.printers = self._config.get_printers()
@@ -296,7 +302,7 @@ class KlipperScreen(Gtk.Window):
                 "led_control": ["led_status", "enabled"],
                 "heaters": ["is_waiting"],
                 "probe": ["is_using_magnet_probe", "last_z_result", "is_adjusting"],
-                "screws_tilt_adjust": ["results", "base_screw", "calibrating_screw", "is_calibrating"],
+                "screws_tilt_adjust": ["results", "base_screw", "calibrating_screw", "is_calibrating", "search_highest"],
                 "manual_probe": ["is_active", "command", "z_position_endstop"],
                 "pid_calibrate": ["is_calibrating"],
                 "filament_watcher": ['filament_type', 'show_message'],
@@ -374,66 +380,29 @@ class KlipperScreen(Gtk.Window):
             del self.notification_log[0]
         self.notification_log.append(log_entry)
         self.process_update("notify_log", log_entry)
-        
-    def show_popup_message(self, message, level=3, just_popup=False, timeout=5):
-        self.last_popup_time = datetime.now()
+
+    def set_window_style(self, style):
+      self.remove_window_classes(self.base_panel.main_grid.get_style_context())
+      self.base_panel.main_grid.get_style_context().add_class(style)
+
+    def show_popup_message(self, message="", level=3, just_popup=False, timeout=5):
         self.close_screensaver()
         self.close_popup_message()
         self.log_notification(message, level)
-        msg = Gtk.Button(label=f"{message}")
-        msg.set_hexpand(True)
-        msg.set_vexpand(True)
-        msg.get_child().set_line_wrap(True)
-        msg.get_child().set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
-        msg.get_child().set_max_width_chars(40)
-        msg.connect("clicked", self.close_popup_message)
-        msg.get_style_context().add_class("message_popup")
-        if level == 1:
-            msg.get_style_context().add_class("message_popup_echo")
-        elif level == 2:
-            msg.get_style_context().add_class("message_popup_warning")
-            if not just_popup:
-                self.remove_window_classes(self.base_panel.main_grid.get_style_context())
-                self.base_panel.main_grid.get_style_context().add_class("window-warning")
-        elif level == 10:
-          msg.get_style_context().add_class("message_popup_suggestion")
-        else:
-            msg.get_style_context().add_class("message_popup_error")
-            if not just_popup:
-                self.remove_window_classes(self.base_panel.main_grid.get_style_context())
-                self.base_panel.main_grid.get_style_context().add_class("window-error")
-
-        
-        
-        popup = Gtk.Popover.new(self.base_panel.titlebar)
-        popup.connect("closed", self.on_close_popup_message)
-        popup.get_style_context().add_class("message_popup_popover")
-        popup.set_size_request(self.width * .7, self.height * .2)
-        popup.set_halign(Gtk.Align.CENTER)
-        popup.add(msg)
-        popup.popup()
-
-        self.popup_message = popup
-        self.popup_message.show_all()
-
-        if self._config.get_main_config().getboolean('autoclose_popups', True):
-            if self.popup_timeout is not None:
-                GLib.source_remove(self.popup_timeout)
-                self.popup_timeout = None
-            if timeout != -1:
-              self.popup_timeout = GLib.timeout_add_seconds(timeout, self.close_popup_message)
-        return False
+        if not just_popup:
+          if level == 3:
+            self.set_window_style("window-error")
+          elif level == 2:
+            self.set_window_style("window-warning")
+        autoclose = self._config.get_main_config().getboolean('autoclose_popups', True)
+        width, height = self.width * .7, self.height * .2
+        self.popup_message = popup_message.PopupMessage(self.base_panel.titlebar, Gtk.PositionType.BOTTOM, message, level, timeout, autoclose, width, height, self.on_close_popup_message)
+        self.popup_message.popup()
     
     def on_close_popup_message(self, widget):
-        if self.popup_message is not None:
-            self.popup_message = None
-        if self.popup_timeout is not None:
-            GLib.source_remove(self.popup_timeout)
-            self.popup_timeout = None
+        self.popup_message = None
         self._ws.klippy.close_message()  # Fallback
-        self.remove_window_classes(self.base_panel.main_grid.get_style_context())
-        self.base_panel.main_grid.get_style_context().add_class(self.last_window_class if self.last_window_class is not None else "window-ready")
-        
+        self.set_window_style(self.last_window_class if self.last_window_class is not None else "window-ready")
 
     def set_can_close_message(self, can_close):
         self.can_close_message = can_close
@@ -657,7 +626,6 @@ class KlipperScreen(Gtk.Window):
             GLib.source_remove(self.screensaver_timeout)
             self.screensaver_timeout = None
         return False
-
 
     def close_screensaver(self, widget=None):
         if self.screensaver is None:
@@ -1003,6 +971,8 @@ class KlipperScreen(Gtk.Window):
         self.gtk.remove_dialog(dialog)
         if response_id == Gtk.ResponseType.OK:
             self._send_action(None, method, params, callback)
+        elif callback:
+            callback(Gtk.ResponseType.CANCEL, method, params)
 
     def _send_action(self, widget, method, params, callback=None):
         logging.info(f"{method}: {params}")
@@ -1266,8 +1236,8 @@ class KlipperScreen(Gtk.Window):
             self.aspect_ratio = new_ratio
             logging.info(f"Vertical mode: {self.vertical_mode}")
 
-
-
+# Начало выполнения программы - инициализация некоторых переменных для дальнейшей работы.
+# Трогать его нет необходимости
 def main():
     minimum = (3, 7)
     if not sys.version_info >= minimum:

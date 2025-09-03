@@ -33,18 +33,22 @@ class Panel(ScreenPanel):
         enabled = []
         for item in items:
             key = list(item)[0]
-
             if not self.evaluate_enable(item[key]['enable']):
-                logging.debug(f"X > {key}")
+                logging.debug(f"Not enabled > {key}")
                 continue
+            if not self.evaluate_sensitive(item[key]['sensitive']):
+                logging.debug(f"Not sensitive > {key}")
+                self.labels[key].set_sensitive(False)
+            else:
+                self.labels[key].set_sensitive(True)
             enabled.append(self.labels[key])
         self.autogrid.__init__(enabled, columns, expand_last, self._screen.vertical_mode)
         return self.autogrid
 
     def create_menu_items(self):
-        enable_items = [item for item in self.items if bool(self.evaluate_enable(item[next(iter(item))]['enable']))]
+        enable_items = [item for item in self.items] #if bool(self.evaluate_enable(item[next(iter(item))]['enable']))]
         count = len(enable_items)
-        divider = 3 if count <= 12 else 4
+        divider = 3 if count <= 8 else 4
         scale = 1.1 if 12 < count <= 16 else None  # hack to fit a 4th row
         for i in range(len(enable_items)):
             key = list(enable_items[i])[0]
@@ -76,11 +80,35 @@ class Panel(ScreenPanel):
             else:
                 b.connect("clicked", self._screen._go_to_submenu, key)
             self.labels[key] = b
-        
+    
+    def evaluate_sensitive(self, sensitive):
+        if sensitive == "{{ has_homing_origin }}":
+            try:
+              has_homing_origin = self._screen.apiclient.send_request("printer/objects/query?gcode_move")['result']['status']['gcode_move']['homing_origin'][2] != .0
+              logging.info(f"has_homing_origin: {has_homing_origin}")
+              return has_homing_origin
+            except Exception as e:
+                logging.debug(f"Error evaluating sensitive statement: {sensitive}\n{e}")
+                return False
+        try:
+            j2_temp = Template(sensitive, autoescape=True)
+            return j2_temp.render(self.j2_data) == 'True'
+        except Exception as e:
+            logging.debug(f"Error evaluating sensitive statement: {sensitive}\n{e}")
+            return False
+
     def evaluate_enable(self, enable):
         if enable == "{{ moonraker_connected }}":
             logging.info(f"moonraker connected {self._screen._ws.connected}")
             return self._screen._ws.connected
+        elif enable == "{{ has_homing_origin }}":
+            try:
+                has_homing_origin = self._screen.apiclient.send_request("printer/objects/query?gcode_move")['result']['status']['gcode_move']['homing_origin'][2] != .0
+                logging.info(f"has_homing_origin: {has_homing_origin}")
+                return has_homing_origin
+            except Exception as e:
+                logging.debug(f"Error evaluating enable statement: {enable}\n{e}")
+                return False
         try:
             j2_temp = Template(enable, autoescape=True)
             return j2_temp.render(self.j2_data) == 'True'

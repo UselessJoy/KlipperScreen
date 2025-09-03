@@ -1,7 +1,7 @@
 import logging
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from gi.repository import Gtk, Pango
 from ks_includes.KlippyGcodes import KlippyGcodes
 from ks_includes.screen_panel import ScreenPanel
 
@@ -28,8 +28,8 @@ class Panel(ScreenPanel):
         self.confirm_grid = self._gtk.HomogeneousGrid()
         self.action_buttons = {
           'start_adjustment': self._gtk.Button("magnetOff", _("Start adjustment"), "color1", self.bts),
-          'accept': self._gtk.Button("complete", _("Complete"), "color1", self.bts),
-          'reject': self._gtk.Button("cancel", _("Cancel"), "color1", self.bts),
+          'accept': self._gtk.Button("complete", _("Complete"), "color4", self.bts),
+          'reject': self._gtk.Button("cancel", _("Cancel"), "color2", self.bts),
         }
         funcs = {
           'start_adjustment': self.start_adjustment,
@@ -46,7 +46,7 @@ class Panel(ScreenPanel):
         
         self.main_grid = self._gtk.HomogeneousGrid()
         self.info_grid = Gtk.Grid()
-        self.info_grid.add(self.create_info_box())
+        self.info_grid.add(self.create_warning_box())
         self.action_grid = Gtk.Grid()
         self.action_grid.add(self.create_action_grid())
 
@@ -54,21 +54,34 @@ class Panel(ScreenPanel):
         self.main_grid.attach(self.action_grid, 1, 0, 1, 1)
         self.content.add(self.main_grid)
         
-        
-    def create_info_box(self):
-      probe_config_data = self._printer.get_config_section('probe')
+    def create_warning_box(self):
+      info_box = Gtk.Box(vexpand = True, valign = Gtk.Align.CENTER)
+      msg = _("Внимание! Во время калибровки экструдер может столкнуться с задней стенкой."
+              "При приближении к задней стенке пользуйтесь малыми значениями перемещений во "
+              "избежание повреждения экструдера.")
+      label= Gtk.Label(msg, vexpand=True, hexpand=True, halign=Gtk.Align.CENTER, wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR, justify=Gtk.Justification.CENTER)
+      label.get_style_context().add_class('label_chars')
+      info_box.add(label)
+      return info_box
+    
+    def create_coordinates_box(self):
+      try:
+        probe_data = self._screen.apiclient.send_request("printer/objects/query?probe")['result']['status']['probe']
+      except:
+         logging.error("cannot get probe data from apiclient, trying via printer_config")
+         probe_data = self._printer.get_config_section('probe')
       info_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20, vexpand = True, valign = Gtk.Align.CENTER, hexpand = True, halign = Gtk.Align.CENTER)
       for field in ['magnet_x', 'magnet_y']:
         self.probe_options[field] = {
           'old': 
             {
               'name': Gtk.Label(label = _(field.lower())), 
-              'value': Gtk.Label(label = probe_config_data[field])
+              'value': Gtk.Label(label = probe_data[field])
             }, 
           'new': 
             {
               'name': Gtk.Label(label = f"{_('New coord')} {_(field.lower())}"), 
-              'value': Gtk.Label(probe_config_data[field])
+              'value': Gtk.Label(probe_data[field])
             }, 
           }
         
@@ -135,14 +148,26 @@ class Panel(ScreenPanel):
         
         
     def start_adjustment(self, widget):
+      for ch in self.info_grid:
+        self.info_grid.remove(ch)
+      self.info_grid.add(self.create_coordinates_box())
+      self.info_grid.show_all()
       self._screen._ws.klippy.gcode_script("START_ADJUSTMENT")
       return
 
     def accept(self, widget):
+      for ch in self.info_grid:
+        self.info_grid.remove(ch)
+      self.info_grid.add(self.create_warning_box())
+      self.info_grid.show_all()
       self._screen._ws.klippy.gcode_script(f"ACCEPT_ADJUSTMENT X={self.probe_options['magnet_x']['new']['value'].get_text()} Y={self.probe_options['magnet_y']['new']['value'].get_text()}")
       return
 
     def reject(self, widget):
+      for ch in self.info_grid:
+        self.info_grid.remove(ch)
+      self.info_grid.add(self.create_warning_box())
+      self.info_grid.show_all()
       self._screen._ws.klippy.gcode_script("END_ADJUSTMENT")
       return
 
@@ -164,7 +189,8 @@ class Panel(ScreenPanel):
                   for axis in 'xy':
                     self.keypad_buttons[f'{axis}+'].set_sensitive(False)
                     self.keypad_buttons[f'{axis}-'].set_sensitive(False)
-                    self.probe_options[f"magnet_{axis}"]['new']['value'].set_text(f"?")
+                    if f"magnet_{axis}" in  self.probe_options:
+                      self.probe_options[f"magnet_{axis}"]['new']['value'].set_text(f"?")
                 self.confirm_grid.show_all()
               
         if "gcode_move" in data and "gcode_position" in data["gcode_move"]:
@@ -176,7 +202,8 @@ class Panel(ScreenPanel):
                 self.last_coord[axis_up] = data['gcode_move']['gcode_position'][AXIS[axis_up]]
                 self.keypad_buttons[f'{axis}+'].set_sensitive(True)
                 self.keypad_buttons[f'{axis}-'].set_sensitive(True)
-                self.probe_options[f"magnet_{axis}"]['new']['value'].set_text(f"{data['gcode_move']['gcode_position'][AXIS[axis_up]]:.2f}")
+                if f"magnet_{axis}" in  self.probe_options:
+                  self.probe_options[f"magnet_{axis}"]['new']['value'].set_text(f"{data['gcode_move']['gcode_position'][AXIS[axis_up]]:.1f}")
     
     def change_distance(self, widget, distance):
         logging.info(f"### Distance {distance}")
@@ -193,15 +220,15 @@ class Panel(ScreenPanel):
       speed = 60 * max(1, speed)
       flt_dist = float(dist)
       if flt_dist < 0:
-          if self.min[axis] > self.last_coord[axis] + flt_dist:
-              self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_ABSOLUTE}\n{KlippyGcodes.MOVE} {axis}{self.min[axis]} F{speed}")
-          else:
-              self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_RELATIVE}\n{KlippyGcodes.MOVE} {axis}{dist} F{speed}") 
+          # if self.min[axis] > self.last_coord[axis] + flt_dist:
+          #     self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_ABSOLUTE}\n{KlippyGcodes.MOVE} {axis}{self.min[axis]} F{speed} IGNORE_LIMIT")
+          # else:
+              self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_RELATIVE}\n{KlippyGcodes.MOVE} {axis}{dist} F{speed} IGNORE_LIMIT") 
       else:
-          if self.max[axis] < self.last_coord[axis] + flt_dist:
-              self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_ABSOLUTE}\n{KlippyGcodes.MOVE} {axis}{self.max[axis]} F{speed}")
-          else:
-              self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_RELATIVE}\n{KlippyGcodes.MOVE} {axis}{dist} F{speed}")  
+          # if self.max[axis] < self.last_coord[axis] + flt_dist:
+          #     self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_ABSOLUTE}\n{KlippyGcodes.MOVE} {axis}{self.max[axis]} F{speed} IGNORE_LIMIT")
+          # else:
+              self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_RELATIVE}\n{KlippyGcodes.MOVE} {axis}{dist} F{speed} IGNORE_LIMIT")  
 
       if self._printer.get_stat("gcode_move", "absolute_coordinates"):
           self._screen._ws.klippy.gcode_script("G90")

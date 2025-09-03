@@ -176,11 +176,11 @@ class KlipperScreenConfig:
                 bools = (
                     'invert_x', 'invert_y', 'invert_z', 'quite_mode', 'autooff_enable', 'safety_printing', 'watch_bed_mesh', 'autoload_bed_mesh',
                     '24htime', 'only_heaters', 'show_cursor', 'confirm_estop',
-                    'autoclose_popups', 'use_dpms', 'use_default_menu', 'side_macro_shortcut', 'use-matchbox-keyboard',
+                    'autoclose_popups', 'use_default_menu', 'side_macro_shortcut', 'use-matchbox-keyboard', #'use_dpms'
                     'show_heater_power', "show_scroll_steppers", "auto_open_extrude"
                 )
                 strs = (
-                    'default_printer', 'language', 'print_sort_dir', 'theme', 'nozzle_diameter', 'screen_blanking', 'font_size',
+                    'default_printer', 'language', 'print_sort_dir', 'nozzle_diameter', 'screen_blanking', 'font_size', #'theme'
                     'print_estimate_method', 'screen_blanking', "screen_on_devices", "screen_off_devices", 'print_view',
                 )
                 numbers = (
@@ -204,7 +204,7 @@ class KlipperScreenConfig:
                 strs = ('gcode', '')
                 numbers = [f'{option}' for option in config[section] if option != 'gcode']
             elif section.startswith('menu '):
-                strs = ('name', 'icon', 'panel', 'method', 'params', 'enable', 'confirm', 'style')
+                strs = ('name', 'icon', 'panel', 'method', 'params', 'enable', 'confirm', 'style', 'sensitive')
             elif section.startswith('graph')\
                     or section.startswith('displayed_macros')\
                     or section.startswith('spoolman'):
@@ -255,7 +255,6 @@ class KlipperScreenConfig:
         return "".join(f'{error}\n\n' for error in self.errors)
 
     def _create_configurable_options(self, screen):
-        aut = "False"
         self.configurable_options = [
             {"autooff_enable": {"section": "main", "name": _("Enable autooff after print"), "type": "binary",
                                 "value": "False", "callback": screen.set_autooff}},
@@ -318,8 +317,8 @@ class KlipperScreenConfig:
                                "value": "False"}},
             {"only_heaters": {"section": "main", "name": _("Hide sensors in Temp."), "type": "binary",
                               "value": "False"}},
-            {"use_dpms": {"section": "main", "name": _("Screen DPMS"), "type": "binary",
-                          "value": "True", "callback": screen.set_dpms}},
+            # {"use_dpms": {"section": "main", "name": _("Screen DPMS"), "type": "binary",
+            #               "value": "True", "callback": screen.set_dpms}},
             {"autoclose_popups": {"section": "main", "name": _("Auto-close notifications"), "type": "binary",
                                   "value": "True"}},
             {"show_heater_power": {"section": "main", "name": _("Show Heater Power"), "type": "binary",
@@ -332,10 +331,10 @@ class KlipperScreenConfig:
                 "section": "main", "name": _("Language"), "type": None, "value": "system_lang",
                 "callback": screen.change_language, "options": [
                     {"name": _("System") + " " + _("(default)"), "value": "system_lang"}]}},
-            {"theme": {
-                "section": "main", "name": _("Icon Theme"), "type": "dropdown",
-                "value": "gelios", "callback": screen.restart_ks, "options": [
-                    {"name": _("gelios") + " " + _("(default)"), "value": "gelios"}]}},
+            # {"theme": {
+            #     "section": "main", "name": _("Icon Theme"), "type": "dropdown",
+            #     "value": "gelios", "callback": screen.restart_ks, "options": [
+            #         {"name": _("gelios") + " " + _("(default)"), "value": "gelios"}]}},
             # {"": {"section": "main", "name": _(""), "type": ""}}
         ]
 
@@ -353,16 +352,16 @@ class KlipperScreenConfig:
 
         self.configurable_options.extend(panel_options)
         
-        t_path = os.path.join(klipperscreendir, 'styles')
-        themes = [d for d in os.listdir(t_path) if (not os.path.isfile(os.path.join(t_path, d)) and d != "z-bolt")]
-        themes.sort()
-        index = self.configurable_options.index(
-            [i for i in self.configurable_options if list(i)[0] == "theme"][0])
-        theme_opt = self.configurable_options[index]['theme']['options']
+        # t_path = os.path.join(klipperscreendir, 'styles')
+        # themes = [d for d in os.listdir(t_path) if (not os.path.isfile(os.path.join(t_path, d)) and d != "z-bolt")]
+        # themes.sort()
+        # index = self.configurable_options.index(
+        #     [i for i in self.configurable_options if list(i)[0] == "theme"][0])
+        # theme_opt = self.configurable_options[index]['theme']['options']
 
-        for theme in themes:
-            if theme != theme_opt[0]['value']:
-                theme_opt.append({"name": _(theme), "value": theme})
+        # for theme in themes:
+        #     if theme != theme_opt[0]['value']:
+        #         theme_opt.append({"name": _(theme), "value": theme})
 
         index = self.configurable_options.index(
             [i for i in self.configurable_options if list(i)[0] == "screen_blanking"][0])
@@ -642,14 +641,15 @@ class KlipperScreenConfig:
             return False
         cfg = self.config[name]
         item = {
-            "name": cfg.get("name"),
-            "icon": cfg.get("icon", None),
-            "panel": cfg.get("panel", None),
-            "method": cfg.get("method", None),
-            "confirm": cfg.get("confirm", None),
-            "enable": cfg.get("enable", "True"),
-            "params": cfg.get("params", "{}"),
-            "style": cfg.get("style", None)
+            'name': cfg.get('name'),
+            'icon': cfg.get('icon', None),
+            'panel': cfg.get('panel', None),
+            'method': cfg.get('method', None),
+            'confirm': cfg.get('confirm', None),
+            'sensitive': cfg.get('sensitive', "True"),
+            'enable': cfg.get('enable', "True"),
+            'params': cfg.get('params', "{}"),
+            'style': cfg.get('style', None)
         }
 
         return {name[(len(menu) + 6):]: item}

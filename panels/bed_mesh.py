@@ -11,7 +11,6 @@ from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.bedmap import BedMap
 from ks_includes.widgets.typed_entry import TypedEntry, NumberRule, SpaceRule
 
-RESOLUTION_K = {(800, 480): 0.43}
 class Panel(ScreenPanel):
     default_re = re.compile('^profile_(?P<i>\d+)$')
     
@@ -60,9 +59,7 @@ class Panel(ScreenPanel):
         # Create a grid for all profiles
         self.labels['profiles'] = Gtk.Grid(valign=Gtk.Align.CENTER)
         self.overlay = Gtk.Overlay()
-        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        spacing = 10
-        main_box.set_spacing(spacing)
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         content_box = Gtk.Box()
         self.labels['map'] = BedMap(self._gtk.font_size, self.active_mesh)
         self.bedMapBox = Gtk.Box()
@@ -70,7 +67,7 @@ class Panel(ScreenPanel):
         self.bedMapBox.set_vexpand(True)
         self.bedMapBox.set_valign(Gtk.Align.CENTER)
         self.bedMapBox.set_halign(Gtk.Align.CENTER)
-        self.baseBedMapW, self.baseBedMapH = self._gtk.content_width / 1.3, self._gtk.content_height / 1.3 - (spacing * 3)
+        self.baseBedMapW, self.baseBedMapH = self._gtk.content_width / 1.3, self._gtk.content_height / 1.3 - (main_box.get_spacing() * 3)
         content_box.add(self.bedMapBox)
         main_box.add(topbar)
         
@@ -635,8 +632,7 @@ class Panel(ScreenPanel):
       self.keyboard.change_entry(entry=entry)
       self.keyboard.set_vexpand(False)
       self.keyboard.set_hexpand(True)
-      if (self._screen.width, self._screen.height) in RESOLUTION_K:
-        self.keyboard.set_size_request(1, self._screen.height * RESOLUTION_K[(self._screen.width, self._screen.height)])
+      self.keyboard.set_size_with_resolution(self._screen.width, self._screen.height)      
       self.content.add(self.keyboard)
       self.content.show_all()
 

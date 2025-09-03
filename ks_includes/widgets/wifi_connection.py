@@ -107,7 +107,7 @@ class WiFiConnection(Gtk.Box):
         button = {
             'resume': self._screen.gtk.Button("complete", _("Resume"), "color1"),
         }
-        button['resume'].set_size_request((self._screen.width - 30) / 3, self._screen.height / 5)
+        button['resume'].set_size_request((self._screen.width - 30) *0.33, self._screen.height * 0.2)
         button_box =  Gtk.Box()
         button_box.pack_start(button['resume'], True, False, 0)    
         button_box.set_valign(Gtk.Align.END)

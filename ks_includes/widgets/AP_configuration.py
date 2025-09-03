@@ -166,11 +166,12 @@ class APConfiguration(Gtk.Box):
             self._screen.show_popup_message(_("SSID cannot be null"))
             return
         psk = self.labels['AP']['psk'].get_text()
-        if len(psk) < 8:
-            self._screen.show_popup_message(_("Password must contains minimum 8 symbols"))
-            return
-        autoconnect = ['no', 'yes'][self.labels['AP']['autoconnect'].get_active()]
         security_method = self.labels['AP']['is_need_password'].get_active()
+        if security_method:
+          if len(psk) < 8:
+              self._screen.show_popup_message(_("Password must contains minimum 8 symbols"))
+              return
+        autoconnect = ['no', 'yes'][self.labels['AP']['autoconnect'].get_active()]
         try:
           self.ap.modify(ssid, psk, autoconnect, security_method)
         except Exception as e:

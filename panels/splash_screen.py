@@ -112,12 +112,17 @@ class Panel(ScreenPanel):
     
     def on_check_backup(self, result, method, params):
         if "error" in result:
-            logging.debug(result["error"])
+            logging.error(result["error"])
             return
+        warning_message = ""
+        if not result['result']['backup']:
+          warning_message = _("После восстановления конфигурации до стандартной необходимо заново произвести все калибровки"
+                      "(магнитная проба, PID, компенсация резонанса) во избежание повреждения принтера")
         self._screen._confirm_send_action(
             self.labels['backup_config'],
-            _("Are you sure you want to download the backup?") +"\n\n" + (_("Will be recover to the latest backup") if result['result']['backup'] else _("Backup not found. Will be recover to the base config")),
-            "printer.load_backup_config",
+            _("Are you sure you want to download the backup?") +"\n\n" + (_("Will be recover to the latest backup") \
+            if result['result']['backup'] \
+            else _("Backup not found. Will be recover to the base config") + "\n\n" + warning_message), "printer.load_backup_config"
         )
 
     def retry(self, widget):

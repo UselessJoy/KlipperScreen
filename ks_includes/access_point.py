@@ -2,6 +2,7 @@ from typing import Union
 import nmcli
 import subprocess
 import logging
+from gi.repository import GLib
 from ks_includes.wifi_nm import WifiManager
 
 class AccessPoint():
@@ -47,24 +48,26 @@ class AccessPoint():
             self.delete_section("802-11-wireless-security")
         if self.is_active():
             self.down()
-            self.up()
+            GLib.timeout_add_seconds(1, self.up)
     except Exception as e:
       logging.info(f"Connection modify error:\n{e}\n")
       raise e
 
-  def up(self) -> None:
+  def up(self) -> bool:
     try:
       nmcli.connection.up(self.id)
     except Exception as e:
       logging.info(f"Connection up error:\n{e}\n")
       raise e
+    return False
 
-  def down(self) -> None:
+  def down(self) -> bool:
     try:
       nmcli.connection.down(self.id)
     except Exception as e:
       logging.info(f"Connection down error:\n{e}\n")
       raise e
+    return False
 
 def find_access_point(wifi) -> Union[AccessPoint, None]:
   for connection in nmcli.connection():

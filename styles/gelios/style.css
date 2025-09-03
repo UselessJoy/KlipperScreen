@@ -160,6 +160,7 @@ button.active-disabled:disabled {
 button.active-disabled:disabled label {
   color: #fdf6e3;
 }
+
 button.color4  {
   background-color: inherit; /*base02*/
   box-shadow: -8px 11px 10px 2px rgba(34, 60, 80, 0.2) inset;
@@ -185,6 +186,7 @@ button.color5 {
     border-radius: 1em;
     border-color: #0a91b3;
 }
+
 button.color5:active {
     border-style: none;
     box-shadow: none;
@@ -209,6 +211,15 @@ button.round_button {
   border-radius: 50%;
   border-color: #d33682;
 }
+
+button.color_button {
+  border-radius: 10%;
+}
+
+button.color_button:active {
+  background-color: inherit;
+}
+
 button.extruder {
     background-color: inherit;/*#073642; base02*/
     box-shadow: -8px 11px 10px 2px rgba(34, 60, 80, 0.2) inset;
@@ -219,6 +230,7 @@ button.extruder {
 button.color3:hover {
   border-color: #2aa198;
 }
+
 button.color1:active, button.color2:active, button.color3:active, button.color4:active, button.update:active, button.invalid:active, box.color4:active {
     border-color: #002b36;
     /* background-color: #cb4b16; */
@@ -242,6 +254,7 @@ button.active{
 button.overlay_close_button:active{
     background-color: inherit;
 }
+
 button.update {
     background-color: inherit; /*base02*/
     border: 0;
@@ -291,6 +304,7 @@ entry {
 .unused_temp_button:disabled label{
     color: #fdf6e3;
 }
+
 .unused_entry:disabled {
     background-color: inherit;
     color: #fdf6e3;
@@ -334,14 +348,17 @@ dialog {
 notebook {
     background-color: inherit;
 }
+
 notebook > * {
     background-color: inherit; /*base03*/
 }
+
 notebook header {
     margin-right: 10px;
     padding-right: 10px;
     border-right: 3px solid #93a1a1;
 }
+
 notebook tab {
     background-color: inherit; /*base03*/
     padding-left: 16px;
@@ -412,46 +429,37 @@ trough.empty {
   min-height: 0em;
   background-color: #404E57;
 } 
+
+.media.vertical trough {
+  min-width: 28px;
+  background-color: #404E57;
+}
+
+.media.vertical trough slider {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 8px;
+}
+
 /* Почистить ненужные свойства */
 .media trough highlight{
   border-color: #404E57;/* #6c71c4;*/
+  background-color: #404E57;
   border-width: 0.5em;
   min-height: 0em;
   min-width: 0em;
 }
+
 .media trough progress {
   border-color: #404E57;
+  background-color: #404E57;
   border-radius: 1em;
   border-width: 0.5em;
-  /* min-width: 0em; */
-  /* background-size: 2px 2px; */
-  /* background-color: #6c71c4; */
-  /* border-radius: 1em;
-  border-width: 1em;  */
 }
 .media:disabled trough slider {
   background-image: -gtk-scaled(url(""));  
   background-color: gray;
-  /* background-size: 1px; */
 }
-/* .media trough highlight, .media trough progress {
-  background-color: #6c71c4;
-  border-width: 1em;
-} */
-
-/* scale.media {
-  margin: 0;
-  padding: 0;
-}
-
-scale.media trough slider {
-  background-image: -gtk-scaled(url(""));                                                
-  background-size: 2px 2px;
-  min-height: 0.1em;
-  min-width: 0.1em;
-  padding: 0;
-  margin: 0;
-} */
 
 scale-mark {
     color: #fdf6e3;
@@ -489,6 +497,18 @@ scrollbar slider {
     border-radius: 1em;
     padding: 1em;
     margin: 0;
+}
+
+.popup_first {
+  margin-top: 0;
+}
+
+.popup_second {
+  margin-top: 100px;
+}
+
+.popup_third {
+  margin-top: 200px;
 }
 
 .tempbutton_top, .tempbutton, .tempbutton_bottom, .distbutton_top, .distbutton, .distbutton_bottom  {

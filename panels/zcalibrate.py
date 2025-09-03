@@ -126,7 +126,8 @@ class Panel(ScreenPanel):
 
     def start_calibration(self, widget, method):
         self.labels['popover'].popdown()
-        
+        self._screen.base_panel.control['back'].set_sensitive(False)
+        self._screen.base_panel.control['home'].set_sensitive(False)
         if method == "probe":
             self.z_offset = float(self.probe['z_offset'])
             self.widgets['whichoffset'].set_text(_("Probe Offset"))
@@ -141,7 +142,8 @@ class Panel(ScreenPanel):
         elif method == "delta_manual":
             self._screen._ws.klippy.gcode_script("DELTA_CALIBRATE METHOD=manual")
         elif method == "endstop":
-            self.z_offset = float(self._printer.get_stat("manual_probe", "z_position_endstop"))
+            # self.z_offset = float(self._printer.get_stat("manual_probe", "z_position_endstop"))
+            self.z_offset = float(self._screen.apiclient.send_request("printer/objects/query?manual_probe")['result']['status']['manual_probe']['z_position_endstop'])
             self.widgets['whichoffset'].set_text(_("Endstop Offset"))
             self.widgets['savedoffset'].set_text(f"{self.z_offset:.3f}")
             self._screen._ws.klippy.gcode_script(KlippyGcodes.Z_ENDSTOP_CALIBRATE)
@@ -231,13 +233,15 @@ class Panel(ScreenPanel):
                 if "gcode_position" in data['gcode_move']:
                     self.update_position(data['gcode_move']['gcode_position'])
             if 'manual_probe' in data:
+                if 'z_position_endstop' in data['manual_probe']:
+                    self.z_offset = data['manual_probe']['z_position_endstop']
                 if 'is_active' in data['manual_probe']:
                     self.manual_active = data['manual_probe']['is_active']
                     if not self.manual_active:
                         self.clear_widgets()
                 if 'command' in data['manual_probe']:
                     if data['manual_probe']['command'] == 'Z_ENDSTOP_CALIBRATE':
-                        self.z_offset = float(self._printer.get_config_section("stepper_z")['position_endstop'])
+                        # self.z_offset = float(self._printer.get_config_section("stepper_z")['position_endstop'])
                         self.widgets['whichoffset'].set_text(_("Endstop Offset"))
                         self.widgets['savedoffset'].set_text(f"{self.z_offset:.3f}")
                         self.widgets['probe_z_result'].set_text("")
@@ -282,11 +286,15 @@ class Panel(ScreenPanel):
     def abort(self, widget = None):
         logging.info("Aborting calibration")
         self._screen._ws.klippy.gcode_script(KlippyGcodes.ABORT)
+        self._screen.base_panel.control['back'].set_sensitive(True)
+        self._screen.base_panel.control['home'].set_sensitive(True)
 
 
     def accept(self, widget = None):
         logging.info("Accepting Z position")
         self._screen._ws.klippy.gcode_script(KlippyGcodes.ACCEPT)
+        self._screen.base_panel.control['back'].set_sensitive(True)
+        self._screen.base_panel.control['home'].set_sensitive(True)
 
     def clear_widgets(self):
       self.widgets['zposition'].set_label("Z: ?")

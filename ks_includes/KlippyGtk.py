@@ -37,7 +37,7 @@ class KlippyGtk:
 
     def __init__(self, screen):
         self.screen = screen
-        self.themedir = os.path.join(pathlib.Path(__file__).parent.resolve().parent, "styles", screen.theme, "images")
+        self.themedir = os.path.join(pathlib.Path(__file__).parent.resolve().parent, "styles", "gelios", "images")#screen.theme
         self.cursor = screen.show_cursor
         self.font_size_type = screen._config.get_main_config().get("font_size", "medium")
         self.width = screen.width
@@ -192,6 +192,56 @@ class KlippyGtk:
         b.connect("clicked", self.screen.reset_screensaver_timeout)
         return b
     
+    def Button_with_box(self, image_name=None, label=None, style=None, scale=None, position=Gtk.PositionType.TOP, lines=2, is_ellipsize=True,
+           hexpand=True, vexpand=True):
+        if self.font_size_type == "max" and label is not None and scale is None:
+            image_name = None
+
+        main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+
+        if label is not None:
+            label_widget = Gtk.Label(label=label)
+            format_label(label_widget, lines, is_ellipsize)
+
+        if image_name is not None:
+            if scale is None:
+                scale = self.button_image_scale
+            if label is None:
+                scale = scale * 1.5
+            width = height = self.img_scale * scale
+            image_widget = self.Image(image_name, width, height)
+
+        if position == Gtk.PositionType.RIGHT:
+            if label is not None:
+                main_box.pack_start(label_widget, True, True, 0)
+            if image_name is not None:
+                main_box.pack_end(image_widget, False, False, 0)
+        elif position == Gtk.PositionType.LEFT:
+            if image_name is not None:
+                main_box.pack_start(image_widget, False, False, 0)
+            if label is not None:
+                main_box.pack_start(label_widget, True, True, 0)
+        else:
+            main_box.set_orientation(Gtk.Orientation.VERTICAL)
+            if position == Gtk.PositionType.TOP:
+                if image_name is not None:
+                    main_box.pack_start(image_widget, False, False, 0)
+                if label is not None:
+                    main_box.pack_start(label_widget, False, False, 0)
+            elif position == Gtk.PositionType.BOTTOM:
+                if label is not None:
+                    main_box.pack_start(label_widget, False, False, 0)
+                if image_name is not None:
+                    main_box.pack_start(image_widget, False, False, 0)
+        
+        b = Gtk.Button(hexpand=hexpand, vexpand=vexpand, can_focus=False)
+        b.add(main_box)
+        
+        if style is not None:
+            b.get_style_context().add_class(style)
+        b.connect("clicked", self.screen.reset_screensaver_timeout)
+        return b
+
     @staticmethod
     def Button_busy(widget, busy):
         spinner = find_widget(widget, Gtk.Spinner)

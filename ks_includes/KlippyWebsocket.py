@@ -491,6 +491,15 @@ class MoonrakerApi:
           *args
       )
     
+    def update_webcam(self, webcam, callback=None, *args):
+      logging.debug("Sending machine.webcams.post_item")
+      return self._ws.send_method(
+          "server.webcams.post_item",
+          webcam,
+          callback,
+          *args
+      )
+    
     def timelapse_set_settings(self, settings, callback=None, *args):
       logging.debug("Sending machine.timelapse.post_settings")
       return self._ws.send_method(

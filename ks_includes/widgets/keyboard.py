@@ -8,6 +8,8 @@ PALLETE_KEYWORDS = ["⇮", "⇧", "!#1", "ABC", "ru", "RU" , "1/2", "2/2", "en" 
 
 class Keyboard(Gtk.Box):
     langs = ["de", "en", "fr", "es"]
+    RESOLUTION_K = {(800, 480): 0.43}
+
     def __init__(self, screen, reject_cb = None, accept_cb = None, entry = None, backspace_cb = None, rej_cb_destroy = True, acc_cb_destroy = True):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
         self.get_style_context().add_class("keyboard")
@@ -235,7 +237,13 @@ class Keyboard(Gtk.Box):
       elif key == 'EN':
           self.lang = 'en'
           self.set_pallet(1)
-               
+
+    def set_size_with_resolution(self, width, height):
+      if (width, height) in self.RESOLUTION_K:
+        self.set_size_request(1, height * self.RESOLUTION_K[(width, height)])
+      else:
+        self.set_size_request(1, height * 0.5)
+
     def update_entry(self, widget, key):
         if not self.pressing:
           return False
@@ -251,8 +259,6 @@ class Keyboard(Gtk.Box):
             else:
               self.get_parent().remove(self)
             return not self.rej_cb_destroy
-          
-
         else:
             self.entry.update_entry(key)
             return True

@@ -148,7 +148,7 @@ class Panel(ScreenPanel):
         DetailsBox = DetailsBoxes.DetailsUpdates
         updater_label = _("Software: has updates")
         update_button_label = _("Update")
-        update_button_callback = self.show_update_dialog
+        update_button_callback = self.show_confirm_update_dialog
       return self.UpdaterBox(updater_label, update_button_label, update_button_callback, DetailsBox)
 
     def SystemBox(self):
@@ -191,7 +191,7 @@ class Panel(ScreenPanel):
       self._gtk.Dialog(recoverybuttons, label, _("Recover"), self.recover)
       return
 
-    def show_update_dialog(self, widget):
+    def show_confirm_update_dialog(self, widget):
       v_info = self.update_status["version_info"]
       scroll = self._gtk.ScrolledWindow(steppers=False)
       scroll.set_vexpand(True)

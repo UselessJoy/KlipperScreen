@@ -2,7 +2,7 @@ import logging
 import re
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Pango
+from gi.repository import Gtk, Pango, GObject
 
 class BaseRule:
     @staticmethod
@@ -82,6 +82,10 @@ class SpaceRule(BaseRule):
         return True
          
 class TypedEntry(Gtk.Entry):
+    __gsignals__ = {
+        'text-changed': (GObject.SIGNAL_RUN_FIRST, None,
+                      (str,))
+    }
     def __init__(self, entry_rule=BaseRule, update_callback=None, max=None, text="", hexpand=False, sensitive=True, placeholder_text=""):
         super().__init__(text = text, hexpand = hexpand, sensitive = sensitive, placeholder_text = placeholder_text)
         self.rule = entry_rule
@@ -108,6 +112,8 @@ class TypedEntry(Gtk.Entry):
                         self.automatic_insert('.')
             if self.update_callback:
                 self.update_callback(self)
+            # Переделать под сигнал вместо проноса коллбэка
+            # self.emit("update_text", self.get_text())
                 
 
 class TextView(Gtk.TextView):

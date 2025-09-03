@@ -47,8 +47,8 @@ class Timepicker(Gtk.Box):
         cur_timezone = subprocess.check_output("timedatectl status | grep -i 'Time zone:' | awk '{print $3}'", universal_newlines=True, shell=True)
         self.cur_region, cur_sep, self.cur_city = cur_timezone.partition('/')
         self.cur_city = self.cur_city.rstrip('\n')
-        regions_combo_box = KSComboBox(self._screen, self.cur_region)
-        cities_combo_box = KSComboBox(self._screen, self.cur_city)
+        regions_combo_box = KSComboBox(self._screen, _(self.cur_region))
+        cities_combo_box = KSComboBox(self._screen, _(self.cur_city))
         if not self.cur_city:
           cities_combo_box.set_sensitive(False)
         self.timezones = {} 
@@ -56,11 +56,11 @@ class Timepicker(Gtk.Box):
           region, sep, city = timezone.partition('/')
           if region not in self.timezones and region:
             self.timezones[region] = []
-            regions_combo_box.append(region)
+            regions_combo_box.append(_(region))
           if region:
             self.timezones[region].append(city)
           if region == self.cur_region:
-            cities_combo_box.append(city)
+            cities_combo_box.append(_(city))
         regions_combo_box.connect("selected", self.on_region_changed, cities_combo_box)
         cities_combo_box.connect("selected", self.on_city_changed, regions_combo_box)
         
@@ -90,7 +90,7 @@ class Timepicker(Gtk.Box):
       cities_combo_box.remove_all()
       self.cur_region = region
       for city in self.timezones[region]:
-        cities_combo_box.append(city)
+        cities_combo_box.append(_(city))
       if self.cur_city and self.cur_city in self.timezones[region]:
         cities_combo_box.set_active_text(_(self.cur_city))
       else:

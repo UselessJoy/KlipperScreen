@@ -7,8 +7,6 @@ from gi.repository import Gtk, Gdk, GLib, Pango
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.typed_entry import TypedEntry, NumberRule, SpaceRule
 
-RESOLUTION_K = {(800, 480): 0.43}
-
 class Panel(ScreenPanel):
   def __init__(self, screen, title):
     super().__init__(screen, title)
@@ -197,8 +195,7 @@ class Panel(ScreenPanel):
     self.keyboard.change_entry(entry=entry)
     self.keyboard.set_vexpand(False)
     self.keyboard.set_hexpand(True)
-    if (self._screen.width, self._screen.height) in RESOLUTION_K:
-      self.keyboard.set_size_request(1, self._screen.height * RESOLUTION_K[(self._screen.width, self._screen.height)])
+    self.keyboard.set_size_with_resolution(self._screen.width, self._screen.height)
     self.content.add(self.keyboard)
     self.content.show_all()
         

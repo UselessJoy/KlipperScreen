@@ -3,7 +3,7 @@ import logging
 import re
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk, Gtk, Pango
+from gi.repository import Gdk, Gtk, Pango, GLib
 from ks_includes.KlippyGcodes import KlippyGcodes
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.KlippyGtk import format_label
@@ -36,42 +36,44 @@ class Panel(ScreenPanel):
         self.buttons[False] = self._gtk.Button("magnetOn", _("Get Magnet Probe"), "color3", self.bts)#, hexpand=False, vexpand=False)
         self.buttons[True].connect("clicked", self.return_magnet)
         self.buttons[False].connect("clicked", self.get_magnet)
-        
-        self.buttonGrid = Gtk.Grid()
-        self.buttonGrid.attach(self.buttons[self.is_using_magnet], 0, 0, 1, 1)
 
         if "screws_tilt_adjust" in self._printer.get_config_section_list():
             try:
                 self.screws_adjust_data = self._screen.apiclient.send_request("printer/objects/query?screws_tilt_adjust")['result']['status']['screws_tilt_adjust']
             except Exception as e:
                 raise f"Can't get screws_tilt_adjust info from moonraker: {e}"
-            self.buttons['screws_tilt_calibrate'] = self.CalibrateButton()
             self.buttons['stop_screws_tilt_calibrate'] = self._gtk.Button("cancel", _("Stop calibrating"), "color2", self.bts)#, hexpand=False, vexpand=False)
             self.buttons['stop_screws_tilt_calibrate'].connect("clicked", self.stop_screws_tilt_calibrate)
             self.buttons['stop_screws_tilt_calibrate'].connect("realize", self.on_realize)
-            self.buttons['stop_screw_calibrate'] = self._gtk.Button("refresh", _("Next screw"), "color3", self.bts)#, hexpand=False, vexpand=False)
-            self.buttons['stop_screw_calibrate'].connect("clicked", self.stop_screw_calibrate)
-            self.buttonGrid.attach(self.buttons['screws_tilt_calibrate'], 0, 2, 1, 1)
+            self.buttons['next_screw_calibrate'] = self._gtk.Button("refresh", _("Next screw"), "color3", self.bts)#, hexpand=False, vexpand=False)
+            self.buttons['next_screw_calibrate'].connect("clicked", self.next_screw_calibrate)
+            self.buttons['next_screw_calibrate'].set_sensitive(False)
+            self.buttons['screws_tilt_calibrate'] = self.CalibrateButton()
+
             self.screws = self._get_screws("screws_tilt_adjust")
             logging.info(f"screws_tilt_adjust: {self.screws}")
-            probe = self._printer.get_probe()
-            if probe:
-                if "x_offset" in probe:
-                    self.x_offset = round(float(probe['x_offset']), 1)
-                if "y_offset" in probe:
-                    self.y_offset = round(float(probe['y_offset']), 1)
-                logging.debug(f"offset X: {self.x_offset} Y: {self.y_offset}")
-            # bed_screws uses NOZZLE positions
-            # screws_tilt_adjust uses PROBE positions and to be offseted for the buttons to work equal to bed_screws
-            new_screws = [
-                [round(screw[0] + self.x_offset, 1), round(screw[1] + self.y_offset, 1), screw[2]]
-                for screw in self.screws
-            ]
-            self.screws = new_screws
+            # probe = self._printer.get_probe()
+            # if probe:
+            #     if "x_offset" in probe:
+            #         self.x_offset = round(float(probe['x_offset']), 1)
+            #     if "y_offset" in probe:
+            #         self.y_offset = round(float(probe['y_offset']), 1)
+            #     logging.debug(f"offset X: {self.x_offset} Y: {self.y_offset}")
+            # # bed_screws uses NOZZLE positions
+            # # screws_tilt_adjust uses PROBE positions and to be offseted for the buttons to work equal to bed_screws
+            # new_screws = [
+            #     [round(screw[0] + self.x_offset, 1), round(screw[1] + self.y_offset, 1), screw[2]]
+            #     for screw in self.screws
+            # ]
+            # self.screws = new_screws
             logging.info(f"screws with offset: {self.screws}")
         elif "bed_screws" in self._printer.get_config_section_list():
             self.screws = self._get_screws("bed_screws")
             logging.info(f"bed_screws: {self.screws}")
+
+        self.buttonGrid = Gtk.Grid()
+        for i, btn in enumerate(self.buttons):
+            self.buttonGrid.attach(self.buttons[btn], 0, i, 1, 1)
 
         # get dimensions
         x_positions = {x[0] for x in self.screws}
@@ -234,7 +236,7 @@ class Panel(ScreenPanel):
             self.popover[screw]['popover'] = Gtk.Popover()
             pobox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
             self.popover[screw]['go_to_position'] = self._gtk.Button(label=_("Go to position")) 
-            self.popover[screw]['go_to_position'].connect("clicked", self.go_to_position, screw)
+            self.popover[screw]['go_to_position'].connect("clicked", self.go_to_position, self.screw_dict[screw])
             pobox.pack_start(self.popover[screw]['go_to_position'], True, True, 5)
 
             self.popover[screw]['set_as_base'] = self._gtk.Button(label=_("Set as base screw")) 
@@ -256,6 +258,15 @@ class Panel(ScreenPanel):
             elif screw == 'border_bm':
                 self.popover[screw]['popover'].set_position(Gtk.PositionType.TOP)
         self.content.add(self.overlay)
+
+    def deactivate(self):
+        self.close_calibration_manager(force_remove=True)
+
+    def activate(self):
+        for key, value in self.screw_dict.items():
+            if value:
+                self.buttons[key].set_label(f"{value[2]}")
+                self.buttons[key].get_style_context().remove_class("bed-level-chars")
 
     def on_realize(self, widget):
       if self.pressed:
@@ -322,17 +333,27 @@ class Panel(ScreenPanel):
         self.overlayBox.add_events(Gdk.EventMask.BUTTON_RELEASE_MASK)
         self.overlayBox.connect("button-release-event", self.close_calibration_manager)
         self.overlayBox.show_all()
-        # for child in self.overlay:
-        #     child.set_opacity(0.8)
-        #     child.set_sensitive(False)
+        self.update_buttons_visibility()
         self.overlay.add_overlay(self.overlayBox)
+
+    def update_buttons_visibility(self):
+      for btn in [True, False, 'stop_screws_tilt_calibrate', 'next_screw_calibrate', 'screws_tilt_calibrate']:
+          self.buttons[btn].hide()
+      if self.screws_adjust_data.get('is_calibrating', False):
+          self.buttons['next_screw_calibrate'].show()
+          self.buttons['stop_screws_tilt_calibrate'].show()
+      else:
+          self.buttons[not self.is_using_magnet].hide()
+          self.buttons[self.is_using_magnet].show()
+          self.buttons['screws_tilt_calibrate'].show()
 
     def clicked_in_scroll(self, *args):
         self.scroll_clicked = True
 
-    def close_calibration_manager(self, *args):
+    def close_calibration_manager(self, widget=None, event=None, force_remove=False):
         if self.scroll_clicked:
-            self.scroll_clicked = False
+          self.scroll_clicked = False
+          if not force_remove:
             return
         if self.overlayBox:
             self.overlay.remove(self.overlayBox)
@@ -350,109 +371,98 @@ class Panel(ScreenPanel):
     def open_popover(self, widget, screw):
         self.popover[screw]['popover'].show_all()
 
-    def activate(self):
-        for key, value in self.screw_dict.items():
-            if value:
-                self.buttons[key].set_label(f"{value[2]}")
-                self.buttons[key].get_style_context().remove_class("bed-level-chars")
-
     def go_to_position(self, widget, position):
         if self._printer.get_stat("toolhead", "homed_axes") != "xyz":
             self._screen._ws.klippy.gcode_script(KlippyGcodes.HOME)
-        logging.debug(f"Going to position: {position}")
         script = [
             f"{KlippyGcodes.MOVE_ABSOLUTE}",
-            "G1 Z7 F800\n",
-            f"G1 X{position[0]} Y{position[1]} F3600\n",
-            "G1 Z.1 F300\n"
+            "G1 Z7 F800",
+            f"G1 X{position[0]} Y{position[1]} F3600",
+            "G1 Z.1 F300"
         ]
         self._screen._ws.klippy.gcode_script(
             "\n".join(script)
         )
 
-    def process_busy(self, busy):
-        for button in ['screws_tilt_calculate', 'screws_tilt_calibrate', True, False]:
-            self.buttons[button].set_sensitive((not busy))
+    def on_screws_tilt_adjust_update(self, screws_tilt_adjust_data):
+      logging.info(f"screws data is: {screws_tilt_adjust_data}")
+      if 'results' in screws_tilt_adjust_data: 
+        if len(screws_tilt_adjust_data['results']) != 0:
+          for screw in screws_tilt_adjust_data['results']:
+            screw_res = screws_tilt_adjust_data['results'][screw]
+            for key, value in self.screw_dict.items():
+              if value[3] == screw:
+                if screw_res['is_base']:
+                  self.buttons[key].set_label(_("Reference"))
+                elif screw_res['adjust'] == "00:00":
+                  self.buttons[key].get_style_context().add_class("bed-level-chars")
+                  self.buttons[key].set_label(f"✔ {screw_res['adjust']}")
+                  continue
+                else:
+                  self.buttons[key].set_label(f"↶ {screw_res['adjust']}") if screw_res['sign'] == "CCW" else self.buttons[key].set_label(f"↷ {screw_res['adjust']}")
+                  self.buttons[key].get_style_context().add_class("bed-level-chars")
+        else:
+          self.activate()
+      if 'base_screw' in screws_tilt_adjust_data:
+        self.screws_adjust_data['base_screw'] = screws_tilt_adjust_data['base_screw']
+        if self.screws_adjust_data['base_screw']:
+          for key, value in self.screw_dict.items():
+            if value[3] == self.screws_adjust_data['base_screw']:
+              self.popover[key]['set_as_base'].set_sensitive(False)
+              self.popover[key]['next_screw_calibrate'].set_sensitive(False)
+            elif not self.screws_adjust_data['is_calibrating']:
+              self.popover[key]['set_as_base'].set_sensitive(True)
+      if 'calibrating_screw' in screws_tilt_adjust_data:
+        self.screws_adjust_data['calibrating_screw'] = screws_tilt_adjust_data['calibrating_screw']
+        if self.screws_adjust_data['calibrating_screw']:
+          for key, value in self.screw_dict.items():
+            if value[3] == self.screws_adjust_data['calibrating_screw']['prefix']:
+              self.popover[key]['next_screw_calibrate'].set_sensitive(False)
+            elif value[3] != self.screws_adjust_data['base_screw']:
+              self.popover[key]['next_screw_calibrate'].set_sensitive(True)
+      if 'is_calibrating' in screws_tilt_adjust_data:
+        for btn in [True, False]:
+          self.buttons[btn].hide()
+          self.buttons[btn].set_sensitive(not screws_tilt_adjust_data['is_calibrating'])
+        self.screws_adjust_data['is_calibrating'] = screws_tilt_adjust_data['is_calibrating']
+        if self.screws_adjust_data['is_calibrating']:
+          self.update_buttons_visibility()
+          logging.info("showing buttons for calibrate")
+          for key, value in self.screw_dict.items():
+            self.popover[key]['set_as_base'].set_sensitive(False)
+            self.popover[key]['go_to_position'].set_sensitive(False)
+            try:
+              if value[3] not in [self.screws_adjust_data['base_screw'], self.screws_adjust_data['calibrating_screw']['prefix']]:
+                self.popover[key]['next_screw_calibrate'].set_sensitive(True)
+              else:
+                self.popover[key]['next_screw_calibrate'].set_sensitive(False)
+            except Exception as e:
+                logging.error(f"Exception. May be error with {value}, {self.screws_adjust_data['base_screw']}, {self.screws_adjust_data['calibrating_screw']['prefix']}")
+        else:
+          self._gtk.Button_busy(self.buttons['stop_screws_tilt_calibrate'], False)
+          self.pressed = False
+          self.update_buttons_visibility()
+          logging.info("showing buttons for base state")
+          try:
+            for key, value in self.screw_dict.items():
+              self.popover[key]['go_to_position'].set_sensitive(True)
+              if self.screws_adjust_data['base_screw'] != value[3]:
+                self.popover[key]['set_as_base'].set_sensitive(True)
+              self.popover[key]['next_screw_calibrate'].set_sensitive(False)
+          except Exception as e:
+                logging.error(f"Exception. May be error with {value}, {self.screws_adjust_data['base_screw']}, {e}")
+      with contextlib.suppress(Exception):
+        self.buttons['next_screw_calibrate'].set_sensitive(not screws_tilt_adjust_data['search_highest'])
 
     def process_update(self, action, data):
-        if action == "notify_status_update":
-            if 'probe' in data:
-                if 'is_using_magnet_probe' in data['probe']:
-                    self.is_using_magnet = data['probe']['is_using_magnet_probe']
-                    if self.buttons[not self.is_using_magnet] in self.buttonGrid:
-                        self.buttonGrid.remove(self.buttons[not self.is_using_magnet])
-                    self.buttonGrid.attach(self.buttons[self.is_using_magnet], 0, 0, 1, 1)
-            if 'screws_tilt_adjust' in data:
-                if 'results' in data['screws_tilt_adjust']: 
-                    if len(data['screws_tilt_adjust']['results']) != 0:
-                        for screw in data['screws_tilt_adjust']['results']:
-                            screw_res = data['screws_tilt_adjust']['results'][screw]
-                            for key, value in self.screw_dict.items():
-                                if value[3] == screw:
-                                    if screw_res['is_base']:
-                                        self.buttons[key].set_label(_("Reference"))
-                                    elif screw_res['adjust'] == "00:00":
-                                        self.buttons[key].get_style_context().add_class("bed-level-chars")
-                                        self.buttons[key].set_label(f"✔ {screw_res['adjust']}")
-                                        continue
-                                    else:
-                                        self.buttons[key].set_label(f"↶ {screw_res['adjust']}") if screw_res['sign'] == "CCW" else self.buttons[key].set_label(f"↷ {screw_res['adjust']}")
-                                        self.buttons[key].get_style_context().add_class("bed-level-chars")
-                    else:
-                        self.activate()
-                if 'base_screw' in data['screws_tilt_adjust']:
-                    self.screws_adjust_data['base_screw'] = data['screws_tilt_adjust']['base_screw']
-                    if self.screws_adjust_data['base_screw']:
-                        for key, value in self.screw_dict.items():
-                            if value[3] == self.screws_adjust_data['base_screw']:
-                                self.popover[key]['set_as_base'].set_sensitive(False)
-                                self.popover[key]['next_screw_calibrate'].set_sensitive(False)
-                            elif not self.screws_adjust_data['is_calibrating']:
-                                self.popover[key]['set_as_base'].set_sensitive(True)
-
-                if 'calibrating_screw' in data['screws_tilt_adjust']:
-                    self.screws_adjust_data['calibrating_screw'] = data['screws_tilt_adjust']['calibrating_screw']
-                    if self.screws_adjust_data['calibrating_screw']:
-                        for key, value in self.screw_dict.items():
-                            if value[3] == self.screws_adjust_data['calibrating_screw']['prefix']:
-                                self.popover[key]['next_screw_calibrate'].set_sensitive(False)
-                            elif value[3] != self.screws_adjust_data['base_screw']:
-                                self.popover[key]['next_screw_calibrate'].set_sensitive(True)
-                with contextlib.suppress(Exception):
-                  if 'is_calibrating' in data['screws_tilt_adjust']:
-                      for btn in [True, False]:
-                        self.buttons[btn].set_sensitive(not data['screws_tilt_adjust']['is_calibrating'])
-                      self.screws_adjust_data['is_calibrating'] = data['screws_tilt_adjust']['is_calibrating']
-                      if self.screws_adjust_data['is_calibrating']:
-                          if self.buttons['screws_tilt_calibrate'] in self.buttonGrid:
-                              self.buttonGrid.remove(self.buttons['screws_tilt_calibrate'])
-                          for btn in ['stop_screws_tilt_calibrate', 'stop_screw_calibrate']:
-                              if self.buttons[btn] not in self.buttonGrid:
-                                  self.buttonGrid.attach(self.buttons[btn], 0, len(self.buttonGrid.get_children()), 1, 1)
-                          for key, value in self.screw_dict.items():
-                              self.popover[key]['set_as_base'].set_sensitive(False)
-                              self.popover[key]['go_to_position'].set_sensitive(False)
-                              if value[3] not in [self.screws_adjust_data['base_screw'], self.screws_adjust_data['calibrating_screw']['prefix']]:
-                                  self.popover[key]['next_screw_calibrate'].set_sensitive(True)
-                              else:
-                                  self.popover[key]['next_screw_calibrate'].set_sensitive(False)
-                      else:
-                          for btn in ['stop_screws_tilt_calibrate', 'stop_screw_calibrate']:
-                              self._gtk.Button_busy(self.buttons[btn], False)
-                              self.pressed = False
-                              if self.buttons[btn] in self.buttonGrid:
-                                  self.buttonGrid.remove(self.buttons[btn])
-                          if self.buttons['screws_tilt_calibrate'] not in self.buttonGrid:
-                              self.buttonGrid.attach(self.buttons['screws_tilt_calibrate'], 0, len(self.buttonGrid.get_children()), 1, 1)
-                          # for btn in ['screws_tilt_calculate', 'screws_tilt_calibrate']:
-                          #     if self.buttons[btn] not in self.buttonGrid:
-                          #         self.buttonGrid.attach(self.buttons[btn], 0, len(self.buttonGrid.get_children()), 1, 1)
-                          for key, value in self.screw_dict.items():
-                              self.popover[key]['go_to_position'].set_sensitive(True)
-                              if self.screws_adjust_data['base_screw'] != value[3]:
-                                  self.popover[key]['set_as_base'].set_sensitive(True)
-                              self.popover[key]['next_screw_calibrate'].set_sensitive(False)
-            self.buttonGrid.show_all()
+        if action != "notify_status_update":
+            return
+        if 'probe' in data:
+          if 'is_using_magnet_probe' in data['probe']:
+            self.is_using_magnet = data['probe']['is_using_magnet_probe']
+            self.update_buttons_visibility()
+        if 'screws_tilt_adjust' in data:
+            self.on_screws_tilt_adjust_update(data['screws_tilt_adjust'])
 
     def _get_screws(self, config_section_name):
         screws = []
@@ -475,13 +485,33 @@ class Panel(ScreenPanel):
         self._screen._ws.klippy.gcode_script("SCREWS_TILT_CALCULATE")
 
     def return_magnet(self, widget):
-        self._screen._ws.klippy.gcode_script(KlippyGcodes.return_magnet_probe())
+        widget.set_sensitive(False)
+        self._screen._ws.klippy.gcode_script(KlippyGcodes.return_magnet_probe(), callback=self.on_return_magnet)
+    
+    def on_return_magnet(self, *args):
+      GLib.timeout_add(1000, self.sensitive_return_button)
+    
+    def sensitive_return_button(self, *args):
+      self.buttons[True].set_sensitive(True)
+      return False
 
     def get_magnet(self, widget):
-        self._screen._ws.klippy.gcode_script(KlippyGcodes.get_magnet_probe())
+        widget.set_sensitive(False)
+        self._screen._ws.klippy.gcode_script(KlippyGcodes.get_magnet_probe(), callback=self.on_get_magnet)
+    
+    def on_get_magnet(self, *args):
+      GLib.timeout_add(1000, self.sensitive_get_button)
+    
+    def sensitive_get_button(self, *args):
+      self.buttons[False].set_sensitive(True)
+      return False
 
-    def screws_tilt_calibrate(self, *args):
-        self._screen._ws.klippy.gcode_script("SCREWS_TILT_CALIBRATE")
+    def screws_tilt_calibrate(self, widget, event):
+        self.buttons['screws_tilt_calibrate'].set_sensitive(False)
+        self._screen._ws.klippy.gcode_script("SCREWS_TILT_CALIBRATE", callback = self.on_screws_tilt_adjust)
+
+    def on_screws_tilt_adjust(self, *args):
+        self.buttons['screws_tilt_calibrate'].set_sensitive(True)
 
     def set_base_screw(self, widget, screw):
         self._screen._ws.klippy.gcode_script(f"SET_BASE_SCREW SCREW={self.screw_dict[screw][3]}")
@@ -491,8 +521,12 @@ class Panel(ScreenPanel):
         self.pressed = True
         self._screen._ws.klippy.run_async_command("ASYNC_STOP_SCREWS_TILT_CALIBRATE")
 
-    def stop_screw_calibrate(self, widget):
-        self._screen._ws.klippy.run_async_command("ASYNC_STOP_SCREW_CALIBRATE")
+    def next_screw_calibrate(self, widget):
+        self._gtk.Button_busy(self.buttons['next_screw_calibrate'], True)
+        self._screen._ws.klippy.run_async_command("ASYNC_STOP_SCREW_CALIBRATE", callback=self.on_next_screw_calibrate)
+
+    def on_next_screw_calibrate(self, *args):
+        self._gtk.Button_busy(self.buttons['next_screw_calibrate'], False)
 
     def set_next_calibrating_screw(self, widget, screw):
         self._screen._ws.klippy.run_async_command(f"ASYNC_SET_CALIBRATING_SCREW SCREW={self.screw_dict[screw][3]}")

@@ -87,7 +87,7 @@ class Panel(ScreenPanel):
         helper_box = Gtk.Box(orientation = Gtk.Orientation.VERTICAL)
         header_label = Gtk.Label()
         header_label.set_markup("<big><b>Внимание! Меню консоли рассчитано на пользователей, владеющими навыками работы с командной строкой</b></big>.\n\n"
-                         "Пароль для использования команд sudo - <big><b>orangepi</b></big>.\n\n")
+                         f"Пароль для использования команд sudo - <big><b>{self._screen.get_pwd()}</b></big>.\n\n")
         header_label.set_line_wrap(True)
         header_label.set_valign(Gtk.Align.START)
         helper_box.add(header_label)
