@@ -1,10 +1,10 @@
 import logging
 import socket
 import gi
+from screen import PKG_MANAGER
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Pango, GLib
+from gi.repository import Gtk, Pango
 from ks_includes.screen_panel import ScreenPanel
-from ks_includes.callback_thread import CallbackThread
 import ks_includes.widgets.DetailsBoxes as DetailsBoxes
 class Panel(ScreenPanel):
     def __init__(self, screen, title):
@@ -169,8 +169,9 @@ class Panel(ScreenPanel):
         for ch in self.main_updates:
           self.main_updates.remove(ch)
         self.main_updates.attach(self.ApplicationBox(), 0, 0, 1, 1)
-        if 'system' in self.update_status['version_info']:
-          self.main_updates.attach(self.SystemBox(), 0, 1, 1, 1)
+        if PKG_MANAGER == 'apt':
+          if 'system' in self.update_status['version_info']:
+            self.main_updates.attach(self.SystemBox(), 0, 1, 1, 1)
         self.scroll.add(self.main_updates)
         self.scroll.show_all()
 

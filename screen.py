@@ -12,6 +12,7 @@ import locale
 import sys
 import gi
 import distro
+import shutil
 from ks_includes.widgets import popup_message
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, GLib, Pango
@@ -86,6 +87,15 @@ def state_execute(callback):
     callback()
     return False
 
+def detect_package_manager():
+    if shutil.which("apt"):
+        return "apt"
+    elif shutil.which("dnf"):
+        return "dnf"
+    else:
+        return "unknown"
+
+PKG_MANAGER = detect_package_manager()
 
 class KlipperScreen(Gtk.Window):
     """ Class for creating a screen for Klipper via HDMI """

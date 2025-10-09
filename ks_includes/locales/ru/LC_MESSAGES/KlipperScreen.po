@@ -351,6 +351,9 @@ msgstr "Файл"
 msgid "File:"
 msgstr "Файл:"
 
+msgid "Public"
+msgstr "Публичная"
+
 msgid "Connecting"
 msgstr "Соединение"
 
@@ -569,7 +572,7 @@ msgid "Max Acceleration"
 msgstr "Максимальное ускорение"
 
 msgid "Minimum Cruise Ratio"
-msgstr "Минимальное соотношение \"Ускорение-Замедление\""
+msgstr "Мин. коэф. крейсерской скорости"
 
 msgid "Max Acceleration to Deceleration"
 msgstr "Ускорения торможения"
@@ -1000,10 +1003,22 @@ msgstr "Сохранённое"
 
 #, python-format
 msgid "Saved offset: %.3f"
-msgstr "Сохранено смещение: %.3f"
+msgstr "Сохраненное смещение: %.3f"
 
 msgid "Screen DPMS"
 msgstr "Экран DPMS"
+
+msgid "Smooth Time P. Advance"
+msgstr "Сглаживающее время P.Advance"
+
+msgid "The printer will be turned off after printing. Cancel auto-shutdown?"
+msgstr "После печати принтер будет выключен. Отменить автовыключение?"
+
+msgid "Cancel autoooff"
+msgstr "Отменить автовыключение"
+
+msgid "Continue print"
+msgstr "Продолжить печать"
 
 msgid "Screen Power Off Time"
 msgstr "Время выключения экрана"
