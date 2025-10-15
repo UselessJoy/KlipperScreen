@@ -37,7 +37,7 @@ class Panel(ScreenPanel):
                 ctx.add_class("distbutton_bottom")
             else:
                 ctx.add_class("distbutton")
-            if i == self.z_deltas:
+            if i == self.z_delta:
                 ctx.add_class("distbutton_active")
             zgrid.attach(self.labels[f"zdelta{i}"], j, 0, 1, 1)
 

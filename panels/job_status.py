@@ -385,8 +385,11 @@ class Panel(ScreenPanel):
     def save_offset(self, widget):
         label = Gtk.Label()
         saved_z_offset = None
-        msg = _("Apply %.3f offset to Endstop?") % (self.zoffset) 
-        saved_z_offset = self._printer.get_stat("manual_probe", "z_position_endstop")
+        msg = _("Apply %.3f offset to Endstop?") % (self.zoffset)
+        try:
+            saved_z_offset = self._screen.apiclient.send_request("printer/objects/query?manual_probe")['result']['status']['manual_probe']['z_position_endstop']
+        except:
+            saved_z_offset = self._printer.get_stat("manual_probe", "z_position_endstop")
         if saved_z_offset:
             msg += "\n\n" + _("Saved offset: %.3f") % saved_z_offset
         label.set_label(msg)

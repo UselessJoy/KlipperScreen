@@ -4,7 +4,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from ks_includes.KlippyGcodes import KlippyGcodes
 from ks_includes.screen_panel import ScreenPanel
-from ks_includes.widgets.movement_area import MovementArea
+from ks_includes.widgets.movement import MovementArea, ZStrategy, XYStrategy
 
 class Panel(ScreenPanel):
     distances = ['.1', '.5', '1', '5', '10', '25', '50']
@@ -12,9 +12,9 @@ class Panel(ScreenPanel):
     
     def __init__(self, screen, title):
         super().__init__(screen, title)
-        
         # Флаги состояния
-        self.is_homing = False
+        self.is_homing = True
+        self.homed_axes = ""
         # Заполнение панели
         self.labels['move_menu'] = Gtk.Grid()
         self.movement_area = MovementArea(screen, self._printer)
@@ -57,45 +57,12 @@ class Panel(ScreenPanel):
         self.buttons['home_x'].connect("clicked", self.homex)
         self.buttons['home_y'].connect("clicked", self.homey)
         self.buttons['home_z'].connect("clicked", self.homez)
-        self.buttons['mode'].connect("clicked", self.movement_area.change_axis)
+        self.buttons['mode'].connect("clicked", self.switch_strategy)
         script = {"script": "M18"}
         self.buttons['motors_off'].connect("clicked", self._screen._confirm_send_action,
                                            _("Are you sure you wish to disable motors?"),
                                            "printer.gcode.script", script)
-      
-        grid = self._gtk.HomogeneousGrid()
-        if self._screen.vertical_mode:
-            if self._screen.lang_ltr:
-                grid.attach(self.buttons['x+'], 2, 1, 1, 1)
-                grid.attach(self.buttons['x-'], 0, 1, 1, 1)
-                grid.attach(self.buttons['z+'], 2, 2, 1, 1)
-                grid.attach(self.buttons['z-'], 0, 2, 1, 1)
-            else:
-                grid.attach(self.buttons['x+'], 0, 1, 1, 1)
-                grid.attach(self.buttons['x-'], 2, 1, 1, 1)
-                grid.attach(self.buttons['z+'], 0, 2, 1, 1)
-                grid.attach(self.buttons['z-'], 2, 2, 1, 1)
-            grid.attach(self.buttons['y+'], 1, 0, 1, 1)
-            grid.attach(self.buttons['y-'], 1, 1, 1, 1)
-
-        else:
-            if self._screen.lang_ltr:
-                grid.attach(self.buttons['x+'], 2, 1, 1, 1)
-                grid.attach(self.buttons['x-'], 0, 1, 1, 1)
-            else:
-                grid.attach(self.buttons['x+'], 0, 1, 1, 1)
-                grid.attach(self.buttons['x-'], 2, 1, 1, 1)
-            grid.attach(self.buttons['y+'], 1, 0, 1, 1)
-            grid.attach(self.buttons['y-'], 1, 2, 1, 1)
-            grid.attach(self.buttons['z+'], 3, 0, 1, 1)
-            grid.attach(self.buttons['z-'], 3, 1, 1, 1)
-            grid.attach(self.buttons['home'], 1, 1, 1, 1)
-            grid.attach_next_to(self.buttons['home_x'], self.buttons['y+'], Gtk.PositionType.LEFT, 1, 1)
-            grid.attach_next_to(self.buttons['home_y'], self.buttons['y+'], Gtk.PositionType.RIGHT, 1, 1)
-            grid.attach_next_to(self.buttons['home_z'], self.buttons['y-'], Gtk.PositionType.RIGHT, 1, 1)
-            grid.attach_next_to(self.buttons['motors_off'], self.buttons['home_z'], Gtk.PositionType.RIGHT, 1, 1)
-            grid.attach_next_to(self.buttons['mode'], self.buttons['y-'], Gtk.PositionType.LEFT, 1, 1)
-                        
+        self.button_grid = self.init_button_grid()
         for p in ('X', 'Y', 'Z'):
             self.labels[p] = Gtk.Label()
             self.labels[p].set_width_chars(8)
@@ -109,11 +76,54 @@ class Panel(ScreenPanel):
         self.labels['move_menu'].set_row_spacing(15)
         self.labels['move_menu'].attach(distgrid, 2, 0, 1, 1)
         self.labels['move_menu'].attach(self.movement_area, 0,1,2,1)
-        self.labels['move_menu'].attach(grid, 2, 1, 1, 1)
+        self.labels['move_menu'].attach(self.button_grid, 2, 1, 1, 1)
         self.labels['move_menu'].get_style_context().add_class("move_menu")
         self.labels['move_menu'].attach(positions_grid, 0, 0, 2, 1)
         self.content.add(self.labels['move_menu'])
-    
+
+    def switch_strategy(self, widget):
+        if isinstance(self.movement_area.strategy, ZStrategy):
+            self.movement_area.change_strategy(XYStrategy)
+            widget.set_image(self._screen.gtk.Image("Z-axis"))
+        else:
+            self.movement_area.change_strategy(ZStrategy)
+            widget.set_image(self._screen.gtk.Image("XY-axis"))
+
+    def init_button_grid(self):
+      grid = self._gtk.HomogeneousGrid()   
+      if self._screen.vertical_mode:
+          if self._screen.lang_ltr:
+              grid.attach(self.buttons['x+'], 2, 1, 1, 1)
+              grid.attach(self.buttons['x-'], 0, 1, 1, 1)
+              grid.attach(self.buttons['z+'], 2, 2, 1, 1)
+              grid.attach(self.buttons['z-'], 0, 2, 1, 1)
+          else:
+              grid.attach(self.buttons['x+'], 0, 1, 1, 1)
+              grid.attach(self.buttons['x-'], 2, 1, 1, 1)
+              grid.attach(self.buttons['z+'], 0, 2, 1, 1)
+              grid.attach(self.buttons['z-'], 2, 2, 1, 1)
+          grid.attach(self.buttons['y+'], 1, 0, 1, 1)
+          grid.attach(self.buttons['y-'], 1, 1, 1, 1)
+
+      else:
+          if self._screen.lang_ltr:
+              grid.attach(self.buttons['x+'], 2, 1, 1, 1)
+              grid.attach(self.buttons['x-'], 0, 1, 1, 1)
+          else:
+              grid.attach(self.buttons['x+'], 0, 1, 1, 1)
+              grid.attach(self.buttons['x-'], 2, 1, 1, 1)
+          grid.attach(self.buttons['y+'], 1, 0, 1, 1)
+          grid.attach(self.buttons['y-'], 1, 2, 1, 1)
+          grid.attach(self.buttons['z+'], 3, 0, 1, 1)
+          grid.attach(self.buttons['z-'], 3, 1, 1, 1)
+          grid.attach(self.buttons['home'], 1, 1, 1, 1)
+          grid.attach_next_to(self.buttons['home_x'], self.buttons['y+'], Gtk.PositionType.LEFT, 1, 1)
+          grid.attach_next_to(self.buttons['home_y'], self.buttons['y+'], Gtk.PositionType.RIGHT, 1, 1)
+          grid.attach_next_to(self.buttons['home_z'], self.buttons['y-'], Gtk.PositionType.RIGHT, 1, 1)
+          grid.attach_next_to(self.buttons['motors_off'], self.buttons['home_z'], Gtk.PositionType.RIGHT, 1, 1)
+          grid.attach_next_to(self.buttons['mode'], self.buttons['y-'], Gtk.PositionType.LEFT, 1, 1)
+      return grid
+
     def sensitive_axes(self, axes, sensitive):
       for button in [f"{axes}+", f"{axes}-"]:
           self.buttons[button].set_sensitive(sensitive)
@@ -124,9 +134,17 @@ class Panel(ScreenPanel):
         axes_up = axes.upper()
         self.labels[axes_up].set_text(f"{axes_up}: {new_position[AXIS[axes_up]]:.2f}")
         self.sensitive_axes(axes, True)
-        self.movement_area.prev_coord[axes_up] = self.movement_area.last_coord[axes_up]
-        self.movement_area.last_coord[axes_up] = new_position[AXIS[axes_up]]
-            
+        # self.movement_area.prev_coord[axes_up] = self.movement_area.last_coord[axes_up]
+        # self.movement_area.last_coord[axes_up] = new_position[AXIS[axes_up]]
+
+    # def _check_movement_area_state(self):
+    #     if not self.movement_area.strategy.is_homed_required_axes() or self.homed_axes:
+    #       if self.movement_area.activated:
+    #         self.movement_area.deactivate_movement_area()
+    #     elif not self.movement_area.activated:
+    #       if self.movement_area.strategy.is_homed_required_axes():
+    #           self.movement_area.activate_movement_area()
+
     def process_update(self, action, data):
         if action != "notify_status_update":
             return
@@ -149,7 +167,7 @@ class Panel(ScreenPanel):
                         axes_up = axes.upper()
                         self.labels[axes_up].set_text(f"{axes_up}: ?")
                         self.sensitive_axes(axes, False)
-                    if self.movement_area.verified:
+                    if self.movement_area.activated:
                         self.movement_area.deactivate_movement_area()
         if "gcode_move" in data and "gcode_position" in data["gcode_move"]:
             homed_axes = self._printer.get_stat("toolhead", "homed_axes")
@@ -159,24 +177,14 @@ class Panel(ScreenPanel):
                 else:
                     axes_up = axes.upper()
                     self.labels[axes_up].set_text(f"{axes_up}: ?")
-                    self.sensitive_axes(axes, False)
-            if self.movement_area.init:  
-                if not self.is_homing:
-                    if self.movement_area.verify_movement_area():
-                        if not self.movement_area.verified:
-                            self.movement_area.activate_movement_area()
-                        # self.buttons['mode'].set_sensitive(False)
-                        # for axes in 'xyz':
-                        #   self.sensitive_axes(axes, False)
-                        self.movement_area.onExternalMove(data['gcode_move']['gcode_position'], self.on_finish_move)
-                elif self.movement_area.verified:
-                    self.movement_area.deactivate_movement_area()
+                    self.sensitive_axes(axes, False)  
+            if not self.is_homing:
+                if not self.movement_area.is_ready():
+                    self.movement_area.activate_movement_area()
+                self.movement_area.on_external_move(data['gcode_move']['gcode_position'])
+            elif self.movement_area.activated:
+                self.movement_area.deactivate_movement_area()
 
-    def on_finish_move(self):
-        return
-        # self.buttons['mode'].set_sensitive(True)
-        # for axes in 'xyz':
-        #   self.sensitive_axes(axes, True)
     def change_distance(self, widget, distance):
         logging.info(f"### Distance {distance}")
         self.labels[f"{self.distance}"].get_style_context().remove_class("distbutton_active")
@@ -187,23 +195,24 @@ class Panel(ScreenPanel):
         if self._config.get_config()['main'].getboolean(f"invert_{axis.lower()}", False):
             direction = "-" if direction == "+" else "+"
 
-        dist = f"{direction}{self.distance}"
+        dist = float(f"{direction}{self.distance}")
         config_key = "move_speed_z" if axis == "Z" else "move_speed_xy"
         # speed = self.ks_printer_cfg.getint(config_key, 20)
         # if speed is None:
-        speed = self._config.get_config()['main'].getint(config_key, 20)
+        speed = float(self._config.get_config()['main'].getint(config_key, 20))
         speed = 60 * max(1, speed)
-        flt_dist = float(dist)
-        if flt_dist < 0:
-            if self.movement_area.min[axis] > self.movement_area.last_coord[axis] + flt_dist:
-                self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_ABSOLUTE}\n{KlippyGcodes.MOVE} {axis}{self.movement_area.min[axis]} F{speed}")
+        min_axis = self.movement_area.strategy.coordinates.get_min(axis)
+        max_axis = self.movement_area.strategy.coordinates.get_max(axis)
+        if dist < 0:
+            if min_axis> self.movement_area.move_controller.get_axis_gcode_position(axis) + dist:
+                self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_ABSOLUTE}\n{KlippyGcodes.MOVE} {axis}{min_axis} F{speed}")
             else:
                self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_RELATIVE}\n{KlippyGcodes.MOVE} {axis}{dist} F{speed}") 
         else:
-            if self.movement_area.max[axis] < self.movement_area.last_coord[axis] + flt_dist:
-                self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_ABSOLUTE}\n{KlippyGcodes.MOVE} {axis}{self.movement_area.max[axis]} F{speed}")
+            if max_axis < self.movement_area.move_controller.get_axis_gcode_position(axis) + dist:
+                self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_ABSOLUTE}\n{KlippyGcodes.MOVE} {axis}{max_axis} F{speed}")
             else:
-               self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_RELATIVE}\n{KlippyGcodes.MOVE} {axis}{dist} F{speed}")  
+               self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_RELATIVE}\n{KlippyGcodes.MOVE} {axis}{dist} F{speed}") 
 
         if self._printer.get_stat("gcode_move", "absolute_coordinates"):
             self._screen._ws.klippy.gcode_script("G90")

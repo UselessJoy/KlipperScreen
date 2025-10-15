@@ -28,25 +28,36 @@ class Panel(ScreenPanel):
         self.content.add(self.grid)
         self.video_player_initialized = False
         self.stream_video_player = None
+        self.frame_buttons = {
+            'delete_frames': self._gtk.Button("delete", _("Delete frames"), "color3", self.bts, Gtk.PositionType.LEFT, 2, vexpand=False),
+            'saveframes': self._gtk.Button(None, _("Save frames"), "color1", self.bts, Gtk.PositionType.LEFT, 2, vexpand=False),
+            'render': self._gtk.Button(None, _("Render"), "color4", self.bts, Gtk.PositionType.LEFT, 1, vexpand=False),
+            'settings': self._gtk.Button("settings", _("Render settings"), "color2", self.bts, Gtk.PositionType.LEFT, 2, vexpand=False)
+        }
 
     def activate(self):
         self._screen._ws.klippy.get_dir_info(self.load_timelapse, 'timelapse')
-        
+        # Удаляем старые элементы перед добавлением новых
+        for child in self.grid.get_children():
+            self.grid.remove(child)
+            
         self.grid.attach(self.VideoScroll(), 0, 0, 1, 3)
+        # Пересоздаем кнопки при каждой активации
         self.grid.attach(self.FrameButtonsGrid(), 1, 1, 2, 1)
         self.grid.show_all()
 
     def deactivate(self):
         self.init = False
-        # Безопасное уничтожение всех видеоплееров
         self.destroy_video_player()
         self.destroy_stream_video_player()
         self.close_video_dialog()
-        
+        # Удаляем все дочерние элементы grid
         for child in self.grid.get_children():
             self.grid.remove(child)
         self.frame_box_state = ''
         self.cur_timelapse_image = Gtk.Image()
+        # Очищаем словарь кнопок при деактивации
+        self.frame_buttons = {}
 
     def destroy_video_player(self):
         """Безопасное уничтожение основного видеоплеера"""
@@ -77,7 +88,6 @@ class Panel(ScreenPanel):
             except Exception as e:
                 logging.error(f"Error destroying video player in dialog: {e}")
             self.video_player = None
-            
         if self.video_dialog:
             self._gtk.remove_dialog(self.video_dialog)
             self.video_dialog = None
@@ -115,7 +125,6 @@ class Panel(ScreenPanel):
     def open_video_dialog(self, widget):
         # Закрываем предыдущий диалог если есть
         self.close_video_dialog()
-        
         box_video = Gtk.Box(hexpand=True, halign=Gtk.Align.CENTER)
         try:
             self.video_player = VideoPlayer(self._screen, f"{self.path}/{widget.get_label()}")
@@ -127,7 +136,6 @@ class Panel(ScreenPanel):
             self.video_player_initialized = False
             error_label = Gtk.Label(label=_("Failed to initialize video player"))
             box_video.add(error_label)
-  
         button_box = Gtk.Box(hexpand=True, halign=Gtk.Align.END)
         button_box.set_margin_top(5)
         btn_delete = self._gtk.Button(None, _("Delete"), "color1", hexpand=False)
@@ -166,9 +174,10 @@ class Panel(ScreenPanel):
                 self.frame_box = self.FrameBox()
                 self.grid.attach(self.frame_box, 1, 0, 2, 1)
                 self.frame_box_state = 'frames'
-            
             if (newframe_data['framefile'] not in self.cur_timelapse_frames and 
                 (newframe_data['framefile'].endswith('.jpg') or newframe_data['framefile'].endswith('.png'))):
+                if not len(self.cur_timelapse_frames):
+                    self.set_sensitive_frame_buttons(True)
                 self.cur_timelapse_frames.append(newframe_data['framefile'])
                 self.adj.set_upper(len(self.cur_timelapse_frames))
                 if len(self.cur_timelapse_frames) > 0:
@@ -182,7 +191,7 @@ class Panel(ScreenPanel):
                 self.grid.attach(self.frame_box, 1, 0, 2, 1)
                 self.frame_box_state = 'stream'
         self.grid.show_all()
-    
+
     def StreamBox(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, vexpand=True)
         cameras = self._screen.apiclient.send_request("server/webcams/list")
@@ -213,7 +222,6 @@ class Panel(ScreenPanel):
     def FrameBox(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, vexpand=True)
         box.add(self.cur_timelapse_image)
-        
         upper = max(len(self.cur_timelapse_frames), 1)
         self.adj = Gtk.Adjustment(
             min(upper, 1),
@@ -223,7 +231,6 @@ class Panel(ScreenPanel):
             5,
             0
         )
-        
         scale = Gtk.Scale(adjustment=self.adj, digits=0, hexpand=True, 
                         has_origin=True, vexpand=True, valign=Gtk.Align.END)
         scale.set_digits(0)
@@ -232,7 +239,6 @@ class Panel(ScreenPanel):
         scale.get_style_context().add_class("option_slider")
         scale.connect("button-release-event", self.set_timelapse_image)
         scale.connect("value-changed", self.on_scale_value_changed)
-        
         box.add(scale)
         return box
 
@@ -248,7 +254,6 @@ class Panel(ScreenPanel):
                 value = int(self.adj.get_value()) - 1
             else:
                 return
-        
         if (len(self.cur_timelapse_frames) > 0 and 
             0 <= value < len(self.cur_timelapse_frames)):
             try:
@@ -259,7 +264,7 @@ class Panel(ScreenPanel):
                 self.cur_timelapse_image.clear()
         else:
             self.cur_timelapse_image.clear()
-    
+
     def set_cur_timelapse_image_as_last(self):
         if len(self.cur_timelapse_frames) > 0:
             self.cur_timelapse_image.set_from_pixbuf(self.make_buffer_with_flip(-1))
@@ -294,7 +299,7 @@ class Panel(ScreenPanel):
 
     def open_render_settings_dialog(self, widget):
         self._screen._ws.klippy.run_timelapse_method("get_settings", self.on_get_settings)
-      
+
     def on_get_settings(self, result, method, params):
         self.settings = result['result']
         buttons = [
@@ -361,6 +366,7 @@ class Panel(ScreenPanel):
 
     def FrameButtonsGrid(self):
         grid = Gtk.Grid(row_homogeneous=True, column_homogeneous=True)
+        # Пересоздаем кнопки каждый раз при вызове этого метода
         frame_buttons = {
             'delete_frames': self._gtk.Button("delete", _("Delete frames"), "color3", self.bts, Gtk.PositionType.LEFT, 2, vexpand=False),
             'saveframes': self._gtk.Button(None, _("Save frames"), "color1", self.bts, Gtk.PositionType.LEFT, 2, vexpand=False),
@@ -368,12 +374,16 @@ class Panel(ScreenPanel):
             'settings': self._gtk.Button("settings", _("Render settings"), "color2", self.bts, Gtk.PositionType.LEFT, 2, vexpand=False)
         }
         for i, btn_name in enumerate(frame_buttons):
+            if btn_name != 'settings':
+                frame_buttons[btn_name].set_sensitive(bool(len(self.cur_timelapse_frames)))
             frame_buttons[btn_name].set_size_request(1, self._screen.height * 0.15)
             if btn_name != 'settings':
                 frame_buttons[btn_name].connect("clicked", self.run_method, btn_name)
             else:
                 frame_buttons[btn_name].connect("clicked", self.open_render_settings_dialog)
             grid.attach(frame_buttons[btn_name], i % 2, i // 2, 1, 1)
+        # Обновляем словарь кнопок
+        self.frame_buttons = frame_buttons
         return grid
 
     def run_method(self, widget, method):
@@ -382,6 +392,18 @@ class Panel(ScreenPanel):
 
     def on_method(self, result, method:str, params, widget):
         self._screen.gtk.Button_busy(widget, False)
+        if 'result' in result:
+          if 'status' in result['result']:
+            if method.split('.')[-1] == 'saveframes':
+              if result['result']['status'] == 'finished':
+                self._screen.show_popup_message(_("Frames saved. Viewing is available via the web interface"), level=1)
+              else:
+                self._screen.show_popup_message(_("Saving frames failed"))
+            elif method.split('.')[-1] == 'render':
+              if result['result']['status'] == 'success':
+                self._screen.show_popup_message(_("Rendering Video successful: %s") % result['result']['filename'], level=1)
+              else:
+                self._screen.show_popup_message(_("Render failed"))
 
     def set_stream_box(self):
         if self.frame_box_state == 'frames' or self.frame_box_state == '':
@@ -414,17 +436,13 @@ class Panel(ScreenPanel):
                     self.video_box.show_all()
         elif data['action'] == 'delete':
             self.cur_timelapse_frames = []
+            self.set_sensitive_frame_buttons(False)
             self.cur_timelapse_image.clear()
             self.adj.set_value(0)
             self.adj.set_upper(0)
             self.set_stream_box()
-        elif data['action'] == 'saveframes':
-            if data['status'] == 'finished':
-                self._screen.show_popup_message(_("Frames saved. Viewing is available via the web interface"), level=1)
-            else:
-                self._screen.show_popup_message(_("Saving frames failed"))
-        elif data['action'] == 'render':
-            if data['status'] == 'success':
-                self._screen.show_popup_message(_("Rendering Video successful: %s") % data['filename'], level=1)
-            else:
-                self._screen.show_popup_message(_("Render failed"))
+
+    def set_sensitive_frame_buttons(self, sensitive):
+        for btn in self.frame_buttons:
+          if btn != 'settings':
+            self.frame_buttons[btn].set_sensitive(sensitive)

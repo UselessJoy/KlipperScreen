@@ -92,12 +92,12 @@ class MovementArea(Gtk.EventBox):
         self.set_size_request(int(self.screen.width/3.5),int(self.screen.height/1.5))
         self.override_background_color(Gtk.StateType.NORMAL, Gdk.RGBA(.5,.5,.5,.5))
         self.connect("motion-notify-event", self.move_to_cursor)
-        self.connect('button-release-event', self.stop_moving)
-        self.connect('button-press-event', self.area_clicked)
+        self.connect('button-release-event', self.start_move)
+        self.connect('button-press-event', self.wait_move)
         self.add_events(Gdk.EventMask.POINTER_MOTION_MASK)
         # Сигнал "size-allocate" срабатывает при каждом движении по полю
         #self.movement_area.connect("size-allocate", self.init_sizes)
-        GLib.timeout_add(300, self.init_sizes)
+        GLib.timeout_add(400, self.init_sizes)
         
     def init_sizes(self, *args):
         self.init = False
@@ -108,11 +108,11 @@ class MovementArea(Gtk.EventBox):
         self.image_height = self.image.get_allocation().height
         if self.is_z_axes:
             self.cursor_button_width = self.image_width
-            self.cursor_button_height = int(self.image_height*0.064)
+            self.cursor_button_height = int(self.image_height*0.064) # подобранное значение, поскольку имагесы огромные
             self.buffer_image_height = self.cursor_button_height
             self.zero_pixel_z = abs(((self.min["Z"])*(self.area_h - self.cursor_button_height))/(self.max["Z"] - self.min["Z"]))
         else:
-            self.cursor_button_width = int(self.image_width*0.032)
+            self.cursor_button_width = int(self.image_width*0.032) # подобранное значение, поскольку имагесы огромные
             self.cursor_button_height = self.image_height
             self.zero_pixel_x = abs(((self.min["X"])*(self.area_w - self.cursor_button_width))/(self.max["X"] - self.min["X"]))
             self.zero_pixel_y = abs(((self.min["Y"])*(self.area_h - self.cursor_button_height))/(self.max["Y"] - self.min["Y"]))
@@ -129,7 +129,7 @@ class MovementArea(Gtk.EventBox):
             required_axes = "xy"
         else:
             required_axes = "z"
-        homed_axes = self.printer.get_stat("toolhead", "homed_axes")    
+        homed_axes = self.printer.get_stat("toolhead", "homed_axes")
         if required_axes in homed_axes:
             return True
         return False
@@ -218,7 +218,7 @@ class MovementArea(Gtk.EventBox):
             
             return corrective_cursor_position_w, corrective_cursor_position_h, image_to_cursor_w, image_to_cursor_h
            
-    def stop_moving(self, widget, args):
+    def start_move(self, widget, args):
         self.clicked = False
         correct_x, correct_y = self.correcting_coordinates(args.x, args.y)
         self.start_moving(correct_x, correct_y)
@@ -226,7 +226,7 @@ class MovementArea(Gtk.EventBox):
         self.screen._ws.klippy.gcode_script(gcode)
         self.main_gcode = []
         
-    def area_clicked(self, widget, args):
+    def wait_move(self, widget, args):
         self.clicked = True
         self.move_to_cursor(widget, args)
         
@@ -390,7 +390,7 @@ class MovementArea(Gtk.EventBox):
         self.movement_area.show_all()
         GLib.timeout_add(100, self.init_sizes)  
         
-    def print_to_cursor(self, finish_cb):
+    def print_to_cursor(self, finish_cb = lambda: {}):
         self.move_to_coordinate = True
         if len(self.point_parameters) == 0:
             try:
@@ -454,7 +454,7 @@ class MovementArea(Gtk.EventBox):
             speed_pixel_y = ((mm_speed_y)*(self.area_h - self.cursor_button_height))/(self.max["Y"] - self.min["Y"])
         return speed_pixel_x, speed_pixel_y
             
-    def onExternalMove(self, new_position, finish_cb):
+    def onExternalMove(self, new_position):
         new_x, new_y, new_position_w, new_position_h = self.mm_coordinates_to_pixel_coordinates(
             new_position[0], 
             new_position[1],
@@ -478,4 +478,4 @@ class MovementArea(Gtk.EventBox):
             if not abs(point_tuple['Gx']) + abs(point_tuple['Gy']) == 0:
                 self.query_points.append(point_tuple)
                 if self.printing_timer is None:
-                    self.printing_timer = GLib.idle_add(self.print_to_cursor, finish_cb)    
+                    self.printing_timer = GLib.idle_add(self.print_to_cursor)    

@@ -91,7 +91,7 @@ class KSPopover(Gtk.Popover):
           break
 
   def add_field(self, field):
-    field_label = Gtk.Button(label = field, hexpand = True, vexpand = True)
+    field_label = Gtk.Button(label = _(field), hexpand = True, vexpand = True)
     field_label.get_style_context().add_class("hide_button")
     field_label.connect("clicked", self.on_field_select, field)
     self.content_box.add(field_label)

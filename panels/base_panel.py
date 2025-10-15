@@ -33,6 +33,7 @@ class BasePanel(ScreenPanel):
 
         self.interrupt_dialog = None
         self.autooff_dialog = self.autooff_enable = None
+        self.disable_dialog = None
         self.power_dialog = None
         self.restart_dialog_label = self.restart_dialog_message = self.restart_dialog = self.can_reboot = self.restart_button_grid = self.system_fix_grid = None
         self.require_internet = self.has_uninstalled_updates = False
@@ -167,6 +168,11 @@ class BasePanel(ScreenPanel):
         # self.stop_bed_mesh_button.set_no_show_all(True)
         # self.stop_bed_mesh_button.hide()
 
+        self.autooff_enable_button = self._gtk.Button("autooff", scale=0.7, hexpand=False, vexpand=False)
+        self.autooff_enable_button.connect('clicked', self.show_disable_autooff_dialog)
+        self.autooff_enable_button.set_no_show_all(True)
+        self.autooff_enable_button.hide()
+
         self.titlelbl = Gtk.Label(hexpand=True, halign=Gtk.Align.CENTER, ellipsize=Pango.EllipsizeMode.END)
         self.control['time'] = Gtk.Label("00:00 AM")
         self.control['time_box'] = Gtk.EventBox(halign=Gtk.Align.END)
@@ -182,6 +188,7 @@ class BasePanel(ScreenPanel):
         self.titlebar.add(self.magnet_probe_image)
         self.titlebar.add(self.titlelbl)
         # self.titlebar.add(self.stop_bed_mesh_button)
+        self.titlebar.add(self.autooff_enable_button)
         self.titlebar.add(self.stop_pid_button)
         self.titlebar.add(self.control['time_box'])
         self.set_title(title)
@@ -572,12 +579,21 @@ class BasePanel(ScreenPanel):
             if 'autoOff_enable' in data['autooff']:
               self.autooff_enable = data['autooff']['autoOff_enable']
             if 'autoOff' in data['autooff']:
+                # if self.autooff_enable and data['autooff']['autoOff']:
+                #   self.autooff_enable_button.show()
+                # else:
+                #   self.autooff_enable_button.hide()
                 if not self.autooff_dialog and self.autooff_enable and data['autooff']['autoOff']:
                   self.show_autooff_dialog()
                 elif self.autooff_dialog:
                   self._gtk.remove_dialog(self.autooff_dialog)
                   self.autooff_dialog = None 
         if 'virtual_sdcard' in data:
+            if 'is_active' in data['virtual_sdcard']:
+                if data['virtual_sdcard']['is_active'] and self.autooff_enable:
+                    self.autooff_enable_button.show()
+                else:
+                    self.autooff_enable_button.hide()
             if 'show_interrupt' in data['virtual_sdcard']:
                if self.interrupt_dialog and not data['virtual_sdcard']['show_interrupt']:
                   self._gtk.remove_dialog(self.interrupt_dialog)
@@ -881,3 +897,32 @@ class BasePanel(ScreenPanel):
     def send_stop_bed_mesh(self, *args):
       self._screen._ws.klippy.run_async_command("ASYNC_STOP_BED_MESH_CALIBRATE")
       return True
+
+    def show_disable_autooff_dialog(self, *args):
+        buttons = [
+            {"name": _("Cancel autoooff"), "response": Gtk.ResponseType.OK, "style": "color1"},
+            {"name": _("Continue print"), "response": Gtk.ResponseType.CANCEL, "style": "color2"}
+        ]
+        grid = self._gtk.HomogeneousGrid()
+        label = Gtk.Label(label=_("The printer will be turned off after printing. Cancel auto-shutdown?"))
+        label.set_line_wrap(True)
+        label.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        label.set_max_width_chars(40)
+        label.set_hexpand(True)
+        label.set_vexpand(True)
+        label.set_valign(Gtk.Align.CENTER)
+        label.set_halign(Gtk.Align.CENTER)
+        label.set_justify(Gtk.Justification.CENTER)
+        grid.attach(label, 0, 0, 1, 1)
+        
+        self.autooff_dialog = self._gtk.Dialog(buttons, grid, _("Autooff after print"), self.close_disable_autooff_dialog, width = 1, height= self._screen.height / 3)
+        self.autooff_dialog.get_style_context().add_class("autoclose_dialog")
+        self.autooff_dialog.show_all()
+        return False
+
+    def close_disable_autooff_dialog(self, dialog, response_id):
+        self._gtk.remove_dialog(dialog)
+        self.disable_dialog = None
+        if response_id == Gtk.ResponseType.OK:
+            self._screen._ws.klippy.set_autooff(False)
+            self.autooff_enable_button.hide()

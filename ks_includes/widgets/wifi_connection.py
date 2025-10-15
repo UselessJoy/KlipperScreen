@@ -1,5 +1,6 @@
 import logging
 import os
+import subprocess
 
 import gi
 import netifaces
@@ -28,14 +29,14 @@ class WiFiConnection(Gtk.Box):
         self.connecting = False
         self.wifi: WifiManager = self._screen.base_panel.get_wifi_dev()
         self.connecting_ssid = None
-    
+
         self.labels = {}
         self.labels['interface'] = Gtk.Label()
         self.labels['interface'].set_text(self.wireless_interfaces[0])
         self.labels['interface'].set_hexpand(True)
         self.labels['ip'] = Gtk.Label()
         self.labels['ip'].set_hexpand(True)
-        
+
         self.labels['networks'] = {}
         if netifaces.AF_INET in netifaces.ifaddresses('wlan0') and len(netifaces.ifaddresses('wlan0')[netifaces.AF_INET]) > 0:
             ip = netifaces.ifaddresses('wlan0')[netifaces.AF_INET][0]['addr']
@@ -142,7 +143,7 @@ class WiFiConnection(Gtk.Box):
 
     def resume(self, widget):
         self.disconnect_network(None, self.wifi.get_connected_ssid())
-        
+
     def load_networks(self):
         networks = self.wifi.get_networks()  
         if not networks:
@@ -178,6 +179,9 @@ class WiFiConnection(Gtk.Box):
 
         if connected_ssid == ssid:
             display_name += " (" + _("Connected") + ")"
+        net_is_open = self.wifi.is_open_network(ssid)
+        if net_is_open:
+            display_name += " (" + _("Public") + ")"
 
         name = Gtk.Label("")
         name.set_markup(f"<big><b>{display_name}</b></big>")
@@ -198,10 +202,13 @@ class WiFiConnection(Gtk.Box):
         labels.set_halign(Gtk.Align.START)
 
         connect = self._screen.gtk.Button("load", None, "color3", .66)
-        connect.connect("clicked", self.connect_network, ssid)
+        if net_is_open:
+            connect.connect("clicked", self.connect_network, ssid, False)
+        else:
+          connect.connect("clicked", self.connect_network, ssid)
         connect.set_hexpand(False)
         connect.set_halign(Gtk.Align.END)
-        
+
         disconnect = self._screen.gtk.Button("signout", None, "color2", .66)
         disconnect.connect("clicked", self.disconnect_network, ssid)
         disconnect.set_hexpand(False)
@@ -218,7 +225,7 @@ class WiFiConnection(Gtk.Box):
         network.set_vexpand(False)
 
         network.add(labels)
-        
+
         buttons = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         if self.connecting:
             disconnect.set_sensitive(False)
@@ -260,20 +267,41 @@ class WiFiConnection(Gtk.Box):
             logging.info("Show network " + ssid)
             self.labels['networklist'].show()
 
-    def add_new_network(self, widget, ssid, connect=False):
-        psk = self.labels['network_psk'].get_text()
-        if len(psk) < 8:
-            self._screen.show_popup_message(_("Password must contains over 8 symbols"), 3, True)
-            return
-        result = self.wifi.add_network(ssid, psk)
+    # def add_new_network(self, widget, ssid, connect=False):
+    #     psk = self.labels['network_psk'].get_text()
+    #     if len(psk) < 8:
+    #         self._screen.show_popup_message(_("Password must contains over 8 symbols"), 3, True)
+    #         return
+    #     result = self.wifi.add_network(ssid, psk)
+    #     self._screen.remove_keyboard()
+    #     self.close_add_network()
+    #     if connect:
+    #         if result:
+    #             self.connect_network(widget, ssid, False)
+    #         else:
+    #             self._screen.show_popup_message(_(f"Error adding network {ssid}"))
+    #         return
+
+    def connect_on_add(self, widget, ssid, psk):
         self._screen.remove_keyboard()
         self.close_add_network()
-        if connect:
-            if result:
-                self.connect_network(widget, ssid, False)
-            else:
-                self._screen.show_popup_message(_(f"Error adding network {ssid}"))
-            return
+        result = self.wifi.add_network(ssid, psk)
+        if result:
+            self.connect_network(widget, ssid, False)
+        else:
+            self._screen.show_popup_message(_(f"Error adding network {ssid}"))
+
+    def add_new_network(self, widget, ssid, connect=False):
+      netinfo = self.wifi.get_network_info(ssid)
+      if netinfo and 'encryption' in netinfo:
+          if self.wifi.is_open_network(ssid):
+              self.connect_on_add(widget, ssid, "")
+
+      psk = self.labels['network_psk'].get_text()
+      if len(psk) < 8:
+          self._screen.show_popup_message(_("Password must contains over 8 symbols"), 3, True)
+          return
+      self.connect_on_add(widget, ssid, psk)
 
     def check_missing_networks(self):
         networks = self.wifi.get_networks()
@@ -307,21 +335,21 @@ class WiFiConnection(Gtk.Box):
             self.remove_network(self.connecting_ssid)
             self.connecting_ssid = None
         self._screen.show_popup_message(msg)
-    
+
     def disconnected_callback(self, msg):
         self.connecting = False
         if self.timer_points:
             GLib.source_remove(self.timer_points)
             self.timer_points = None
         self.check_missing_networks()
-    
+
     def connecting_callback(self, msg):
         self.connecting = True
-    
+
     def rescan_finish_callback(self, msg):
         self._screen.gtk.Button_busy(self.rescan_button, False)
         GLib.idle_add(self.load_networks)
-                                    
+                            
     def connected_callback(self, ssid, prev_ssid):
         logging.info("Now connected to a new network")
         self.connecting = False
@@ -340,7 +368,7 @@ class WiFiConnection(Gtk.Box):
     def disconnect_network(self, widget, ssid):
         self.remove_network(ssid)
         self.wifi.disconnect_network(ssid)
-        
+
     def connect_network(self, widget, ssid, showadd=True):
         self.connecting_ssid = ssid
         snets = self.wifi.get_supplicant_networks()
@@ -359,7 +387,7 @@ class WiFiConnection(Gtk.Box):
             self.remove_network(self.prev_network)
         self.wifi.connect(ssid)
         GLib.idle_add(self.load_networks)
-        self.update_all_networks()
+        # self.update_all_networks()
         if self.timer_points:
             GLib.source_remove(self.timer_points)
             self.timer_points = None
@@ -371,7 +399,7 @@ class WiFiConnection(Gtk.Box):
         self.labels['networks'][ssid]['name'].set_markup(f"<big><b>{ssid} ({conn}{points})</b></big>")
         self.counter +=1
         return True
-    
+
     def connecting_status_callback(self, msg):
         self.labels['connecting_info'].set_text(f"{self.labels['connecting_info'].get_text()}\n{msg}")
         self.labels['connecting_info'].show_all()
@@ -404,7 +432,7 @@ class WiFiConnection(Gtk.Box):
             self.close_add_network()
             return True
         return False
-    
+
     def show_add_network(self, widget, ssid):
         self.ssid = ssid
         if self.show_add:
@@ -419,15 +447,11 @@ class WiFiConnection(Gtk.Box):
         self.labels['network_psk'] = TypedEntry()
         self.labels['network_psk'].set_text('')
         self.labels['network_psk'].set_hexpand(True)
-        self.labels['network_psk'].connect("activate", self.add_new_network, ssid, True)
-        self.labels['network_psk'].connect("focus-in-event", self.on_change_entry)
-        
-        save = self._screen.gtk.Button("complete", _("Connect"), "color3")
-        save.set_hexpand(False)
-        save.connect("clicked", self.add_new_network, ssid, True)
+        self.labels['network_psk'].connect("activate", self.add_new_network, ssid, True) # on Enter key
+        self.labels['network_psk'].connect("focus-in-event", self.on_change_entry, self.on_reject)
+
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         box.pack_start(self.labels['network_psk'], True, True, 5)
-        save.get_style_context().add_class("keyboard_pad")
         self.labels['add_network'] = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
         self.labels['add_network'].set_valign(Gtk.Align.CENTER)
         self.labels['add_network'].set_hexpand(True)
@@ -439,10 +463,14 @@ class WiFiConnection(Gtk.Box):
         self.labels['network_psk'].grab_focus_without_selecting()
         self.show_all()
         self.show_add = True
-    
-    def on_change_entry(self, entry, event):
-        self._screen.show_keyboard(entry=entry, accept_function=self.on_accept_keyboard_dutton)
+
+    def on_change_entry(self, entry, event, ref_f=None):
+        self._screen.show_keyboard(entry=entry, accept_function=self.on_accept_keyboard_dutton, reject_function=ref_f)
         self._screen.keyboard.change_entry(entry=entry)
+    
+    def on_reject(self):
+        self._screen.remove_keyboard()
+        self.close_add_network()
 
     def on_accept_keyboard_dutton(self):
         self.add_new_network(self.labels['network_psk'], self.ssid, True)
@@ -471,8 +499,8 @@ class WiFiConnection(Gtk.Box):
             connected = False
 
         if connected or self.wifi.get_connected_ssid() == ssid:
-            stream = os.popen('hostname -f')
-            hostname = stream.read().strip()
+            result = subprocess.run(['hostname', '-f'], capture_output=True, text=True)
+            hostname = result.stdout.strip()
             ifadd = netifaces.ifaddresses('wlan0')
             if netifaces.AF_INET in ifadd and len(ifadd[netifaces.AF_INET]) > 0:
                 ipv4 = f"<b>IPv4:</b> {ifadd[netifaces.AF_INET][0]['addr']} "
@@ -509,10 +537,10 @@ class WiFiConnection(Gtk.Box):
                 self.labels['networks'][ssid][button].set_sensitive(not self.connecting)
         self.labels['networks'][ssid]['info'].show_all()
         self.labels['networks'][ssid]['row'].show_all()
-    
+
     def update_single_network_info(self):
-        stream = os.popen('hostname -f')
-        hostname = stream.read().strip()
+        result = subprocess.run(['hostname', '-f'], capture_output=True, text=True)
+        hostname = result.stdout.strip()
         ifadd = netifaces.ifaddresses(self.wireless_interfaces[0])
         ipv4 = ""
         ipv6 = ""
@@ -552,4 +580,3 @@ class WiFiConnection(Gtk.Box):
         if self.update_timeout is not None:
             GLib.source_remove(self.update_timeout)
             self.update_timeout = None
-            

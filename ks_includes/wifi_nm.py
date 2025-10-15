@@ -98,17 +98,11 @@ class WifiManager:
             "rescan_finish": []
             #"properties_changed": []
         }
-        self.connected = False
-        self.connected_ssid = None
         self.known_networks = {}  # List of known connections
         self.visible_networks = {}  # List of visible access points
         self.ssid_by_path = {}
         self.path_by_ssid = {}
         self.hidden_ssid_index = 0
-        try:
-            self.last_connected_ssid = self.get_connected_ssid()
-        except:
-            self.last_connected_ssid = None
         self.wireless_device = NetworkManager.NetworkManager.GetDeviceByIpIface(wireless_interface)
         self.wireless_device.OnAccessPointAdded(self._ap_added)
         self.wireless_device.OnAccessPointRemoved(self._ap_removed)
@@ -158,13 +152,9 @@ class WifiManager:
             self.callback(NM_STATE[new_state]['callback'], NM_STATE[new_state]['msg'])
 
         if new_state == NetworkManager.NM_DEVICE_STATE_ACTIVATED:
-            self.connected = True
-            self.last_connected_ssid = self.get_connected_ssid
             for cb in self._callbacks['connected']:
                 args = (cb, self.get_connected_ssid(), None)
                 GLib.idle_add(*args)
-        else:
-            self.connected = False
 
     def _add_ap(self, ap):
         ssid = ap.Ssid
@@ -236,7 +226,6 @@ class WifiManager:
                 NetworkManager.NetworkManager.ActivateConnection(conn, self.wireless_device, "/")
 
     def disconnect_network(self, ssid):
-        self.last_connected_ssid = ssid
         self.wireless_device.SpecificDevice().Disconnect()
         
     def delete_network(self, ssid):
@@ -280,35 +269,54 @@ class WifiManager:
                 netinfo.update({
                     "mac": ap.HwAddress,
                     "channel": WifiChannels.lookup(str(ap.Frequency))[1],
+                    "encryption": self._get_encryption(ap.WpaFlags, ap.RsnFlags),
                     "configured": ssid in self.visible_networks,
                     "frequency": str(ap.Frequency),
                     "flags": ap.Flags,
                     "ssid": ssid,
                     "is_hotspot": mode == 'ap',
                     "connected": self._get_connected_ap() == ap,
-                    "encryption": self._get_encryption(ap.RsnFlags),
                     "signal_level_dBm": int(ap.Strength),
                 })
         return netinfo
+    
+    def is_open_network(self, ssid):
+        path = self.path_by_ssid[ssid]
+        aps = self.visible_networks
+        if path in aps:
+            ap = aps[path]
+            encryption = self._get_encryption(ap.WpaFlags, ap.RsnFlags)
+            return  not encryption or 'WEP' not in encryption and 'WPA' not in encryption and 'PSK' not in encryption
+        logging.warning(f"ssid {ssid} not in visible_networks, passed")
+        return False
 
     @staticmethod
-    def _get_encryption(flags):
+    def _get_encryption(wpa_flags, rsn_flags):
+        """Определяет тип шифрования на основе флагов WPA и RSN"""
         encryption = ""
-        if (flags & NetworkManager.NM_802_11_AP_SEC_PAIR_WEP40 or
-            flags & NetworkManager.NM_802_11_AP_SEC_PAIR_WEP104 or
-            flags & NetworkManager.NM_802_11_AP_SEC_GROUP_WEP40 or
-            flags & NetworkManager.NM_802_11_AP_SEC_GROUP_WEP104):
-                encryption += "WEP "
-        if (flags & NetworkManager.NM_802_11_AP_SEC_PAIR_TKIP or
-            flags & NetworkManager.NM_802_11_AP_SEC_GROUP_TKIP):
-                encryption += "TKIP "
-        if (flags & NetworkManager.NM_802_11_AP_SEC_PAIR_CCMP or
-            flags & NetworkManager.NM_802_11_AP_SEC_GROUP_CCMP):
-                encryption += "AES "
-        if flags & NetworkManager.NM_802_11_AP_SEC_KEY_MGMT_PSK:
-                encryption += "WPA-PSK "
-        if flags & NetworkManager.NM_802_11_AP_SEC_KEY_MGMT_802_1X:
-                encryption += "802.1x "
+        
+        # Проверяем WPA флаги
+        if wpa_flags & NetworkManager.NM_802_11_AP_SEC_KEY_MGMT_PSK:
+            encryption += "WPA-PSK "
+        if wpa_flags & NetworkManager.NM_802_11_AP_SEC_KEY_MGMT_802_1X:
+            encryption += "WPA-EAP "
+        
+        # Проверяем RSN флаги (WPA2/WPA3)
+        if rsn_flags & NetworkManager.NM_802_11_AP_SEC_KEY_MGMT_PSK:
+            encryption += "WPA2-PSK "
+        if rsn_flags & NetworkManager.NM_802_11_AP_SEC_KEY_MGMT_802_1X:
+            encryption += "WPA2-EAP "
+        if rsn_flags & NetworkManager.NM_802_11_AP_SEC_KEY_MGMT_SAE:
+            encryption += "WPA3 "  # SAE означает WPA3
+        if rsn_flags & NetworkManager.NM_802_11_AP_SEC_KEY_MGMT_OWE:
+            encryption += "OWE "   # Enhanced Open
+        
+        # Если нет флагов управления ключами, но есть флаги приватности
+        if (not encryption and 
+            (wpa_flags & NetworkManager.NM_802_11_AP_FLAGS_PRIVACY or 
+            rsn_flags & NetworkManager.NM_802_11_AP_FLAGS_PRIVACY)):
+            encryption = "WEP"
+        
         return encryption.strip()
 
     def get_networks(self):
@@ -318,7 +326,7 @@ class WifiManager:
         return {ssid: {"ssid": ssid} for ssid in self.known_networks.keys()}
 
     def rescan(self):
-        if not self.rescan_thread.is_alive():
+        if self.rescan_thread and not self.rescan_thread.is_alive():
             self.rescan_thread = self.thread_rescan_popen_callback(self._on_rescan)
         return True
     
