@@ -58,7 +58,11 @@ class Panel(ScreenPanel):
         self.states.append('choise')
         
         self.content.add(self.state_content[self.states.current.data]())
-        
+    
+    # def activate(self):
+    #   if self._printer.get_stat("bed_mesh", "profile_name") != "":
+    #     self._screen.show_popup_message(_("Warning! Printer has active bed mesh. If you are want to diagnostic XYmotors, then bed mesh will be cleared"), level=2, just_popup=True, timeout=10)
+
     def VerticalBox(self):
       return Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
@@ -453,6 +457,9 @@ class Panel(ScreenPanel):
       next_button.set_sensitive(True)
 
     def to_xy_motors_check(self, widget):
+      active_mesh = self._printer.get_stat("bed_mesh", "profile_name")
+      if active_mesh != "":
+        self._screen._ws.klippy.gcode_script("BED_MESH_CLEAR")
       title = Gtk.Label(label= _("XY motors"))
       title.get_style_context().add_class("label_chars")
       
@@ -509,7 +516,7 @@ class Panel(ScreenPanel):
       main_box.add(title)
       main_box.add(c_box)
       main_box.connect("realize", self.on_xy_box_realized)
-      main_box.connect("destroy", self.on_xy_destroy)
+      main_box.connect("destroy", self.on_xy_destroy, active_mesh)
       for child in self.content:
         self.content.remove(child)
       self.content.add(self.state_box(main_box))
@@ -518,14 +525,18 @@ class Panel(ScreenPanel):
     def on_xy_box_realized(self, *args):
       self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_ABSOLUTE}\nSET_KINEMATIC_POSITION X=150 Y=150")
 
-    def on_xy_destroy(self, *args):
+    def on_xy_destroy(self, widget, active_mesh):
+      if active_mesh:
+        self._screen._ws.klippy.gcode_script(KlippyGcodes.bed_mesh_load(active_mesh))
       self.disable_motors()
 
     def xy_move(self, widget, event, axis):
       new_val = widget.get_value()
       # if axis == 'Y':
       #   new_val *= -1
-      self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE} {axis}{self.axes_center[axis] + new_val} F3000")
+      move_gcode = f"{KlippyGcodes.MOVE} {axis}{self.axes_center[axis] + new_val} F3000"
+      logging.info(f"move gcode is: {move_gcode}")
+      self._screen._ws.klippy.gcode_script(move_gcode)
 
     def popup_popdown(self, widget, popup):
       popup.popdown()

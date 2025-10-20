@@ -178,10 +178,12 @@ class Panel(ScreenPanel):
                     axes_up = axes.upper()
                     self.labels[axes_up].set_text(f"{axes_up}: ?")
                     self.sensitive_axes(axes, False)  
+            logging.info(f"gcode_move in data: {data['gcode_move']}")
             if not self.is_homing:
-                if not self.movement_area.is_ready():
+                if self.movement_area.ready_to_activate():
                     self.movement_area.activate_movement_area()
-                self.movement_area.on_external_move(data['gcode_move']['gcode_position'])
+                if self.movement_area.activated:
+                  self.movement_area.on_external_move(data['gcode_move']['gcode_position'])
             elif self.movement_area.activated:
                 self.movement_area.deactivate_movement_area()
 

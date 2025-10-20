@@ -300,6 +300,7 @@ class XYStrategy(BaseStrategy):
         return f"{KlippyGcodes.MOVE} X{x_coord:.2f} Y{y_coord:.2f} F{speed}"
 
     def is_homed_required_axes(self):
+        logging.info(f"get toolhead homed_axes data: {self.movement_area.printer.get_stat('toolhead', 'homed_axes')}")
         return "x" in self.movement_area.printer.get_stat("toolhead", "homed_axes") and "y" in self.movement_area.printer.get_stat("toolhead", "homed_axes")
 
     def mm_speed_to_pixel_speed(self, speed_x, speed_y):
@@ -355,8 +356,8 @@ class MovementArea(Gtk.EventBox):
         self.add_events(Gdk.EventMask.POINTER_MOTION_MASK)
         GLib.timeout_add(1300, self.init_sizes)
 
-    def is_ready(self):
-        return self.strategy.is_homed_required_axes() and self.activated
+    def ready_to_activate(self):
+        return self.strategy.is_homed_required_axes() and not self.activated
 
     def change_strategy(self, NewStrategy):
         self.activated = False
