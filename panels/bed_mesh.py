@@ -333,8 +333,7 @@ class Panel(ScreenPanel):
             self.calibration_status_label.set_label(_("Wait preheat: %s") % f"{int(temp):3}°/{int(target)}°  {int(power * 100):3}%")
         else:
           self.calibration_status_label.set_label(_("Calibration %d of %d, waiting...") % (self.group_current_mesh, self.group_bed_mesh_len))
-        
-    
+
     def process_update(self, action, data):
         if self.calibration_dialog:
           temp = self._printer.get_dev_stat("heater_bed", "temperature")

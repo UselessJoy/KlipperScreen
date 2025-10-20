@@ -1,6 +1,9 @@
 import logging
 import os
+import re
 import gi
+from ks_includes.KlippyGcodes import KlippyGcodes
+from ks_includes.widgets.settings.combo_box_setting import ComboBoxSetting
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Pango
 from datetime import datetime
@@ -18,6 +21,7 @@ def format_label(widget):
         label.set_lines(2)
 
 class Panel(ScreenPanel): 
+    def_re = re.compile('^profile_(?P<i>\d+)$')
     def __init__(self, screen, title):
         super().__init__(screen, title)
         sortdir = self._config.get_main_config().get("print_sort_dir", "name_asc")
@@ -27,6 +31,9 @@ class Panel(ScreenPanel):
             "date": _("Date"),
             "size": _("Size"),
             "print_start_time": _("Last Print Time")
+        }
+        self.locale_mesh = {
+            _("Off"): "Off"
         }
         if sortdir[0] not in self.sort_items or sortdir[1] not in ["asc", "desc"]:
             sortdir = ["name", "asc"]
@@ -362,6 +369,7 @@ class Panel(ScreenPanel):
     def confirm_print(self, widget, filename):
         buttons = [
             # {"name": _("Delete"), "response": Gtk.ResponseType.REJECT, "style": 'color1'},
+            {"name": _("Settings"), "response": Gtk.ResponseType.APPLY, "style": 'color1'},
             {"name": _("Print"), "response": Gtk.ResponseType.OK, "style": 'color2'},
             {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": 'color3'}
         ]
@@ -416,14 +424,92 @@ class Panel(ScreenPanel):
         self._gtk.remove_dialog(dialog)
 
     def confirm_print_response(self, dialog, response_id, filename):
-        self._gtk.remove_dialog(dialog)
-        if response_id == Gtk.ResponseType.CANCEL:
+        if response_id == Gtk.ResponseType.APPLY:
+            self.open_settings_dialog()
+            return
+        elif response_id == Gtk.ResponseType.CANCEL:
+            self._gtk.remove_dialog(dialog)
             return
         elif response_id == Gtk.ResponseType.OK:
             logging.info(f"Starting print: {filename}")
             self._screen._ws.klippy.print_start(filename)
         elif response_id == Gtk.ResponseType.REJECT:
             self.confirm_delete_file(None, f"gcodes/{filename}")
+        self._gtk.remove_dialog(dialog)
+
+    def open_settings_dialog(self):
+        self._screen._ws.klippy.run_timelapse_method("get_settings", self.on_get_settings)
+
+    def on_get_settings(self, result, method, params):
+        settings = result['result']
+        buttons = [
+            {"name": _("Close"), "response": Gtk.ResponseType.CANCEL, "style": "color2"},
+        ]
+        scroll = self._gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC) 
+        scroll.set_min_content_width(self._gtk.content_width * 0.75)
+        scroll.set_min_content_height(self._gtk.content_height * 0.75)
+        scroll.add(self.settings_content(settings['enabled']))
+        box = Gtk.Box()
+        box.add(scroll)
+        self._gtk.Dialog(buttons, box, _("Print settings"), self.close_settings_dialog)
+
+    def close_settings_dialog(self, dialog, response_id):
+        self.locale_mesh = { _("Off"): "Off" }
+        self._gtk.remove_dialog(dialog)
+
+    def settings_content(self, is_timelapse_enabled):
+        timelapse_switch = Gtk.Switch(active=is_timelapse_enabled)
+        timelapse_switch.connect("notify::active", self.switch_timelapse_status)
+        timelapse_switch_box = Gtk.Box()
+        timelapse_switch_box.set_hexpand(True)
+        timelapse_switch_box.set_vexpand(False)
+        timelapse_switch_box.set_valign(Gtk.Align.CENTER)
+        timelapse_switch_box.pack_start(Gtk.Label(label=_("timelapse")), False, False, 0)
+        timelapse_switch_box.pack_end(timelapse_switch, False, False, 0)
+
+
+        autooff_switch = Gtk.Switch(active=is_timelapse_enabled)
+        autooff_switch.connect("notify::active", self.switch_autooff_status)
+        autooff_switch_box = Gtk.Box()
+        autooff_switch_box.set_hexpand(True)
+        autooff_switch_box.set_vexpand(False)
+        autooff_switch_box.set_valign(Gtk.Align.CENTER)
+        autooff_switch_box.pack_start(Gtk.Label(label=_("Autooff after print")), False, False, 0)
+        autooff_switch_box.pack_end(autooff_switch, False, False, 0)
+
+        meshes: dict[str] = self._printer.get_meshes()
+        active_mesh = _("Off")
+        for mesh in list(meshes):
+            locale_name = mesh
+            result = self.def_re.search(locale_name)
+            if result:
+              result = result.groupdict()
+              locale_name = _("profile_%d") % int(result['i'])
+            self.locale_mesh[locale_name] = mesh
+            if mesh == self._printer.get_active_mesh():
+                active_mesh = locale_name
+        
+        bed_mesh_box = ComboBoxSetting(_("Bed Mesh"), self._screen, self.locale_mesh, active_mesh, self.on_mesh_changed)
+        bed_mesh_box.set_vexpand(False)
+        setting_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        setting_box.add(timelapse_switch_box)
+        setting_box.add(autooff_switch_box)
+        setting_box.add(bed_mesh_box)
+
+        return setting_box
+
+    def on_mesh_changed(self, widget, mesh, setting):
+        if mesh == _("Off"):
+          self._screen._ws.klippy.gcode_script("BED_MESH_CLEAR")
+          return
+        self._screen._ws.klippy.gcode_script(KlippyGcodes.bed_mesh_load(self.locale_mesh[mesh]))
+
+    def switch_timelapse_status(self, switch, gdata):
+        self._screen._ws.klippy.timelapse_set_settings({"enabled": switch.get_active()})
+
+    def switch_autooff_status(self, switch, gdata):
+        self._screen.set_autooff(switch.get_active())
 
     def get_info_str(self, item, path):
         info = ""

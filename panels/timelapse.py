@@ -294,9 +294,6 @@ class Panel(ScreenPanel):
             logging.error(f"Error creating pixbuf: {e}")
             return None
 
-    def set_setting(self, setting, value):
-        self._screen._ws.klippy.timelapse_set_settings({setting: value})
-
     def open_render_settings_dialog(self, widget):
         self._screen._ws.klippy.run_timelapse_method("get_settings", self.on_get_settings)
 

@@ -144,6 +144,12 @@ class Printer:
                     return "printing"
         return self.data['webhooks']['state']
 
+    def get_meshes(self):
+        return self.data['bed_mesh']['profiles']
+    
+    def get_active_mesh(self):
+        return self.data['bed_mesh']['profile_name']
+
     def process_status_update(self) -> bool:
         state = self.evaluate_state()
         if state != self.state:

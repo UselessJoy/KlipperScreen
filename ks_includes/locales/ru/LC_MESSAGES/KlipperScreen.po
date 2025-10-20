@@ -569,7 +569,7 @@ msgid "Max"
 msgstr "Максимум"
 
 msgid "Max Acceleration"
-msgstr "Максимальное ускорение"
+msgstr "Ускорение"
 
 msgid "Minimum Cruise Ratio"
 msgstr "Мин. коэф. крейсерской скорости"
@@ -1110,7 +1110,7 @@ msgid "Speed:"
 msgstr "Скорость:"
 
 msgid "Square Corner Velocity"
-msgstr "Квадратная угловая скорость"
+msgstr "Скорость прохождения угла"
 
 msgid "Start"
 msgstr "Hачать"
