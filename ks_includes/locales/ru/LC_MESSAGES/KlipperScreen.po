@@ -220,6 +220,9 @@ msgstr "Преднагрев: %s"
 msgid "Calibration %d of %d, waiting..."
 msgstr "Калибровка %d из %d, ожидайте..."
 
+msgid "Force move"
+msgstr "Принудительное движение"
+
 msgid "Bed mesh calibrating\nit can take a few minutes"
 msgstr "Калибровка стола\nэто может занять несколько минут"
 
