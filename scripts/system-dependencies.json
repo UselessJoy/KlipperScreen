@@ -18,7 +18,11 @@
         "libdbus-glib-1-dev",
         "policykit-1",
         "autoconf",
-        "systemd-timesyncd"
+        "systemd-timesyncd",
+        "python3-opengl",
+        "libgl1-mesa-dev",
+        "libgles2-mesa-dev",
+        "libglu1-mesa-dev"
     ],
     "arch": [
         "python-virtualenv",
@@ -33,6 +37,9 @@
         "openjpeg2",
         "dbus-glib",
         "polkit",
-        "autoconf"
+        "autoconf",
+        "mesa-libGL-devel",
+        "mesa-libGLU-devel",
+        "libepoxy-devel"
     ]
 }

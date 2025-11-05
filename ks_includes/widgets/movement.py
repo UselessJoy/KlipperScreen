@@ -182,7 +182,7 @@ class ZStrategy(BaseStrategy):
         speed = self.movement_area.screen._config.get_config()['main'].getint("move_speed_z", 20)
         speed = 60 * max(1, speed)
         cmd = self.move_from_layout(x, y, speed)
-        self.movement_area.main_gcode.append(cmd)
+        return cmd
   
     def move_from_layout(self, pixel_x, pixel_y, speed):
         z_coord = (pixel_y - self.cursor_button_height/2 - self.zero_pixel_z) * self.mm_pixel_ratio
@@ -291,7 +291,7 @@ class XYStrategy(BaseStrategy):
         speed = self.movement_area.screen._config.get_config()['main'].getint("move_speed_xy", 20)
         speed = 60 * max(1, speed)
         cmd = self.move_from_layout(x, y, speed)
-        self.movement_area.main_gcode.append(cmd)
+        return cmd
   
     def move_from_layout(self, pixel_x, pixel_y, speed):
         x_coord = (pixel_x - self.cursor_button_width/2 - self.zero_pixel_x) * self.mm_pixel_ratio_x
@@ -421,14 +421,15 @@ class MovementArea(Gtk.EventBox):
             recount_width, recount_height = self.strategy.recount_coordinates(args.x, args.y)
             center_width, center_height = self.strategy.center_coordinates(recount_width, recount_height)
             self.movement_area.move(self.strategy.image, center_width, center_height)
+            # if self.clicked:
+            #   self.main_gcode.append(self.strategy.make_move_gcode(recount_width, recount_height))
         except Exception as e:
             logging.error(f"Error in load coordinates:\n{e}")
 
     def start_move(self, widget, args):
         self.clicked = False
         recount_width, recount_height = self.strategy.recount_coordinates(args.x, args.y)
-        
-        self.strategy.make_move_gcode(recount_width, recount_height)
+        self.main_gcode.append(self.strategy.make_move_gcode(recount_width, recount_height))
         gcode = '\n'.join(str(cmd) for cmd in self.main_gcode)
         self.screen._ws.klippy.gcode_script(gcode)
         self.main_gcode = []

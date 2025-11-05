@@ -2,13 +2,13 @@ import logging
 import contextlib
 import re 
 import gi
+from ks_includes.widgets.bed_map_3d import BedMap3D
 from ks_includes.widgets.keyboard import Keyboard
 from ks_includes.widgets.numpad import Numpad
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, Pango, GLib
 from ks_includes.KlippyGcodes import KlippyGcodes
 from ks_includes.screen_panel import ScreenPanel
-from ks_includes.widgets.bedmap import BedMap
 from ks_includes.widgets.typed_entry import TypedEntry, NumberRule, SpaceRule
 
 class Panel(ScreenPanel):
@@ -61,9 +61,11 @@ class Panel(ScreenPanel):
         self.overlay = Gtk.Overlay()
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         content_box = Gtk.Box()
-        self.labels['map'] = BedMap(self._gtk.font_size, self.active_mesh)
+        
+        # Заменяем BedMap на BedMap3D
+        self.bed_map = BedMap3D()
         self.bedMapBox = Gtk.Box()
-        self.bedMapBox.add(self.labels['map'])
+        self.bedMapBox.add(self.bed_map)
         self.bedMapBox.set_vexpand(True)
         self.bedMapBox.set_valign(Gtk.Align.CENTER)
         self.bedMapBox.set_halign(Gtk.Align.CENTER)
@@ -92,6 +94,9 @@ class Panel(ScreenPanel):
 
     def activate(self):
         self.load_meshes()
+        GLib.timeout_add(200, self.delayed_initial_update)
+    
+    def delayed_initial_update(self):
         with contextlib.suppress(KeyError):
             self.activate_mesh(self._printer.get_stat("bed_mesh", "profile_name"), self._printer.get_stat("bed_mesh", "unsaved_profiles"))
 
@@ -193,11 +198,12 @@ class Panel(ScreenPanel):
         if bm is None:
             logging.info(f"Unable to load active mesh: {profile}")
             return None
-        matrix = 'probed_matrix'
+        matrix = 'mesh_matrix'
+        logging.info(f"bm matrix for profile {profile}: {bm[matrix]}")
         return bm[matrix]
 
     def show_calibration_dialog(self, widget=None):
-        label= Gtk.Label(_("Bed mesh calibrating\nit can take a few minutes"), vexpand=True, hexpand=True, halign=Gtk.Align.CENTER, justify=Gtk.Justification.CENTER)
+        label= Gtk.Label(_("Bed mesh calibrating\nit can take a few minutes"), vexpand=True, hexpand=True, halign=Gtk.Align.CENTER, justify=Gtk.Justification.CENTER)# убрать "a" в "a few"
         label.get_style_context().add_class("label_chars")
         self.calibration_status_label = Gtk.Label(vexpand=True, hexpand=True, margin_bottom=15, halign=Gtk.Align.CENTER)
         labelbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
@@ -221,8 +227,14 @@ class Panel(ScreenPanel):
         self._screen.base_panel.send_stop_bed_mesh()
 
     def update_graph(self, widget=None, profile=None):
-        self.labels['map'].update_bm(self.retrieve_bm(profile))
-        self.labels['map'].queue_draw()
+        logging.info(f"update_bm for profile {profile}")
+        bm = self.retrieve_bm(profile)
+        if not bm:
+            self.bed_map.hide()
+        else:
+          self.bed_map.update_bm(bm)
+          self.bed_map.show_all()
+        # self.bed_map.queue_draw()
     
     def add_profile(self, profile: str, unsaved_profiles: list[str] = []):
         logging.debug(f"Adding Profile: {profile}")

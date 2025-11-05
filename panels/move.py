@@ -134,16 +134,6 @@ class Panel(ScreenPanel):
         axes_up = axes.upper()
         self.labels[axes_up].set_text(f"{axes_up}: {new_position[AXIS[axes_up]]:.2f}")
         self.sensitive_axes(axes, True)
-        # self.movement_area.prev_coord[axes_up] = self.movement_area.last_coord[axes_up]
-        # self.movement_area.last_coord[axes_up] = new_position[AXIS[axes_up]]
-
-    # def _check_movement_area_state(self):
-    #     if not self.movement_area.strategy.is_homed_required_axes() or self.homed_axes:
-    #       if self.movement_area.activated:
-    #         self.movement_area.deactivate_movement_area()
-    #     elif not self.movement_area.activated:
-    #       if self.movement_area.strategy.is_homed_required_axes():
-    #           self.movement_area.activate_movement_area()
 
     def process_update(self, action, data):
         if action != "notify_status_update":
