@@ -554,8 +554,8 @@ class ZCalibrateStrategy(BaseStrategy):
         self.image_height          = 0
         self.buffer_image_height   = 0
 
-        max_z = float(20)
-        min_z = float(self.movement_area.printer.get_config_section("stepper_z")['position_endstop']) - 5
+        # max_z = float(20)
+        # min_z = float(self.movement_area.printer.get_config_section("stepper_z")['position_endstop']) - 5
         
         # self.coordinates.set_min("Z", min_z)
         # self.coordinates.set_max("Z", max_z)
