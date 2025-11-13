@@ -15,6 +15,7 @@ class Panel(ScreenPanel):
         # Флаги состояния
         self.is_homing = True
         self.homed_axes = ""
+        self.positions = {'X': 0, 'Y': 0, 'Z': 0}
         # Заполнение панели
         self.labels['move_menu'] = Gtk.Grid()
         self.movement_area = MovementArea(screen, self._printer)
@@ -132,6 +133,7 @@ class Panel(ScreenPanel):
     def update_axes(self, axes: str, new_position: list):
         AXIS = {'X': 0, 'Y': 1, 'Z': 2}
         axes_up = axes.upper()
+        self.positions[axes_up] = new_position[AXIS[axes_up]]
         self.labels[axes_up].set_text(f"{axes_up}: {new_position[AXIS[axes_up]]:.2f}")
         self.sensitive_axes(axes, True)
 
@@ -195,13 +197,16 @@ class Panel(ScreenPanel):
         speed = 60 * max(1, speed)
         min_axis = self.movement_area.strategy.coordinates.get_min(axis)
         max_axis = self.movement_area.strategy.coordinates.get_max(axis)
+        # if not self.movement_area.move_controller.get_axis_gcode_position(axis):
+        #     self._screen.show_popup_message(_("Error on get gcode position"), just_popup = True)
+        #     return
         if dist < 0:
-            if min_axis> self.movement_area.move_controller.get_axis_gcode_position(axis) + dist:
+            if min_axis > self.positions[axis] + dist:#self.movement_area.move_controller.get_axis_gcode_position(axis) + dist:
                 self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_ABSOLUTE}\n{KlippyGcodes.MOVE} {axis}{min_axis} F{speed}")
             else:
                self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_RELATIVE}\n{KlippyGcodes.MOVE} {axis}{dist} F{speed}") 
         else:
-            if max_axis < self.movement_area.move_controller.get_axis_gcode_position(axis) + dist:
+            if max_axis < self.positions[axis] + dist:
                 self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_ABSOLUTE}\n{KlippyGcodes.MOVE} {axis}{max_axis} F{speed}")
             else:
                self._screen._ws.klippy.gcode_script(f"{KlippyGcodes.MOVE_RELATIVE}\n{KlippyGcodes.MOVE} {axis}{dist} F{speed}") 

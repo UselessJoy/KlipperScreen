@@ -69,7 +69,7 @@ class BedMap3D(Gtk.GLArea):
         
         # Минимальная Z координата поверхности (для позиционирования осей)
         self.min_surface_z = 0.0
-        
+        self.max_surface_z = 0.0
         # Матрицы
         self.projection_matrix = np.identity(4, dtype=np.float32)
         self.view_matrix = np.identity(4, dtype=np.float32)
@@ -104,6 +104,7 @@ class BedMap3D(Gtk.GLArea):
         # Создаем вершины поверхности: [x, y, z, r, g, b, a]
         self.surface_vertices = []
         min_z = float('inf')
+        max_z = float('-inf')
         
         for i in range(self.grid_size):
             for j in range(self.grid_size):
@@ -112,6 +113,7 @@ class BedMap3D(Gtk.GLArea):
                 r = math.sqrt(xx*xx + yy*yy)
                 z = 0.1 * math.sin(r * 3) * math.exp(-r)
                 min_z = min(min_z, z)
+                max_z = max(max_z, z)
                 
                 # Цвет в зависимости от высоты
                 if z >= 0:
@@ -125,6 +127,7 @@ class BedMap3D(Gtk.GLArea):
         
         self.surface_vertices = np.array(self.surface_vertices, dtype=np.float32)
         self.min_surface_z = min_z
+        self.max_surface_z = max_z
         
         # Создаем индексы для треугольников поверхности
         self.surface_indices = []
@@ -156,6 +159,8 @@ class BedMap3D(Gtk.GLArea):
         # Полностью пересоздаем вершины поверхности
         self.surface_vertices = []
         min_z = float('inf')
+        max_z = float('-inf')
+        all_values = []  # Все значения для отображения на градиенте
         
         for i in range(self.grid_size):
             for j in range(self.grid_size):
@@ -169,6 +174,8 @@ class BedMap3D(Gtk.GLArea):
                     z_value = 0
                 
                 min_z = min(min_z, z_value)
+                max_z = max(max_z, z_value)
+                all_values.append(z_value)
                 
                 # Цвет в зависимости от высоты
                 if z_value >= 0:
@@ -182,8 +189,10 @@ class BedMap3D(Gtk.GLArea):
         
         self.surface_vertices = np.array(self.surface_vertices, dtype=np.float32)
         self.min_surface_z = min_z
+        self.max_surface_z = max_z
         
         print(f"New min_surface_z: {self.min_surface_z}")
+        print(f"New max_surface_z: {self.max_surface_z}")
         print(f"Surface vertices shape: {self.surface_vertices.shape}")
         
         # Полностью пересоздаем оси и сетки

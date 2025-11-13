@@ -10,9 +10,13 @@ def get_pixel_mm_ratio(full_height, button_height, max_mm, min_mm):
     return (full_height - button_height)/(max_mm - min_mm)
 
 class CoordinateController:
-    def __init__(self):
-        self.min = {"X": None, "Y": None, "Z": None}
-        self.max = {"X": None, "Y": None, "Z": None}
+    def __init__(self, printer):
+        self.max = {"X": float(printer.get_config_section("stepper_x")['position_max']), 
+                    "Y": float(printer.get_config_section("stepper_y")['position_max']), 
+                    "Z": float(printer.get_config_section("stepper_z")['position_max'])}
+        self.min = {"X": float(printer.get_config_section("stepper_x")['position_min']), 
+                    "Y": float(printer.get_config_section("stepper_y")['position_min']), 
+                    "Z": float(printer.get_config_section("stepper_z")['position_min'])}
         self.axes = ["X", "Y", "Z"]
 
     def _validate_axis(self, axis):
@@ -27,19 +31,19 @@ class CoordinateController:
             return False
         return True
 
-    def set_min(self, axis, value):
-        if not self._validate_axis(axis) or not self._validate_value(value):
-            return
-        self.min[axis.upper()] = value
+    # def set_min(self, axis, value):
+    #     if not self._validate_axis(axis) or not self._validate_value(value):
+    #         return
+    #     self.min[axis.upper()] = value
 
     def get_min(self, axis):
         if self._validate_axis(axis):
             return self.min[axis.upper()]
     
-    def set_max(self, axis, value):
-        if not self._validate_axis(axis) or not self._validate_value(value):
-            return
-        self.max[axis.upper()] = value
+    # def set_max(self, axis, value):
+    #     if not self._validate_axis(axis) or not self._validate_value(value):
+    #         return
+    #     self.max[axis.upper()] = value
 
     def get_max(self, axis):
         if self._validate_axis(axis):
@@ -119,7 +123,7 @@ class ZBorderController():
 class BaseStrategy:
     def __init__(self, movement_area):
         self.movement_area = movement_area
-        self.coordinates = CoordinateController()
+        self.coordinates = CoordinateController(self.movement_area.printer)
 
 class ZStrategy(BaseStrategy):
     def __init__(self, movement_area):
@@ -140,10 +144,10 @@ class ZStrategy(BaseStrategy):
         self.image_height          = 0
         self.buffer_image_height   = 0
         
-        max_z = float(self.movement_area.printer.get_config_section("stepper_z")['position_max'])
-        min_z = 0
-        self.coordinates.set_min("Z", min_z)
-        self.coordinates.set_max("Z", max_z)
+        # max_z = float(self.movement_area.printer.get_config_section("stepper_z")['position_max'])
+        # min_z = 0
+        # self.coordinates.set_min("Z", min_z)
+        # self.coordinates.set_max("Z", max_z)
 
     def init_sizes(self):
         self.image_width = self.image.get_allocation().width
@@ -233,15 +237,15 @@ class XYStrategy(BaseStrategy):
         self.buffer_image_height = 0
         
         # Инициализируем координаты через CoordinateController
-        max_x = float(self.movement_area.printer.get_config_section("stepper_x")['position_max'])
-        min_x = float(self.movement_area.printer.get_config_section("stepper_x")['position_min'])
-        max_y = float(self.movement_area.printer.get_config_section("stepper_y")['position_max'])
-        min_y = float(self.movement_area.printer.get_config_section("stepper_y")['position_min'])
+        # max_x = float(self.movement_area.printer.get_config_section("stepper_x")['position_max'])
+        # min_x = float(self.movement_area.printer.get_config_section("stepper_x")['position_min'])
+        # max_y = float(self.movement_area.printer.get_config_section("stepper_y")['position_max'])
+        # min_y = float(self.movement_area.printer.get_config_section("stepper_y")['position_min'])
         
-        self.coordinates.set_min("X", min_x)
-        self.coordinates.set_max("X", max_x)
-        self.coordinates.set_min("Y", min_y)
-        self.coordinates.set_max("Y", max_y)
+        # self.coordinates.set_min("X", min_x)
+        # self.coordinates.set_max("X", max_x)
+        # self.coordinates.set_min("Y", min_y)
+        # self.coordinates.set_max("Y", max_y)
 
     def init_sizes(self):
         self.image_width = self.image.get_allocation().width
@@ -553,8 +557,8 @@ class ZCalibrateStrategy(BaseStrategy):
         max_z = float(20)
         min_z = float(self.movement_area.printer.get_config_section("stepper_z")['position_endstop']) - 5
         
-        self.coordinates.set_min("Z", min_z)
-        self.coordinates.set_max("Z", max_z)
+        # self.coordinates.set_min("Z", min_z)
+        # self.coordinates.set_max("Z", max_z)
 
     def init_sizes(self):
         self.image_width = self.image.get_allocation().width

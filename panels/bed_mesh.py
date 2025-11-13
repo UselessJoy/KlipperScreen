@@ -3,6 +3,7 @@ import contextlib
 import re 
 import gi
 from ks_includes.widgets.bed_map_3d import BedMap3D
+from ks_includes.widgets.bedmap import BedMap
 from ks_includes.widgets.keyboard import Keyboard
 from ks_includes.widgets.numpad import Numpad
 gi.require_version("Gtk", "3.0")
@@ -25,6 +26,7 @@ class Panel(ScreenPanel):
         self.scroll = None
         self.was_child_scrolled = False
         self.overlayBox = self.calibration_dialog = None
+        self.is_3d = True
         self.new_default_profile_name = ""
         self.profiles = {}
         self.preheat_popups = []
@@ -32,11 +34,12 @@ class Panel(ScreenPanel):
             'calib': self._gtk.Button("resume", " " + _("Calibrate"), "color3", self.bts, Gtk.PositionType.LEFT, 1),
             'show_profiles': self._gtk.Button(None, " " + _("Profile manager"), "color1", self.bts, Gtk.PositionType.LEFT, 1),
             'clear': self._gtk.Button("cancel", " " + _("Clear bed mesh"), "color2", self.bts, Gtk.PositionType.LEFT, 1),
+            'change': self._gtk.Button(None, "   2D   ", "color4", self.bts, Gtk.PositionType.LEFT, 1),
             'save': self._gtk.Button("increase", _("Save profile"), "color3", self.bts, Gtk.PositionType.LEFT, 1)
         }
-
         self.buttons['save'].set_no_show_all(True)
         self.buttons['clear'].set_no_show_all(True)
+        self.buttons['change'].set_no_show_all(True)
         self.buttons['save'].set_vexpand(False)
         self.buttons['save'].set_halign(Gtk.Align.END)
         self.buttons['save'].connect("clicked", self.send_save_active_mesh)
@@ -45,6 +48,11 @@ class Panel(ScreenPanel):
         self.buttons['clear'].connect("size-allocate", self.on_allocate_clear_button)
         self.buttons['clear'].set_vexpand(False)
         self.buttons['clear'].set_halign(Gtk.Align.END)
+
+        self.buttons['change'].connect("clicked", self.change_mode)
+        # self.buttons['change'].connect("size-allocate", self.on_allocate_change_mode)
+        self.buttons['change'].set_vexpand(False)
+        self.buttons['change'].set_halign(Gtk.Align.END)
         
         self.buttons['calib'].connect("clicked", self.show_create_profile_menu)
         self.buttons['calib'].set_hexpand(True)
@@ -63,10 +71,19 @@ class Panel(ScreenPanel):
         content_box = Gtk.Box()
         
         # Заменяем BedMap на BedMap3D
-        self.bed_map = BedMap3D()
+        self.bed_map_3d = BedMap3D()
+        self.bed_map_2d = BedMap(self._gtk.font_size, self.active_mesh)
+        self.bed_map_2d.set_no_show_all(True)
+        self.bed_map_2d.hide()
+        # self.bed_map_3d.set_no_show_all(True)
+        # self.bed_map_3d.hide()
+        # self.bed_map_scale = BedMapScale()
         self.bedMapBox = Gtk.Box()
-        self.bedMapBox.add(self.bed_map)
+        self.bedMapBox.add(self.bed_map_3d)
+        self.bedMapBox.add(self.bed_map_2d)
+        # self.bedMapBox.add(self.bed_map_scale)
         self.bedMapBox.set_vexpand(True)
+        # self.bedMapBox.set_hexpand(True)
         self.bedMapBox.set_valign(Gtk.Align.CENTER)
         self.bedMapBox.set_halign(Gtk.Align.CENTER)
         self.baseBedMapW, self.baseBedMapH = self._gtk.content_width / 1.3, self._gtk.content_height / 1.3 - (main_box.get_spacing() * 3)
@@ -84,6 +101,7 @@ class Panel(ScreenPanel):
         control_mesh_box = Gtk.Box()
         control_mesh_box.pack_start(self.buttons['save'], True, False, 0)
         control_mesh_box.pack_end(self.buttons['clear'], True, False, 0)
+        control_mesh_box.pack_end( self.buttons['change'], True, False, 0)
         
         main_box.add(label_box)
         main_box.add(control_mesh_box)
@@ -99,10 +117,6 @@ class Panel(ScreenPanel):
     def delayed_initial_update(self):
         with contextlib.suppress(KeyError):
             self.activate_mesh(self._printer.get_stat("bed_mesh", "profile_name"), self._printer.get_stat("bed_mesh", "unsaved_profiles"))
-
-    def on_allocate_clear_button(self, widget=None, allocation=None, gdata=None):
-        buttonHeight = allocation.height
-        self.bedMapBox.set_size_request(self.baseBedMapW, self.baseBedMapH - buttonHeight)
 
     def activate_mesh(self, profile, unsaved_profiles):
         if profile == "":
@@ -127,6 +141,7 @@ class Panel(ScreenPanel):
             self.update_graph()
             self.labels['active_profile_name'].set_markup("<big><b>%s</b></big>" % (_("No mesh profile has been loaded")))
             self.buttons['clear'].hide()
+            self.buttons['change'].hide()
             self.buttons['save'].hide()
             return
         
@@ -188,10 +203,11 @@ class Panel(ScreenPanel):
         self.update_graph(profile=profile)
         self.labels['active_profile_name'].set_markup(_("<big><b>%s: %s</b></big>") % (_("Active profile"), locale_name))
         self.buttons['clear'].show()
+        self.buttons['change'].show()
         if self.overlayBox and self.scroll:
                 self.scroll.show_all()
         
-    def retrieve_bm(self, profile):
+    def retrieve_bm_3d(self, profile):
         if profile is None:
             return None
         bm = self._printer.get_stat("bed_mesh")
@@ -199,6 +215,17 @@ class Panel(ScreenPanel):
             logging.info(f"Unable to load active mesh: {profile}")
             return None
         matrix = 'mesh_matrix'
+        logging.info(f"bm matrix for profile {profile}: {bm[matrix]}")
+        return bm[matrix]
+
+    def retrieve_bm_2d(self, profile):
+        if profile is None:
+            return None
+        bm = self._printer.get_stat("bed_mesh")
+        if bm is None:
+            logging.info(f"Unable to load active mesh: {profile}")
+            return None
+        matrix = 'probed_matrix'
         logging.info(f"bm matrix for profile {profile}: {bm[matrix]}")
         return bm[matrix]
 
@@ -228,14 +255,16 @@ class Panel(ScreenPanel):
 
     def update_graph(self, widget=None, profile=None):
         logging.info(f"update_bm for profile {profile}")
-        bm = self.retrieve_bm(profile)
-        if not bm:
-            self.bed_map.hide()
+        bm_3d = self.retrieve_bm_3d(profile)
+        if not bm_3d:
+            self.bed_map_3d.hide()
         else:
-          self.bed_map.update_bm(bm)
-          self.bed_map.show_all()
-        # self.bed_map.queue_draw()
-    
+          self.bed_map_3d.update_bm(bm_3d)
+          if self.is_3d:
+              self.bed_map_3d.show_all()
+        self.bed_map_2d.update_bm(self.retrieve_bm_2d(profile))
+        self.bed_map_2d.queue_draw()
+
     def add_profile(self, profile: str, unsaved_profiles: list[str] = []):
         logging.debug(f"Adding Profile: {profile}")
 
@@ -743,6 +772,28 @@ class Panel(ScreenPanel):
     
     def send_clear_mesh(self, widget):
         self._screen._ws.klippy.gcode_script("BED_MESH_CLEAR")
+
+    def on_allocate_clear_button(self, widget=None, allocation=None, gdata=None):
+        buttonHeight = allocation.height
+        self.bedMapBox.set_size_request(self.baseBedMapW, self.baseBedMapH - buttonHeight)
+
+    def change_mode(self, widget):
+        if self.is_3d:
+            widget.set_label("   3D   ")
+            self.bed_map_3d.hide()
+            self.bed_map_2d.queue_draw()
+            self.bed_map_2d.set_no_show_all(False)
+            self.bed_map_2d.show_all()
+            self.is_3d = False
+        else:
+            widget.set_label("   2D   ")
+            self.bed_map_2d.hide()
+            self.bed_map_3d.show_all()
+            self.is_3d = True
+        return
+
+    # def on_allocate_change_mode(self, widget=None, allocation=None, gdata=None):
+    #     return
 
     def send_load_mesh(self, widget, profile):
         self._screen._ws.klippy.gcode_script(KlippyGcodes.bed_mesh_load(profile))
