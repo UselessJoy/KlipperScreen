@@ -396,7 +396,7 @@ class KlipperScreen(Gtk.Window):
       self.remove_window_classes(self.base_panel.main_grid.get_style_context())
       self.base_panel.main_grid.get_style_context().add_class(style)
 
-    def show_popup_message(self, message="", level=3, just_popup=False, timeout=5):
+    def show_popup_message(self, message="", level=3, just_popup=False, timeout=5, relative_to = None, position_type = Gtk.PositionType.BOTTOM, autoclose = None):
         self.close_screensaver()
         self.close_popup_message()
         self.log_notification(message, level)
@@ -405,9 +405,12 @@ class KlipperScreen(Gtk.Window):
             self.set_window_style("window-error")
           elif level == 2:
             self.set_window_style("window-warning")
-        autoclose = self._config.get_main_config().getboolean('autoclose_popups', True)
+        if autoclose == None:
+          autoclose = self._config.get_main_config().getboolean('autoclose_popups', True)
         width, height = self.width * .7, self.height * .2
-        self.popup_message = popup_message.PopupMessage(self.base_panel.titlebar, Gtk.PositionType.BOTTOM, message, level, timeout, autoclose, width, height, self.on_close_popup_message)
+        if not relative_to:
+            relative_to = self.base_panel.titlebar
+        self.popup_message = popup_message.PopupMessage(relative_to, position_type, message, level, timeout, autoclose, width, height, self.on_close_popup_message)
         self.popup_message.popup()
     
     def on_close_popup_message(self, widget):

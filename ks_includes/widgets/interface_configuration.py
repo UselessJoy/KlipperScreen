@@ -226,7 +226,6 @@ class InterfaceConfiguration(Gtk.Box):
         for property in self.labels['lan_static']:
                 self.labels['lan_static'][property].set_sensitive((not switch.get_active()))
 
-    #Реализовать
     def validate(self):
         return True
     

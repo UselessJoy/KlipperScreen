@@ -263,7 +263,7 @@ class KlippyGtk:
                 spinner.stop()
             widget.set_sensitive(True)
 
-    def Dialog(self, buttons, content, title=None, callback=None, *args, width=None, height=None, style=None, resizable=False):
+    def Dialog(self, buttons, content, title=None, callback=None, *args, width=None, height=None, style=None, resizable=False, on_realize=None):
         dialog = Gtk.Dialog(modal=True, transient_for=self.screen)
         if title:
             dialog.set_title(title)
@@ -281,6 +281,8 @@ class KlippyGtk:
         
         if buttons:
           for button in buttons:
+              if not button:
+                  continue
               dialog.add_button(button['name'], button['response'])
               b = dialog.get_widget_for_response(button['response'])
               if "image_name" in button:
@@ -310,7 +312,8 @@ class KlippyGtk:
         if style is not None:
             for cl in style:   
                 dialog.get_style_context().add_class(cl)
-
+        if on_realize:
+            dialog.connect("realize", on_realize)
         content_area = dialog.get_content_area()
         content_area.set_margin_start(15)
         content_area.set_margin_end(15)

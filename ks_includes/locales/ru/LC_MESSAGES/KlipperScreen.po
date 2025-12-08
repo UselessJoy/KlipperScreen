@@ -49,6 +49,9 @@ msgstr "KlipperScreen прекратит поддержку в июне 2024"
 msgid "Loading..."
 msgstr "Загрузка..."
 
+msgid "Set"
+msgstr "Установить"
+
 msgid "disconnected"
 msgstr "Нет соединения"
 
@@ -256,6 +259,12 @@ msgstr "Терминал"
 
 msgid "Continue"
 msgstr "Продолжить"
+
+msgid "Access"
+msgstr "Принять"
+
+msgid "Stop shaper calibrate?"
+msgstr "Остановить калибровку резонансов?"
 
 msgid "Cooldown"
 msgstr "Охладить"
@@ -1402,6 +1411,9 @@ msgstr ""
 
 msgid "DHCP selected. Set parameters will be deleted after saving"
 msgstr "Выбран DHCP. Установленные параметры будут удалены после применения изменений"
+
+msgid "Parameters setted"
+msgstr "Параметры установлены"
 
 msgid "Data is not valid"
 msgstr "Некорректный формат данных"

@@ -1,3 +1,4 @@
+# import logging
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
@@ -10,10 +11,25 @@ class BedMap(Gtk.DrawingArea):
         self.connect('draw', self.draw_graph)
         self.font_size = font_size
         self.font_spacing = round(self.font_size * 1.5)
-        self.bm = list(reversed(bm)) if bm is not None else None
+
+        new_bm = []
+        if bm is not None:
+          for row in list(reversed(bm)):
+              new_bm.append([point for point in row])
+        self.bm = new_bm
+        # logging.info(f"real bm {list(reversed(bm)) if bm is not None else None}")
+        # logging.info(f"bm after -1 {self.bm}")
+        # self.bm = list(bm) if bm is not None else None
 
     def update_bm(self, bm):
-        self.bm = list(reversed(bm)) if bm is not None else None
+        new_bm = []
+        if bm is not None:
+          for row in list(reversed(bm)):
+              new_bm.append([point for point in row])
+        self.bm = new_bm
+        # logging.info(f"real bm {list(reversed(bm)) if bm is not None else None}")
+        # logging.info(f"bm after -1 {self.bm}")
+        # self.bm = list(bm) if bm is not None else None
 
     def draw_graph(self, drawing_area, cairo_type):
         width = drawing_area.get_allocated_width()

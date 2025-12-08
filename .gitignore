@@ -8,3 +8,4 @@ dist/
 build/
 venv/
 panels/zcalibrate_new.py
+panels/input_shaper_old.py

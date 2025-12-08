@@ -162,16 +162,16 @@ class BasePanel(ScreenPanel):
         self.stop_pid_button.get_children()[0].get_style_context().add_class('pb-06rem') # Кривое решение выравнивания Label (но остальное не работает)
         self.stop_pid_button.set_no_show_all(True)
         self.stop_pid_button.hide()
-        
-        # self.stop_bed_mesh_button = self._gtk.Button("stop_bed_mesh", style='pb-06rem', scale=0.7, hexpand=False, vexpand=False)
-        # self.stop_bed_mesh_button.connect('clicked', self.send_stop_bed_mesh)
-        # self.stop_bed_mesh_button.set_no_show_all(True)
-        # self.stop_bed_mesh_button.hide()
 
         self.autooff_enable_button = self._gtk.Button("autooff", scale=0.7, hexpand=False, vexpand=False)
         self.autooff_enable_button.connect('clicked', self.show_disable_autooff_dialog)
         self.autooff_enable_button.set_no_show_all(True)
         self.autooff_enable_button.hide()
+
+        self.stop_shaper_button = self._gtk.Button("input_shaper_stop", scale=0.7, hexpand=False, vexpand=False)
+        self.stop_shaper_button.connect('clicked', self.show_stop_shaper_dialog)
+        self.stop_shaper_button.set_no_show_all(True)
+        self.stop_shaper_button.hide()
 
         self.titlelbl = Gtk.Label(hexpand=True, halign=Gtk.Align.CENTER, ellipsize=Pango.EllipsizeMode.END)
         self.control['time'] = Gtk.Label("00:00 AM")
@@ -187,7 +187,7 @@ class BasePanel(ScreenPanel):
         self.titlebar.add(self.uninstalled_updates_box)
         self.titlebar.add(self.magnet_probe_image)
         self.titlebar.add(self.titlelbl)
-        # self.titlebar.add(self.stop_bed_mesh_button)
+        self.titlebar.add(self.stop_shaper_button)
         self.titlebar.add(self.autooff_enable_button)
         self.titlebar.add(self.stop_pid_button)
         self.titlebar.add(self.control['time_box'])
@@ -537,12 +537,12 @@ class BasePanel(ScreenPanel):
                     self.stop_pid_button.show()
                 else:
                     self.stop_pid_button.hide()
-        # if 'bed_mesh' in data:
-        #   if 'is_calibrating' in data['bed_mesh']:
-        #     if data['bed_mesh']['is_calibrating']:
-        #       self.stop_bed_mesh_button.show()
-        #     else:
-        #       self.stop_bed_mesh_button.hide()
+        if 'resonance_tester' in data:
+            if 'shaping' in data['resonance_tester']:
+                if data['resonance_tester']['shaping']:
+                    self.stop_shaper_button.show()
+                else:
+                    self.stop_shaper_button.hide()
         if 'configfile' in data:
                 if 'save_config_pending' in data['configfile']:
                     if data['configfile']['save_config_pending']:
@@ -926,3 +926,28 @@ class BasePanel(ScreenPanel):
         if response_id == Gtk.ResponseType.OK:
             self._screen._ws.klippy.set_autooff(False)
             self.autooff_enable_button.hide()
+
+    def show_stop_shaper_dialog(self, *args):
+        buttons = [
+            {"name": _("Access"), "response": Gtk.ResponseType.OK, "style": "color1", 'width': self._screen.width * 0.3, 'height': 1},
+            {"name": _("Go Back"), "response": Gtk.ResponseType.CANCEL, "style": "color2", 'width': self._screen.width * 0.3, 'height': 1},
+        ]
+        grid = self._gtk.HomogeneousGrid()
+        label = Gtk.Label(label=_("Stop shaper calibrate?"))
+        label.set_line_wrap(True)
+        label.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        label.set_max_width_chars(40)
+        label.set_hexpand(True)
+        label.set_vexpand(True)
+        label.set_valign(Gtk.Align.CENTER)
+        label.set_halign(Gtk.Align.CENTER)
+        label.set_justify(Gtk.Justification.CENTER)
+        grid.attach(label, 0, 0, 1, 1)
+        self._gtk.Dialog(buttons, grid, _("Stop Shaper"), self.close_stop_shaper_dialog, width = 1, height = self._screen.height / 3).set_layout(Gtk.ButtonBoxStyle.FILL)
+        return False
+
+    def close_stop_shaper_dialog(self, dialog, response_id):
+        self._gtk.remove_dialog(dialog)
+        if response_id == Gtk.ResponseType.OK:
+            self._screen._ws.klippy.run_async_command('ASYNC_STOP_SHAPER')
+            self.stop_shaper_button.hide()

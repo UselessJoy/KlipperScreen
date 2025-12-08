@@ -377,8 +377,7 @@ class Panel(ScreenPanel):
       title = Gtk.Label(label= _("XY motors"))
       title.get_style_context().add_class("label_chars")
       content_box.add(title)
-      
-      #Тоже что-то типа очереди сделать надо
+
       dict_boxes = [
         {'lbl': Gtk.Label(_("Bed down")), 
          'btn': self._gtk.Button("home", _("Z 5"), "color2", hexpand=False, vexpand=False),

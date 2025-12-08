@@ -152,7 +152,7 @@ class BedMap3D(Gtk.GLArea):
         """Полная переинициализация геометрии поверхности из матрицы bed mesh"""
         print(f"=== FULL SURFACE REINIT ===")
         print(f"BM matrix dimensions: {len(bm_matrix)}x{len(bm_matrix[0])}")
-        
+        bm_matrix = list(reversed(bm_matrix))
         x = np.linspace(-self.surface_range/2, self.surface_range/2, self.grid_size)
         y = np.linspace(-self.surface_range/2, self.surface_range/2, self.grid_size)
         
