@@ -1273,18 +1273,6 @@ msgstr[2] "часа"
 msgid "minutes"
 msgstr "минут"
 
-msgid "mm"
-msgstr "мм"
-
-msgid "mm/s"
-msgstr "мм/с"
-
-msgid "mm/s²"
-msgstr "мм/с²"
-
-msgid "mm³/s"
-msgstr "мм³/с"
-
 # ###      NEW      ####
 # popups
 msgid "DPMS has failed to load"
@@ -1577,44 +1565,14 @@ msgstr "Удалить"
 msgid "Mark"
 msgstr "Выделить"
 
-msgid "g"
-msgstr "г"
-
 msgid "d"
 msgstr "д"
 
 msgid "h"
 msgstr "ч"
 
-msgid "m"
-msgstr "м"
-
 msgid "s"
 msgstr "с"
-
-msgid "kB"
-msgstr "кБ"
-
-msgid "MB"
-msgstr "МБ"
-
-msgid "GB"
-msgstr "ГБ"
-
-msgid "TB"
-msgstr "ТБ"
-
-msgid "PB"
-msgstr "ПБ"
-
-msgid "EB"
-msgstr "ЭБ"
-
-msgid "ZB"
-msgstr "ЗБ"
-
-msgid "YB"
-msgstr "ЙБ"
 
 #, python-format
 msgid "Please check that %s is working"
@@ -1653,6 +1611,85 @@ msgstr "Завершить диагностику"
 
 msgid "Back"
 msgstr "Назад"
+
+
+msgid "Statistic"
+msgstr "Статистика принтера"
+
+msgid "Total jobs"
+msgstr "Всего печатей"
+
+msgid "Total time"
+msgstr "Общее время печати (с учетом нагрева и паузы)"
+
+msgid "Total print time"
+msgstr "Общее время печати"
+
+msgid "Total filament used"
+msgstr "Всего использовано филамента"
+
+msgid "Longest job"
+msgstr "Самая долгая печать (с учетом нагрева и паузы)"
+
+msgid "Longest print"
+msgstr "Самая долгая печать"
+
+msgid "sec."
+msgstr "сек."
+msgid "min."
+msgstr "мин."
+msgid "h."
+msgstr "ч."
+msgid "mm/s"
+msgstr "мм/с"
+msgid "mm³/s"
+msgstr "мм³/с"
+msgid "mm/s²"
+msgstr "мм/с²"
+msgid "ms"
+msgstr "мс"
+msgid "m"
+msgstr "м"
+msgid "cm"
+msgstr "см"
+msgid "mm"
+msgstr "мм"
+msgid "μm"
+msgstr "мкм"
+msgid "kg"
+msgstr "кг"
+msgid "g"
+msgstr "г"
+msgid "Hz"
+msgstr "Гц"
+msgid "kHz"
+msgstr "кГц"
+msgid "MHz"
+msgstr "МГц"
+msgid "GHz"
+msgstr "ГГц"
+msgid "THz"
+msgstr "ТГц"
+msgid "kB"
+msgstr "кБ"
+msgid "MB"
+msgstr "МБ"
+msgid "GB"
+msgstr "ГБ"
+msgid "TB"
+msgstr "ТБ"
+msgid "PB"
+msgstr "ПБ"
+msgid "hPa"
+msgstr "гПа"
+msgid "Om"
+msgstr "Ом"
+msgid "kOm"
+msgstr "кОм"
+msgid "MOm"
+msgstr "МОм"
+msgid "GOm"
+msgstr "ГОм"
 
 msgid ""
 "1. Please, install the glass on the table if it is missing.\n\n"

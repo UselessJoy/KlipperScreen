@@ -2,12 +2,14 @@ import gi
 import logging
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Pango
+from ks_includes.widgets.typed_entry import SerialNumberRule, TypedEntry
+from ks_includes.widgets.keyboard import Keyboard
 from ks_includes.screen_panel import ScreenPanel
 
 class Panel(ScreenPanel):
     def __init__(self, screen, title):
         super().__init__(screen, title)
-        self.printers = self.settings = self.langs = {}
+        self.printers = self.settings = self.langs = self.entries = {}
         self.menu = ['settings_menu']
         options = self._config.get_configurable_options().copy()
         # options.append({"printers": {
@@ -53,6 +55,18 @@ class Panel(ScreenPanel):
             }
             self.add_option("printers", self.printers, pname, self.printers[pname])
 
+        try:
+            serial_number = screen.apiclient.send_request("printer/serial/get_serial")
+            opts = {
+            "name": _("Serial number"),
+            "text": serial_number['result']['serial_number'],
+            "type": "entry",
+            "on_accept": self.on_accept_serial
+            }
+            self.add_option("settings", self.entries, opts['name'], opts)
+        except Exception as e:
+            logging.error(f"Can't load serial number from klipper: {e}")
+        
         self.content.add(self.labels['settings_menu'])
 
     def process_update(self, action, data):
@@ -186,6 +200,17 @@ class Panel(ScreenPanel):
             select.set_hexpand(False)
             select.set_halign(Gtk.Align.END)
             dev.add(select)
+        elif option['type'] == 'entry':
+            entry = TypedEntry(SerialNumberRule)
+            if option['text']:
+              entry.set_text(option['text'])
+            else:
+              entry.set_text('')
+            # entry.set_hexpand(True)
+            # entry.set_vexpand(False)
+            entry.set_size_request(self._screen.width * 0.4, 1)
+            entry.connect("button-press-event", self.on_change_entry, option['on_accept'])
+            dev.add(entry)
 
         opt_array[opt_name] = {
             "name": option['name'],
@@ -198,3 +223,13 @@ class Panel(ScreenPanel):
         self.labels[boxname].insert_row(len(opt_array))
         self.labels[boxname].attach(opt_array[opt_name]['row'], 0, len(opt_array), 1, 1)
         self.labels[boxname].show_all()
+
+    def on_change_entry(self, entry, event, opt_func):
+        self._screen.show_keyboard(entry=entry, accept_function=opt_func)
+        self._screen.keyboard.change_entry(entry=entry)
+
+    def on_accept_serial(self):
+        if self._screen.keyboard:
+          self._screen._ws.klippy.set_serial_number(self._screen.keyboard.entry.get_text())
+          self._screen.remove_keyboard()
+          logging.info("serial number updated")

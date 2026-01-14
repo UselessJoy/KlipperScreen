@@ -74,6 +74,16 @@ class NumberRule(BaseRule):
           return ( re.match(r"[0-9]", key) and (int(entry.get_text() + key) < int(entry.max)))
         return re.match(r"[0-9]", key)
 
+class SerialNumberRule(BaseRule):
+    @staticmethod
+    def is_valid(entry, key:str):
+      if key == "⌫":
+        return True
+      if len(entry.get_text()) < 6:
+          return re.match(r"[0-9]", key)
+      else:
+        return False
+        
 class SpaceRule(BaseRule):
     @staticmethod
     def is_valid(entry, key:str):

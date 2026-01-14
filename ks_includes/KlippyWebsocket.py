@@ -655,3 +655,13 @@ class MoonrakerApi:
             callback,
             *args
         )
+
+    def set_serial_number(self, serial_number, callback=None, *args):
+        return self._ws.send_method(
+            "printer.serial.set_serial",
+            {
+                "serial_number": serial_number
+            },
+            callback,
+            *args
+        )

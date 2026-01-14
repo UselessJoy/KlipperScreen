@@ -1,8 +1,9 @@
-import logging
 import contextlib
+import logging
 import re 
 import gi
-from ks_includes.widgets.bed_map_3d import BedMap3D
+import numpy as np
+from ks_includes.widgets.bed_map_fast import FastBedMap
 from ks_includes.widgets.bedmap import BedMap
 from ks_includes.widgets.keyboard import Keyboard
 from ks_includes.widgets.numpad import Numpad
@@ -17,6 +18,7 @@ class Panel(ScreenPanel):
     
     def __init__(self, screen, title):
         super().__init__(screen, title)
+        self.dim_layer = None
         self.overlayBoxWidth = self._gtk.content_width / 1.2
         self.is_preheating = False
         self.group_current_mesh = self.group_bed_mesh_len = 1
@@ -69,21 +71,18 @@ class Panel(ScreenPanel):
         self.overlay = Gtk.Overlay()
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         content_box = Gtk.Box()
-        
-        # Заменяем BedMap на BedMap3D
-        self.bed_map_3d = BedMap3D()
+
+        self.bed_map_3d = FastBedMap(self._screen.width * 0.7, self._screen.height * 0.5)
+        self.bed_map_3d.set_halign(Gtk.Align.CENTER)
         self.bed_map_2d = BedMap(self._gtk.font_size, self.active_mesh)
         self.bed_map_2d.set_no_show_all(True)
         self.bed_map_2d.hide()
-        # self.bed_map_3d.set_no_show_all(True)
-        # self.bed_map_3d.hide()
-        # self.bed_map_scale = BedMapScale()
-        self.bedMapBox = Gtk.Box()
+        self.bed_map_3d.set_no_show_all(True)
+        self.bed_map_3d.hide()
+        self.bedMapBox = Gtk.Box(hexpand = True, halign = Gtk.Align.CENTER)
         self.bedMapBox.add(self.bed_map_3d)
         self.bedMapBox.add(self.bed_map_2d)
-        # self.bedMapBox.add(self.bed_map_scale)
         self.bedMapBox.set_vexpand(True)
-        # self.bedMapBox.set_hexpand(True)
         self.bedMapBox.set_valign(Gtk.Align.CENTER)
         self.bedMapBox.set_halign(Gtk.Align.CENTER)
         self.baseBedMapW, self.baseBedMapH = self._gtk.content_width / 1.3, self._gtk.content_height / 1.3 - (main_box.get_spacing() * 3)
@@ -207,7 +206,7 @@ class Panel(ScreenPanel):
         if self.overlayBox and self.scroll:
                 self.scroll.show_all()
         
-    def retrieve_bm_3d(self, profile):
+    def mesh_matrix_bm(self, profile):
         if profile is None:
             return None
         bm = self._printer.get_stat("bed_mesh")
@@ -216,9 +215,9 @@ class Panel(ScreenPanel):
             return None
         matrix = 'mesh_matrix'
         logging.info(f"bm matrix for profile {profile}: {bm[matrix]}")
-        return bm[matrix]
+        return bm[matrix][::-1]
 
-    def retrieve_bm_2d(self, profile):
+    def probed_matrix_bm(self, profile):
         if profile is None:
             return None
         bm = self._printer.get_stat("bed_mesh")
@@ -255,18 +254,21 @@ class Panel(ScreenPanel):
 
     def update_graph(self, widget=None, profile=None):
         logging.info(f"update_bm for profile {profile}")
-        bm_3d = self.retrieve_bm_3d(profile)
-        if not bm_3d:
-            self.bed_map_3d.hide()
-        else:
-          self.bed_map_3d.update_bm(bm_3d)
-          if self.is_3d:
-              self.bed_map_3d.show_all()
-        self.bed_map_2d.update_bm(self.retrieve_bm_2d(profile))
+        if self.is_3d:
+            bm = self.mesh_matrix_bm(profile)
+            if bm:
+                self.bed_map_3d.set_bed_mesh_data(bm)
+                self.bed_map_3d.queue_draw()
+                self.bed_map_3d.set_no_show_all(False)
+                self.bed_map_3d.show_all()
+            else:
+                self.bed_map_3d.hide()
+                self.bed_map_3d.set_no_show_all(True)
+        self.bed_map_2d.update_bm(self.probed_matrix_bm(profile))
         self.bed_map_2d.queue_draw()
 
     def add_profile(self, profile: str, unsaved_profiles: list[str] = []):
-        logging.debug(f"Adding Profile: {profile}")
+        logging.info(f"Adding Profile: {profile}")
 
         buttons = {} 
         if self.active_mesh != profile:
@@ -458,8 +460,6 @@ class Panel(ScreenPanel):
         self.new_profiles_grid = Gtk.Grid()
         
         preheats = self._config.get_default_preheats()
-        # merge temp profiles to one with the same preheat temp
-        #{"temp": ["profile_for_temp"]}
         merged: dict[int, list[str]] = {}
         for name in preheats:
           if preheats[name]['bed'] not in merged:
@@ -708,14 +708,9 @@ class Panel(ScreenPanel):
                     has_incorrect_data = True
             cmd_preheats.append(prh_t if prh_t else "0")
             cmd_saves.append(str(profiles_dict[profile_i]['save']))
-                  # cmd = cmd + f"BED_MESH_CALIBRATE PROFILE={profiles_dict[profile_i]['profile_name']} SAVE_PERMANENTLY={str(profiles_dict[profile_i]['save']).upper()} PREHEAT={prh_t if prh_t else 0}\n"
         if has_incorrect_data:
             GLib.timeout_add_seconds(5, self.close_preheat_popups)
             return Gdk.EVENT_STOP
-        # cmd += ""
-        # cmd_array = cmd.split('\n')
-        # cmd_array.reverse()
-        # cmd = "\n".join(cmd_array)
         cmd_profiles.reverse()
         cmd_preheats.reverse()
         cmd_saves.reverse()
@@ -781,6 +776,7 @@ class Panel(ScreenPanel):
         if self.is_3d:
             widget.set_label("   3D   ")
             self.bed_map_3d.hide()
+            self.bed_map_3d.set_no_show_all(True)
             self.bed_map_2d.queue_draw()
             self.bed_map_2d.set_no_show_all(False)
             self.bed_map_2d.show_all()
@@ -788,12 +784,12 @@ class Panel(ScreenPanel):
         else:
             widget.set_label("   2D   ")
             self.bed_map_2d.hide()
+            self.bed_map_2d.set_no_show_all(True)
+            self.bed_map_3d.queue_draw()
+            self.bed_map_3d.set_no_show_all(False)
             self.bed_map_3d.show_all()
             self.is_3d = True
         return
-
-    # def on_allocate_change_mode(self, widget=None, allocation=None, gdata=None):
-    #     return
 
     def send_load_mesh(self, widget, profile):
         self._screen._ws.klippy.gcode_script(KlippyGcodes.bed_mesh_load(profile))
