@@ -932,14 +932,17 @@ msgstr "Переименовать:"
 msgid "Restart"
 msgstr "Перезагрузка"
 
+msgid "Start Fix"
+msgstr "Начать обновление"
+
 msgid "Shutdown on cooling"
 msgstr "Выключить после охлаждения"
 
 msgid "System fixes are not fully installed"
 msgstr "Системные исправления установлены не полностью"
 
-msgid "Repeat Update"
-msgstr "Повторить попытку"
+msgid "Continue Fix"
+msgstr "Продолжить обновление"
 
 msgid "Network Panel"
 msgstr "Меню \"Сеть\""

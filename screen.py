@@ -317,7 +317,7 @@ class KlipperScreen(Gtk.Window):
                 "manual_probe": ["is_active", "command", "z_position_endstop"],
                 "pid_calibrate": ["is_calibrating"],
                 "filament_watcher": ['filament_type', 'show_message'],
-                "fixing": ['has_uninstalled_updates', 'open_dialog', 'dialog_message', 'require_internet', 'can_reboot']
+                "fixing": ['all_updated', 'dialog_message', 'require_internet', 'require_reboot', 'updating']
             }
         }
         for extruder in self.printer.get_tools():

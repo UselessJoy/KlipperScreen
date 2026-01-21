@@ -449,7 +449,7 @@ class MoonrakerApi:
             *args
         )
         
-    def repeat_update(self, callback=None, *args):
+    def start_update(self, callback=None, *args):
         logging.debug("Sending printer.fixing.repeat_update")
         return self._ws.send_method(
             "printer.fixing.repeat_update",
@@ -472,15 +472,6 @@ class MoonrakerApi:
             callback,
             *args
       )
-
-    def close_dialog(self, callback=None, *args):
-        logging.debug("Sending printer.fixing.close_dialog")
-        return self._ws.send_method(
-            "printer.fixing.close_dialog",
-            {},
-            callback,
-            *args
-        )
 
     def get_old_frames(self, callback=None, *args):
       logging.debug("Sending machine.timelapse.old_frames")
@@ -665,3 +656,6 @@ class MoonrakerApi:
             callback,
             *args
         )
+    
+    def get_history_totals(self, callback=None, *args):
+        return self._ws.send_method("server.history.totals", {}, callback, *args)

@@ -491,6 +491,15 @@ scrollbar slider {
     border-radius: 1em;
 }
 
+.fix_dialog {
+  background-color: #00303b;/*#01333f;*/
+  box-shadow: 0px 0px 5px 5px rgba(10, 145, 178, 0.2), 0px 0px 5px 5px rgba(10, 145, 178, 0.2) inset;
+  /* border-width: .3em; */
+  /* border-style: solid; */
+  border-radius: 1em;
+  /* border-color: #0a91b3; */
+}
+
 .popup {
     background-color: #002b36; /*solarized-cyan*/
     border: .1em solid white;
