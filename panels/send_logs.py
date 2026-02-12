@@ -10,19 +10,15 @@ class Panel(ScreenPanel):
     def __init__(self, screen, title):
         super().__init__(screen, title)
         try:
-          serial_number = screen.apiclient.send_request("printer/serial/get_serial")
+          serial_number = str(screen.apiclient.send_request("printer/serial/get_serial")['result']['serial_number'])
         except Exception as e:
-            serial_number = {
-               'result': {
-                  'serial_number': ''
-               }
-            }
+            serial_number = ''
             logging.error(f"Can't load serial number from klipper: {e}")
            
         self.labels['form'] = {
             'fullname': TypedEntry(text="", hexpand=True),
             'phone' : TypedEntry(text="", hexpand=True, entry_rule=NumberRule),
-            'serial_number' : TypedEntry(text=serial_number["result"]["serial_number"], entry_rule=NumberRule, hexpand=True, placeholder_text=_("Necessary")),
+            'serial_number' : TypedEntry(text=serial_number, entry_rule=NumberRule, hexpand=True, placeholder_text=_("Necessary")),
             'email' : TypedEntry(text="", hexpand=True, placeholder_text=_("Necessary")),
             'description':TextView(placeholder_text=_("Necessary"))
         }
