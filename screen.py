@@ -11,7 +11,6 @@ import traceback  # noqa
 import locale
 import sys
 import gi
-import distro
 import shutil
 from ks_includes.widgets import popup_message
 gi.require_version("Gtk", "3.0")
@@ -211,10 +210,23 @@ class KlipperScreen(Gtk.Window):
                                      + _("KlipperScreen will drop support in June 2024"), 2)
 
     def get_pwd(self):
-      dist: str = distro.name(pretty=True)
-      logging.info(f"distro name is {dist}")
-      # Пока системы всего две, то можно и так сделать
-      return "orangepi" if dist.lower().find("debian") != -1 else "user"
+        dist = self._get_distro_name()
+        logging.info(f"distro name is {dist}")
+        return "orangepi" if "debian" in dist else "user"
+
+    def _get_distro_name(self):
+        try:
+            with open('/etc/os-release', 'r') as f:
+                content = f.read().lower()
+                if 'debian' in content:
+                    return 'debian'
+                elif 'redos' in content:
+                    return 'redos'
+                else:
+                    return ''
+        except FileNotFoundError:
+            pass
+        return ''
 
     def initial_connection(self):
         self.printers = self._config.get_printers()
