@@ -735,7 +735,7 @@ class BasePanel(ScreenPanel):
         self.missing = missing
         btns =  [
                     {"name": _("Close"), "response": Gtk.ResponseType.YES, "style": "color1", "callback": self.close_pip_dialog},
-                    {"name": _("Start install"), "response": Gtk.ResponseType.YES, "style": "color1", "callback": self.update_pip},
+                    {"name": _("Start"), "response": Gtk.ResponseType.YES, "style": "color1", "callback": self.update_pip},
                     {"name": _("Network Panel"), "response": Gtk.ResponseType.OK, "style": "color2", "callback": self.open_network_panel_pip},
         ]
         self.pip_restart_button_grid = Gtk.Grid(valign = Gtk.Align.CENTER, halign=Gtk.Align.CENTER, column_homogeneous=True, sensitive = not self.updating)
