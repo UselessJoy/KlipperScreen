@@ -35,30 +35,15 @@ install_graphical_backend()
 {
   while true; do
     if [ -z "$BACKEND" ]; then
-      echo_ok "Default is Xserver"
-      echo_text "Wayland is EXPERIMENTAL needs kms/drm drivers doesn't support DPMS and may need autologin"
-      read -r -e -p "Backend Xserver or Wayland (cage)? [X/w]" BACKEND
-      if [[ "$BACKEND" =~ ^[wW]$ ]]; then
-        echo_text "Installing Wayland Cage Kiosk"
-        if sudo apt install -y $CAGE; then
-            echo_ok "Installed Cage"
-            BACKEND="W"
-            break
-        else
-            echo_error "Installation of Cage dependencies failed ($CAGE)"
-            exit 1
-        fi
+      echo_text "Installing Xserver"
+      if sudo apt install -y $XSERVER; then
+          echo_ok "Installed X"
+          update_x11
+          BACKEND="X"
+          break
       else
-        echo_text "Installing Xserver"
-        if sudo apt install -y $XSERVER; then
-            echo_ok "Installed X"
-            update_x11
-            BACKEND="X"
-            break
-        else
-            echo_error "Installation of X-server dependencies failed ($XSERVER)"
-            exit 1
-        fi
+          echo_error "Installation of X-server dependencies failed ($XSERVER)"
+          exit 1
       fi
     fi
   done
@@ -287,17 +272,11 @@ if [ "$EUID" == 0 ]
 fi
 check_requirements
 if [ -z "$SERVICE" ]; then
-    read -r -e -p "Install as a service? (This will enable boot to console) [Y/n]" SERVICE
-    if [[ $SERVICE =~ ^[nN]$ ]]; then
-        echo_text "Not installing the service"
-        echo_text "The graphical backend will NOT be installed"
-    else
-        install_graphical_backend
-        install_systemd_service
-        if [ -z "$START" ]; then
-            START=1
-        fi
-    fi
+  install_graphical_backend
+  install_systemd_service
+  if [ -z "$START" ]; then
+      START=1
+  fi
 fi
 
 install_packages

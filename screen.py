@@ -209,6 +209,52 @@ class KlipperScreen(Gtk.Window):
                                      + _("Ended official support in June 2023") + "\n"
                                      + _("KlipperScreen will drop support in June 2024"), 2)
 
+    def _read_requirements(self) -> list[str]:
+        import re
+        data = pathlib.Path(os.path.join(klipperscreendir, "scripts", "KlipperScreen-requirements.txt")).read_text()
+        modules: list[str] = []
+        for line in data.split("\n"):
+            line = line.strip()
+            if '#' in line:
+                line = line[:line.index('#')].strip()
+            if ';' in line:
+                line = line.split(';')[0].strip()
+            match = re.match(r'^([a-zA-Z0-9_\-\.\[\]]+?)(?:[<>!=~@]|$)', line)
+            if match:
+                pkg = match.group(1).strip()
+                # Убираем квадратные скобки (extras)
+                if '[' in pkg:
+                    pkg = pkg[:pkg.index('[')].strip()
+                modules.append(pkg.lower())
+        return modules
+    
+    def _read_venv_requirements(self) -> list[str]:
+        try:
+            result = subprocess.check_output(
+                [sys.executable, '-m', 'pip', 'freeze'],
+                universal_newlines=True
+            )
+            installed = []
+            for line in result.strip().split('\n'):
+                if line and '==' in line:
+                    if line.startswith('sdbus-networkmanager'):
+                        line = line.replace('-', '_')
+                    pkg = line.split('==')[0].strip().lower()
+                    installed.append(pkg)
+            return installed
+        except Exception as e:
+            print(f"Error getting installed packages: {e}")
+            return []
+
+    def _check_missing_packages(self):
+        need = self._read_requirements()
+        have = self._read_venv_requirements()
+        logging.info(f"need pkg is: {need}\nhave pkg is: {have}")
+        missing = [pkg for pkg in need if pkg not in have]
+        logging.info(f"missing is: {missing}")
+        if missing:
+          self.base_panel.show_pip_dialog(missing)
+
     def get_pwd(self):
         dist = self._get_distro_name()
         logging.info(f"distro name is {dist}")
@@ -615,6 +661,7 @@ class KlipperScreen(Gtk.Window):
         self.attach_panel(self._cur_panels[-1])
         if self._cur_panels[-1] == 'main_menu':
           self.base_panel.check_system_fix_dialog()
+          self._check_missing_packages()
 
     def reset_screensaver_timeout(self, *args):
         if self.screensaver_timeout is not None:
@@ -845,6 +892,7 @@ class KlipperScreen(Gtk.Window):
         ####    END NEW    ####
         self.show_panel("main_menu", None, remove_all=True, items=self._config.get_menu_items("__main"))
         self.base_panel.check_system_fix_dialog()
+        self._check_missing_packages()
 
     def state_startup(self):
         self.last_window_class = "window-ready"
