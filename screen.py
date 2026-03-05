@@ -239,6 +239,8 @@ class KlipperScreen(Gtk.Window):
                 if line and '==' in line:
                     if line.startswith('sdbus-networkmanager'):
                         line = line.replace('-', '_')
+                    elif line.startswith('backports-zoneinfo'):
+                        line = line.replace('-', '.')
                     pkg = line.split('==')[0].strip().lower()
                     installed.append(pkg)
             return installed
