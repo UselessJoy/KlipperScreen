@@ -621,7 +621,7 @@ class BasePanel(ScreenPanel):
             if 'dialog_message' in data['fixing']:
                 self.system_fix_dialog_message = data['fixing']['dialog_message']
                 if self.tb and self.system_fix_dialog_message:
-                    self.tb.set_text(self.system_fix_dialog_message, -1)
+                    self.tb.insert(self.tb.get_end_iter(), self.system_fix_dialog_message, -1)
             if 'require_internet' in data['fixing']:
               self.require_internet = data['fixing']['require_internet']
               if self.require_internet:
