@@ -117,7 +117,6 @@ class TypedEntry(Gtk.Entry):
                 self.do_insert_at_cursor(self, key)
                 if hasattr(self.rule, "value_between_points"):
                     value = self.rule.value_between_points(self)
-                    logging.info(value)
                     if len(value) == 3 and self.get_text().count('.') < 3:
                         self.automatic_insert('.')
             if self.update_callback:

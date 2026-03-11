@@ -22,13 +22,8 @@ class InterfaceConfiguration(Gtk.Box):
         er = ""
         for connection in nmcli.connection():
           if connection.conn_type == 'ethernet':
-            try:
-              connectionData = nmcli.connection.show(connection.name)
-              self.connection_uuid = connectionData['connection.uuid']
-              logging.info(connectionData)
-            except Exception as e:
-              logging.info(f"Get connection error:\n{e}\n")
-              er = e
+            self.connection_uuid = connection.uuid
+            break
         if not self.connection_uuid:
           self.scroll = self.create_error_page(er)
           self.scroll.show_all()
@@ -234,28 +229,41 @@ class InterfaceConfiguration(Gtk.Box):
             self._screen.show_popup_message(_("Data is not valid"))
         if self.dhcp_switch.get_active():
             for property in self.labels['lan_static']:
-                self.labels['lan_static'][property].set_text('')     
-            nmcli.connection.down(self.connection_uuid)
-            nmcli.connection.modify(self.connection_uuid, {
-                'ipv4.method': 'auto',
-                'connection.autoconnect': 'yes',
-                'ipv4.addresses': '',
-                'ipv4.gateway': ''
-            })
-            nmcli.connection.up(self.connection_uuid)
+                self.labels['lan_static'][property].set_text('')
+            try:
+                nmcli.connection.down(self.connection_uuid)
+            except:
+                logging.info(f"{self.connection_uuid} is not active already or does not exist")
+            try:
+                nmcli.connection.modify(self.connection_uuid, {
+                    'ipv4.method': 'auto',
+                    'connection.autoconnect': 'yes',
+                    'ipv4.addresses': '',
+                    'ipv4.gateway': ''
+                })
+                nmcli.connection.up(self.connection_uuid)
+            except Exception as e:
+                logging.error(f"Exception on modify and up connection: {e}")
+                self._screen.show_popup_message(f"Ошибка при подключении: {e}")#no locale
         else:
             addr = self.labels['lan_static']['ipv4.addresses'].get_text()
             netmask = self.labels['lan_static']['netmask'].get_text()
             gateway = self.labels['lan_static']['ipv4.gateway'].get_text()
-
-            nmcli.connection.down(self.connection_uuid)
-            nmcli.connection.modify(self.connection_uuid, {
-                'ipv4.method': 'manual',
-                'connection.autoconnect': 'yes',
-                'ipv4.addresses': f"{addr}/{netmask}",
-                'ipv4.gateway': gateway
-            })
-            nmcli.connection.up(self.connection_uuid)
+            try:
+                nmcli.connection.down(self.connection_uuid)
+            except:
+                logging.info(f"{self.connection_uuid} is not active already or does not exist")
+            try:
+                nmcli.connection.modify(self.connection_uuid, {
+                    'ipv4.method': 'manual',
+                    'connection.autoconnect': 'yes',
+                    'ipv4.addresses': f"{addr}/{netmask}",
+                    'ipv4.gateway': gateway
+                })
+                nmcli.connection.up(self.connection_uuid)
+            except Exception as e:
+                logging.error(f"Exception on modify and up connection: {e}")
+                self._screen.show_popup_message(f"Ошибка при подключении: {e}")#no locale
         self._screen.remove_numpad()
         for child in self.button_box:
             self.button_box.remove(child)
