@@ -11,7 +11,7 @@ class InterfaceConfiguration(Gtk.Box):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
         self.realize = False
         self.nmcliData = {}
-        self.connection_id = None
+        self.connection_uuid = None
         self._screen = screen
         self.labels = {}
         self.in_dhcp_mode = None
@@ -24,12 +24,12 @@ class InterfaceConfiguration(Gtk.Box):
           if connection.conn_type == 'ethernet':
             try:
               connectionData = nmcli.connection.show(connection.name)
-              self.connection_id = connectionData['connection.id']
+              self.connection_uuid = connectionData['connection.uuid']
               logging.info(connectionData)
             except Exception as e:
               logging.info(f"Get connection error:\n{e}\n")
               er = e
-        if not self.connection_id:
+        if not self.connection_uuid:
           self.scroll = self.create_error_page(er)
           self.scroll.show_all()
           return
@@ -130,7 +130,7 @@ class InterfaceConfiguration(Gtk.Box):
     def reinit_connectionData(self):
         connectionData = None
         try:
-            connectionData = nmcli.connection.show(self.connection_id)
+            connectionData = nmcli.connection.show(self.connection_uuid)
             if 'ipv4.method' in connectionData:
                 method = connectionData['ipv4.method']
                 if method not in ['auto', 'manual']:
@@ -235,27 +235,27 @@ class InterfaceConfiguration(Gtk.Box):
         if self.dhcp_switch.get_active():
             for property in self.labels['lan_static']:
                 self.labels['lan_static'][property].set_text('')     
-            nmcli.connection.down(self.connection_id)
-            nmcli.connection.modify(self.connection_id, {
+            nmcli.connection.down(self.connection_uuid)
+            nmcli.connection.modify(self.connection_uuid, {
                 'ipv4.method': 'auto',
                 'connection.autoconnect': 'yes',
                 'ipv4.addresses': '',
                 'ipv4.gateway': ''
             })
-            nmcli.connection.up(self.connection_id)
+            nmcli.connection.up(self.connection_uuid)
         else:
             addr = self.labels['lan_static']['ipv4.addresses'].get_text()
             netmask = self.labels['lan_static']['netmask'].get_text()
             gateway = self.labels['lan_static']['ipv4.gateway'].get_text()
 
-            nmcli.connection.down(self.connection_id)
-            nmcli.connection.modify(self.connection_id, {
+            nmcli.connection.down(self.connection_uuid)
+            nmcli.connection.modify(self.connection_uuid, {
                 'ipv4.method': 'manual',
                 'connection.autoconnect': 'yes',
                 'ipv4.addresses': f"{addr}/{netmask}",
                 'ipv4.gateway': gateway
             })
-            nmcli.connection.up(self.connection_id)
+            nmcli.connection.up(self.connection_uuid)
         self._screen.remove_numpad()
         for child in self.button_box:
             self.button_box.remove(child)
