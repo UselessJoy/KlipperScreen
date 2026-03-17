@@ -301,6 +301,7 @@ class BasePanel(ScreenPanel):
             os.system("systemctl reboot")
         elif response_id == Gtk.ResponseType.APPLY: 
           self._screen.show_popup_message(_("Shutdown on cooling"), level=1, timeout=0)
+          self._screen._ws.klippy.turn_off_all_heaters()
           self.check_temp = True
         self._gtk.remove_dialog(self.power_dialog)
         self.power_dialog = None
