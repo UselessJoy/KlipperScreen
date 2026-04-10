@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
+from concurrent.futures import ThreadPoolExecutor
 import contextlib
 import logging
 import os
-import socket
+import pathlib
 import subprocess
+import sys
+import threading
 import time
 import gi
 gi.require_version("Gtk", "3.0")
@@ -15,10 +18,20 @@ from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.timepicker import Timepicker
 import netifaces
 from ks_includes.KlippyGcodes import KlippyGcodes
+import dbus
+from dbus.mainloop.glib import DBusGMainLoop
 
 class BasePanel(ScreenPanel):
+    NM_STATUS = {0: 'none', 1: 'unknown', 2: 'limited', 3: 'portal', 4: 'full'}
+
     def __init__(self, screen, title):
         super().__init__(screen, title)
+        DBusGMainLoop(set_as_default=True)
+        try:
+            nm = dbus.SystemBus().get_object('org.freedesktop.NetworkManager', '/org/freedesktop/NetworkManager')
+            self.nm_iface = dbus.Interface(nm, 'org.freedesktop.NetworkManager')
+        except:
+            self.nm_iface = None
 
         self.current_panel = None
         self.time_min = -1
@@ -35,11 +48,16 @@ class BasePanel(ScreenPanel):
         self.autooff_dialog = self.autooff_enable = None
         self.disable_dialog = None
         self.power_dialog = None
-        self.system_fix_dialog_label = self.system_fix_dialog_message = self.system_fix_dialog = self.require_reboot = self.restart_button_grid = self.system_fix_box = None
-        self.missing = self.pip_restart_button_grid = self.pip_tb = self.pip_scroll = self.pip_box = self.pip_dialog = None
-        self.require_internet = False
-        self.is_all_updated = False
+
         self.updating = False
+
+        self.system_fix_dialog_label = self.system_fix_dialog_message = self.system_fix_dialog = self.require_reboot = self.restart_button_grid = self.system_fix_box = None
+        self.is_all_updated = self.require_internet = False
+
+        self.missing = self.pip_restart_button_grid = self.pip_tb = self.pip_scroll = self.pip_box = self.pip_dialog = self.packages_thread = None
+        self.all_packages_installed = False
+        self._packages_lock = threading.Lock()
+
         self.tb = None
         self.titlebar_items = []
         self.titlebar_name_type = None
@@ -220,7 +238,6 @@ class BasePanel(ScreenPanel):
         self.system_fix_dialog = self._gtk.Dialog([], self.system_fix_box, _("Restart"), None, width = self._gtk.content_width * 0.9, height = self._gtk.content_height * 0.6)
 
     def create_time_modal(self, widget, event):
-        
         buttons = [
                     {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color2"},
                     {"name": _("Resume"), "response": Gtk.ResponseType.OK, "style": "color4"}
@@ -239,20 +256,28 @@ class BasePanel(ScreenPanel):
         self._gtk.remove_dialog(dialog)
         if response_id == Gtk.ResponseType.OK:
             if not self.is_timesync:
-                subprocess.call(["systemctl", "stop", "chronyd.service"])
-                subprocess.call(["systemctl", "disable", "chronyd.service"])
-                subprocess.call(["systemctl", "stop", "systemd-timesyncd.service"])
-                subprocess.call(["systemctl", "disable", "systemd-timesyncd.service"])
-                os.system(f"timedatectl set-time {self.hours}:{self.minutes}:00")
+                subprocess.call(
+                    ["systemctl", "stop", "chronyd.service", "disable", "chronyd.service",
+                    "stop", "systemd-timesyncd.service", "disable", "systemd-timesyncd.service"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
+                subprocess.call(
+                    ["timedatectl", "set-time", f"{self.hours}:{self.minutes}:00"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
                 logging.info(f"set time to {self.hours}:{self.minutes}")
             else:
-                subprocess.call(["systemctl", "start", "chronyd.service"])
-                subprocess.call(["systemctl", "enable", "chronyd.service"])
-                subprocess.call(["systemctl", "start", "systemd-timesyncd.service"])
-                subprocess.call(["systemctl", "enable", "systemd-timesyncd.service"])
+                subprocess.call(
+                  ["systemctl", "start", "chronyd.service", "enable", "chronyd.service",
+                  "start", "systemd-timesyncd.service", "enable", "systemd-timesyncd.service"],
+                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
                 logging.info("time synchromized")
             if self.timezone:
-              os.system(f"timedatectl set-timezone {self.timezone}")
+                subprocess.call(
+                  ["timedatectl", "set-timezone", self.timezone],
+                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
         self.update_time()
         time.tzset()
 
@@ -341,10 +366,17 @@ class BasePanel(ScreenPanel):
                 if not connected_ssid:
                     self._screen.process_update("notify_status_update", {'access_point': {'is_active': False}})
                     # connectivity в объекте нетворк манагера херово работает (он показывает 4, а команда напрямую показывает full)
-                    data: bytes = subprocess.check_output(["nmcli", "networking", "connectivity"])
-                    data = data.decode("utf-8").strip()
-                    if data != 'none':
-                      self._screen.gtk.update_image(self.network_status_image, f"lan_status_{data}", self.img_titlebar_size, self.img_titlebar_size)
+
+                    # connectivity_map = {0: 'none', 1: 'unknown', 2: 'limited', 3: 'portal', 4: 'full'}
+                    # self._cached_connectivity = connectivity_map.get(self.connectivity, 'unknown')
+                    try:
+                        status = self.NM_STATUS.get(self.nm_iface.CheckConnectivity(), 'none')
+                    except:
+                        status = 'none'
+                    # data: bytes = subprocess.check_output(["nmcli", "networking", "connectivity"])
+                    # data = data.decode("utf-8").strip()
+                    if status != 'none':
+                      self._screen.gtk.update_image(self.network_status_image, f"lan_status_{status}", self.img_titlebar_size, self.img_titlebar_size)
                     else:
                       self.network_status_image.set_from_pixbuf(None)
                 else:
@@ -583,10 +615,6 @@ class BasePanel(ScreenPanel):
             if 'autoOff_enable' in data['autooff']:
               self.autooff_enable = data['autooff']['autoOff_enable']
             if 'autoOff' in data['autooff']:
-                # if self.autooff_enable and data['autooff']['autoOff']:
-                #   self.autooff_enable_button.show()
-                # else:
-                #   self.autooff_enable_button.hide()
                 if not self.autooff_dialog and self.autooff_enable and data['autooff']['autoOff']:
                   self.show_autooff_dialog()
                 elif self.autooff_dialog:
@@ -732,8 +760,7 @@ class BasePanel(ScreenPanel):
         self.system_fix_box.get_style_context().add_class("fix_dialog")
         self.system_fix_box.set_size_request(self._gtk.content_width * 0.8, self._gtk.content_height * 0.6)
 
-    def show_pip_dialog(self, missing):
-        self.missing = missing
+    def show_pip_dialog(self):
         btns =  [
                     {"name": _("Close"), "response": Gtk.ResponseType.YES, "style": "color1", "callback": self.close_pip_dialog},
                     {"name": _("Start"), "response": Gtk.ResponseType.YES, "style": "color1", "callback": self.update_pip},
@@ -788,7 +815,6 @@ class BasePanel(ScreenPanel):
         for child in self.pip_restart_button_grid.get_children():
             child.set_sensitive(False)
         self.pip_tb.set_text(f"Начинаю установку пакетов: {', '.join(self.missing)}\n\n", -1)
-        import threading
         thread = threading.Thread(target=self._install_packages_thread, daemon=True)
         thread.start()
 
@@ -856,6 +882,8 @@ class BasePanel(ScreenPanel):
                           "\nВсе пакеты успешно установлены!\n", -1)
             self._restart_app()
         else:
+            with self._packages_lock:
+                self.missing = failed
             self.pip_tb.insert(self.pip_tb.get_end_iter(), 
                           "\nНекоторые пакеты не установились. Проверьте подключение к интернету и повторите.\n", -1)
             for child in self.pip_restart_button_grid.get_children():
@@ -892,6 +920,72 @@ class BasePanel(ScreenPanel):
     def on_repeat_fix(self, result, method, params):
       if result and 'updating' in result['result']:
           self.restart_button_grid.set_sensitive(not result['result']['updating'])
+
+    def _read_requirements(self) -> list[str]:
+        import re
+        klipperscreendir = pathlib.Path(__file__).parent.parent.resolve()
+        data = pathlib.Path(os.path.join(klipperscreendir, "scripts", "KlipperScreen-requirements.txt")).read_text()
+        modules: list[str] = []
+        for line in data.split("\n"):
+            line = line.strip()
+            if '#' in line:
+                line = line[:line.index('#')].strip()
+            if ';' in line:
+                line = line.split(';')[0].strip()
+            match = re.match(r'^([a-zA-Z0-9_\-\.\[\]]+?)(?:[<>!=~@]|$)', line)
+            if match:
+                pkg = match.group(1).strip()
+                if '[' in pkg:
+                    pkg = pkg[:pkg.index('[')].strip()
+                modules.append(pkg.lower())
+        return modules
+    
+    def _read_venv_requirements(self) -> list[str]:
+        try:
+            result = subprocess.check_output(
+                [sys.executable, '-m', 'pip', 'freeze'],
+                universal_newlines=True
+            )
+            installed = []
+            for line in result.strip().split('\n'):
+                if line and '==' in line:
+                    if line.startswith('sdbus-networkmanager'):
+                        line = line.replace('-', '_')
+                    elif line.startswith('backports-zoneinfo'):
+                        line = line.replace('-', '.')
+                    pkg = line.split('==')[0].strip().lower()
+                    installed.append(pkg)
+            return installed
+        except Exception as e:
+            print(f"Error getting installed packages: {e}")
+            return []
+
+    def check_missing_packages(self):
+        with self._packages_lock:
+            if self.all_packages_installed:
+                return
+            if self.missing:
+                self.show_pip_dialog()
+                return
+        if self.packages_thread and self.packages_thread.is_alive():
+            return
+        self.packages_thread = threading.Thread(target=self._check_packages_background, daemon=True)
+        self.packages_thread.start()
+
+    def _check_packages_background(self):
+        try:
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                need_future = executor.submit(self._read_requirements)
+                have_future = executor.submit(self._read_venv_requirements)
+                need = need_future.result()
+                have = have_future.result()
+            with self._packages_lock:
+                self.missing = [pkg for pkg in need if pkg not in have]
+                self.all_packages_installed = not self.missing
+            if self.missing:
+                GLib.idle_add(self.show_pip_dialog)
+        except Exception as e:
+            logging.error(f"Package check failed: {e}")
 
     def open_network_panel_pip(self, btn, dialog, response_id):
       self._gtk.remove_dialog(self.pip_dialog)
