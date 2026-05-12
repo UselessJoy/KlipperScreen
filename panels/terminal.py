@@ -72,49 +72,48 @@ class Panel(ScreenPanel):
         close_profiles_button.connect("clicked", self.close_loaded_mesh)
         self.overlayBox.pack_start(close_profiles_button, False, True, 0)
         self.scroll = self._gtk.ScrolledWindow()
-        command_buttons = []
-        for lbl in ["sudo systemctl restart [service]", "./kiauh/kiauh.sh", "journalctl -eu [service]"]:
+        commands = {
+          "./klipper/scripts/clear_memory.sh": " - команда немедленной очисти кэша.\n\n",
+          "./klipper/scripts/fix/fix_sources/00_fix_sources.sh": " - принудительное изменение путей скачивания системных пакетов. Используйте, если "
+                                                                 "после обновления возникает ошибка скачивания пакетов",
+          "sudo systemctl restart [service]": " - команда перезагрузки сервиса. Может быть полезна, если "
+                                              "сервис по какой-либо причине не перезагружается стандартным методом. Список используемых сервисов "
+                                              "для работы принтера: moonraker, KlipperScreen, klipper, crowsnest.\n\n",
+          "./kiauh/kiauh.sh": " - скрипт для установки/удаления сервисов принтера. Необходим, если по какой-либо причине "
+                              "необходимо переустановить определенный сервис. Также можно установить иные сервисы, однако мы не гарантируем "
+                              "их полную работоспособность.\n\n",
+          "journalctl -eu [service]": " - команда просмотра логов сервиса. Некоторые ошибки могут не записаться в исходный "
+                                      "файл лога, поэтому данная команда может дать дополнительную информацию об ошибке.\n\n",
+        }
+        command_grid = Gtk.Grid(row_homogeneous = True)
+        for i, command in enumerate(commands):
           b = self._gtk.Button(None, "", scale=self.bts, position=Gtk.PositionType.RIGHT, vexpand=False, hexpand=False, style="shadow")
           b.set_valign(Gtk.Align.START)
           for child in b:
             if isinstance(child, Gtk.Label):
-              child.set_markup(f"<i>{lbl}</i>")
+              child.set_markup(f"<i>{command}</i>")
               child.set_ellipsize(False)
               break
-          b.connect("clicked", self.command_clicked, lbl)
-          command_buttons.append(b)
+          b.connect("clicked", self.command_clicked, command)
+          command_grid.attach(b, 0, i, 1, 1)
+          l = Gtk.Label(commands[command])
+          l.set_line_wrap(True)
+          l.set_valign(Gtk.Align.START)
+          command_grid.attach(l, 1, i, 1, 1)
 
-        helper_box = Gtk.Box(orientation = Gtk.Orientation.VERTICAL)
         header_label = Gtk.Label()
         header_label.set_markup("<big><b>Внимание! Меню консоли рассчитано на пользователей, владеющими навыками работы с командной строкой</b></big>.\n\n"
                          f"Пароль для использования команд sudo - <big><b>{self._screen.get_pwd()}</b></big>.\n\n")
         header_label.set_line_wrap(True)
         header_label.set_valign(Gtk.Align.START)
-        helper_box.add(header_label)
 
         commands_label = Gtk.Label("Список полезных команд:\n\n")
         commands_label.set_line_wrap(True)
         commands_label.set_valign(Gtk.Align.START)
+
+        helper_box = Gtk.Box(orientation = Gtk.Orientation.VERTICAL)
+        helper_box.add(header_label)
         helper_box.add(commands_label)
-
-        com_lbl = [
-          " - команда перезагрузки сервиса. Может быть полезна, если "
-          "сервис по какой-либо причине не перезагружается стандартным методом. Список используемых сервисов "
-          "для работы принтера: moonraker, KlipperScreen, klipper, crowsnest.\n\n",
-          " - скрипт для установки/удаления сервисов принтера. Необходим, если по какой-либо причине "
-          "необходимо переустановить определенный сервис. Также можно установить иные сервисы, однако мы не гарантируем "
-          "их полную работоспособность.\n\n",
-          " - команда просмотра логов сервиса. Некоторые ошибки могут не записаться в исходный "
-          "файл лога, поэтому данная команда может дать дополнительную информацию об ошибке.\n\n",
-        ]
-        command_grid = Gtk.Grid(row_homogeneous = True)
-        for i, b in enumerate(command_buttons):
-          command_grid.attach(b, 0, i, 1, 1)
-          l = Gtk.Label(com_lbl[i])
-          l.set_line_wrap(True)
-          l.set_valign(Gtk.Align.START)
-          command_grid.attach(l, 1, i, 1, 1)
-
         helper_box.add(command_grid)
 
         self.scroll.add(helper_box)

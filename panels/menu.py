@@ -1,13 +1,16 @@
+from concurrent.futures import ThreadPoolExecutor
 import logging
+import threading
 import gi
 import json
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 from jinja2 import Template
 from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.autogrid import AutoGrid
 
 class Panel(ScreenPanel):
+    
     def __init__(self, screen, title, items=None):
         super().__init__(screen, title)
         self.items = items
@@ -50,37 +53,43 @@ class Panel(ScreenPanel):
         count = len(enable_items)
         divider = 3 if count <= 8 else 4
         scale = 1.1 if 12 < count <= 16 else None  # hack to fit a 4th row
-        for i in range(len(enable_items)):
+        futures = []
+        with ThreadPoolExecutor(max_workers=4) as executor:
+          for i in range(len(enable_items)):
             key = list(enable_items[i])[0]
             item = enable_items[i][key]
-            name = self._screen.env.from_string(item['name']).render(self.j2_data)
-            icon = self._screen.env.from_string(item['icon']).render(self.j2_data) if item['icon'] else None
-            style = self._screen.env.from_string(item['style']).render(self.j2_data) if item['style'] else None
+            future = executor.submit(self.create_menu_item, i, key, item)
+            futures.append(future)
+        for future in futures:
+            i, key, item, name, icon, style, params = future.result()
+            self._create_widget(i, key, item, name, icon, style, params, divider, scale)
 
-            b = self._gtk.Button(icon, name, style or f"color{i % divider + 1}", scale=scale)
-            logging.info(name + " " + f"color{i % divider + 1}")
-
-            if item['panel']:
-                b.connect("clicked", self.menu_item_clicked, item)
-            elif item['method']:
-                params = {}
-
-                if item['params'] is not False:
-                    try:
-                        p = self._screen.env.from_string(item['params']).render(self.j2_data)
-                        params = json.loads(p)
-                    except Exception as e:
-                        logging.exception(f"Unable to parse parameters for [{name}]:\n{e}")
-                        params = {}
-
-                if item['confirm']:
-                    b.connect("clicked", self._screen._confirm_send_action, item['confirm'], item['method'], params)
-                else:
-                    b.connect("clicked", self._screen._send_action, item['method'], params)
-            else:
-                b.connect("clicked", self._screen._go_to_submenu, key)
-            self.labels[key] = b
+    def create_menu_item(self, i, key, item):
+      name = self._screen.env.from_string(item['name']).render(self.j2_data)
+      icon = self._screen.env.from_string(item['icon']).render(self.j2_data) if item['icon'] else None
+      style = self._screen.env.from_string(item['style']).render(self.j2_data) if item['style'] else None
+      params = {}
+      if item['params'] is not False:
+        try:
+          p = self._screen.env.from_string(item['params']).render(self.j2_data)
+          params = json.loads(p)
+        except Exception as e:
+          logging.exception(f"Unable to parse parameters for [{name}]:\n{e}")
+      return i, key, item, name, icon, style, params
     
+    def _create_widget(self, i, key, item, name, icon, style, params, divider, scale):
+      b = self._gtk.Button(icon, name, style or f"color{i % divider + 1}", scale=scale)
+      if item['panel']:
+        b.connect("clicked", self.menu_item_clicked, item)
+      elif item['method']:
+        if item['confirm']:
+          b.connect("clicked", self._screen._confirm_send_action, item['confirm'], item['method'], params)
+        else:
+          b.connect("clicked", self._screen._send_action, item['method'], params)
+      else:
+        b.connect("clicked", self._screen._go_to_submenu, key)
+      self.labels[key] = b
+
     def evaluate_sensitive(self, sensitive):
         if sensitive == "{{ has_homing_origin }}":
             try:

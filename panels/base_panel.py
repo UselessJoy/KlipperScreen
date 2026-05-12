@@ -227,7 +227,7 @@ class BasePanel(ScreenPanel):
             self.main_grid.attach(self.content, 1, 1, 1, 1)
             self.action_bar.set_orientation(orientation=Gtk.Orientation.VERTICAL)
         self.update_time()
-        GLib.timeout_add_seconds(1, self.update_connected_network_status)
+        GLib.timeout_add_seconds(10, self.update_connected_network_status)
 
     def on_unsaved_config_clicked(self, widget, event):
         self.unsaved_config_popover.show_all()
@@ -322,7 +322,7 @@ class BasePanel(ScreenPanel):
     def close_power_dialog(self, widget, dialog, response_id):
         if response_id == Gtk.ResponseType.OK:
             os.system("systemctl poweroff")
-        elif response_id == Gtk.ResponseType.YES: 
+        elif response_id == Gtk.ResponseType.YES:
             os.system("systemctl reboot")
         elif response_id == Gtk.ResponseType.APPLY: 
           self._screen.show_popup_message(_("Shutdown on cooling"), level=1, timeout=0)
@@ -761,6 +761,8 @@ class BasePanel(ScreenPanel):
         self.system_fix_box.set_size_request(self._gtk.content_width * 0.8, self._gtk.content_height * 0.6)
 
     def show_pip_dialog(self):
+        if self.pip_dialog:
+            return
         btns =  [
                     {"name": _("Close"), "response": Gtk.ResponseType.YES, "style": "color1", "callback": self.close_pip_dialog},
                     {"name": _("Start"), "response": Gtk.ResponseType.YES, "style": "color1", "callback": self.update_pip},
@@ -944,7 +946,8 @@ class BasePanel(ScreenPanel):
         try:
             result = subprocess.check_output(
                 [sys.executable, '-m', 'pip', 'freeze'],
-                universal_newlines=True
+                universal_newlines=True,
+                timeout=30
             )
             installed = []
             for line in result.strip().split('\n'):
@@ -956,33 +959,50 @@ class BasePanel(ScreenPanel):
                     pkg = line.split('==')[0].strip().lower()
                     installed.append(pkg)
             return installed
+        except subprocess.TimeoutExpired:
+            logging.error("pip freeze timed out")
+            return []
         except Exception as e:
-            print(f"Error getting installed packages: {e}")
+            logging.error(f"Error getting installed packages: {e}")
             return []
 
     def check_missing_packages(self):
+        show_dialog = False
         with self._packages_lock:
             if self.all_packages_installed:
                 return
             if self.missing:
-                self.show_pip_dialog()
-                return
-        if self.packages_thread and self.packages_thread.is_alive():
+                show_dialog = True
+        
+        if show_dialog:
+            self.show_pip_dialog()
             return
-        self.packages_thread = threading.Thread(target=self._check_packages_background, daemon=True)
-        self.packages_thread.start()
+        
+        with self._packages_lock:
+            if self.packages_thread and self.packages_thread.is_alive():
+                return
+            self.packages_thread = threading.Thread(
+                target=self._check_packages_background, 
+                daemon=True,
+                name="PackageChecker"
+            )
+            self.packages_thread.start()
 
     def _check_packages_background(self):
         try:
             with ThreadPoolExecutor(max_workers=2) as executor:
                 need_future = executor.submit(self._read_requirements)
                 have_future = executor.submit(self._read_venv_requirements)
-                need = need_future.result()
-                have = have_future.result()
+                need = need_future.result(timeout=10)  # Таймаут для result
+                have = have_future.result(timeout=10)
+            
+            show_dialog = False
             with self._packages_lock:
                 self.missing = [pkg for pkg in need if pkg not in have]
                 self.all_packages_installed = not self.missing
-            if self.missing:
+                show_dialog = bool(self.missing)
+            
+            if show_dialog:
                 GLib.idle_add(self.show_pip_dialog)
         except Exception as e:
             logging.error(f"Package check failed: {e}")

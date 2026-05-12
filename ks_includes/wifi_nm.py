@@ -69,7 +69,7 @@ NM_STATE = {
     'callback': "connecting"
   },
   NetworkManager.NM_DEVICE_STATE_FAILED : {
-    'msg': _("Failed to connect to the requested network"),
+    'msg': "Failed to connect to the requested network",
     'callback': "popup"
   },
   NetworkManager.NM_DEVICE_STATE_REASON_DEPENDENCY_FAILED : {
@@ -88,6 +88,13 @@ class WifiManager:
     def __init__(self, wireless_interface, *args, **kwargs):
         super().__init__(*args, **kwargs)
         DBusGMainLoop(set_as_default=True)
+        try:
+          nm = dbus.SystemBus().get_object('org.freedesktop.NetworkManager', '/org/freedesktop/NetworkManager')
+          self.nm_iface = dbus.Interface(nm, 'org.freedesktop.NetworkManager')
+        except Exception as e:
+            logging.exception(f"Cannot create self.nm_iface: {e}")
+            # Что происходит при таком выходе
+            return
         self._callbacks = {
             "connected": [],
             "connecting_status": [],
@@ -115,7 +122,10 @@ class WifiManager:
         self.rescan_thread = None
         self.rescan_thread = self.thread_rescan_popen_callback(self._on_rescan)
         self.rescan_timer = GLib.timeout_add_seconds(30, self.rescan)
-        
+
+    def get_connectivity(self):
+        return self.nm_iface.CheckConnectivity()
+
     def _update_known_connections(self):
         self.known_networks = {}
         for con in NetworkManager.Settings.ListConnections():
@@ -149,7 +159,7 @@ class WifiManager:
 
     def _ap_state_changed(self, nm, interface, signal, old_state, new_state, reason):
         if new_state in NM_STATE:
-            self.callback(NM_STATE[new_state]['callback'], NM_STATE[new_state]['msg'])
+            self.callback(NM_STATE[new_state]['callback'], _(NM_STATE[new_state]['msg']))
 
         if new_state == NetworkManager.NM_DEVICE_STATE_ACTIVATED:
             for cb in self._callbacks['connected']:

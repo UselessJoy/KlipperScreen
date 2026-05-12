@@ -938,6 +938,9 @@ msgstr "Начать обновление"
 msgid "Shutdown on cooling"
 msgstr "Выключить после охлаждения"
 
+msgid "Cancel shutdown"
+msgstr "Отменить отложенное отключение"
+
 msgid "System fixes are not fully installed"
 msgstr "Системные исправления установлены не полностью"
 

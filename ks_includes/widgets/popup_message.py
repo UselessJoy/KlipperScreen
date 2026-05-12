@@ -3,8 +3,6 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Pango, GLib
 
-
-
 class PopupMessage(Gtk.Popover):
   __MESSAGE_STYLE = {1: "message_popup_echo", 2: "message_popup_warning", 3: "message_popup_error",  10: "message_popup_suggestion"}
   def __init__(self, relative_to, position = Gtk.PositionType.BOTTOM, message="", level=3, timeout=5, autoclose=True, width = 0, height = 0, close_cb=None):

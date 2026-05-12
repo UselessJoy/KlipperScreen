@@ -5,7 +5,7 @@ import os
 import pathlib
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk, GdkPixbuf, Gio, Gtk, Pango
+from gi.repository import Gdk, GdkPixbuf, Gio, Gtk, Pango, GLib
 
 def find_widget(widget, wanted_type):
     # Returns a widget of wanted_type or None
@@ -32,9 +32,35 @@ def format_label(widget, lines=2, is_ellipsize=True):
             format_label(_, lines, is_ellipsize)
 
 
+class KSButton(Gtk.Button):
+    def __init__(self, screen, image_name=None, label=None, style=None, scale=None, position=Gtk.PositionType.TOP, lines=2, is_ellipsize=True,
+                 hexpand=True, vexpand=True):
+      super().__init__(hexpand=hexpand, vexpand=vexpand, can_focus=False, image_position=position, always_show_image=True)
+      if screen.gtk.font_size_type == "max" and label is not None and scale is None:
+          image_name = None
+      if label is not None:
+          self.set_label(label)
+      if image_name is not None:
+          if scale is None:
+              scale = screen.gtk.button_image_scale
+          if label is None:
+              scale = scale * 1.5
+          width = height = screen.gtk.img_scale * scale
+          self.set_image(screen.gtk.Image(image_name, width, height))
+          spinner = Gtk.Spinner(width_request=width, height_request=height, no_show_all=True)
+          spinner.hide()
+          box = find_widget(self, Gtk.Box)
+          if box:
+              box.add(spinner)
+
+      if label is not None:
+          format_label(self, lines, is_ellipsize)
+      if style is not None:
+          self.get_style_context().add_class(style)
+      self.connect("clicked", screen.reset_screensaver_timeout)
+
 class KlippyGtk:
     labels = {}
-
     def __init__(self, screen):
         self.screen = screen
         self.themedir = os.path.join(pathlib.Path(__file__).parent.resolve().parent, "styles", "gelios", "images")#screen.theme
@@ -89,6 +115,11 @@ class KlippyGtk:
                 rgb = [int(self.color_list[key]['base'][i:i + 2], 16) for i in range(0, 6, 2)]
                 self.color_list[key]['rgb'] = rgb
 
+    @staticmethod
+    def autoscroll(scroll, *args):
+      adj = scroll.get_vadjustment()
+      adj.set_value(adj.get_upper() - adj.get_page_size())
+
     def get_temp_color(self, device):
         # logging.debug("Color list %s" % self.color_list)
         if device not in self.color_list:
@@ -139,7 +170,7 @@ class KlippyGtk:
             with contextlib.suppress(Exception):
                 pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(f"{filename}.{ext}", int(width), int(height))
                 if pixbuf is not None:
-                    image_object.set_from_pixbuf(pixbuf)
+                      GLib.idle_add(image_object.set_from_pixbuf, pixbuf)
                 else:
                     logging.warning(f"Unable to find image {filename}.{ext}")
 
