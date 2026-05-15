@@ -67,7 +67,6 @@ class BasePanel(ScreenPanel):
 
         self.last_usage_report = datetime.datetime.now()
         self.usage_report = 0
-        self.timezone = ""
         # Action bar buttons
         abscale = self.bts * 1.1
         self.control['back'] = self._gtk.Button('back', scale=abscale)
@@ -145,17 +144,17 @@ class BasePanel(ScreenPanel):
         self.on_connecting_spinner.set_size_request(self.img_titlebar_size, self.img_titlebar_size)
         self.on_connecting_spinner.hide()
 
+        self.unsaved_config_box = Gtk.EventBox()
+        self.unsaved_config_box.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+        self.unsaved_config_box.add_events(Gdk.EventMask.TOUCH_MASK)
+        self.unsaved_config_box.connect("button_release_event", self.on_unsaved_config_clicked)
+
         self.unsaved_config_popover = Gtk.Popover()
         self.unsaved_config_popover.get_style_context().add_class("message_popup")
         self.unsaved_config_popover.set_halign(Gtk.Align.CENTER)
         self.unsaved_config_popover.add(Gtk.Label(label=_("Have unsaved options")))
         self.unsaved_config_popover.set_relative_to(self.unsaved_config_box)
         self.unsaved_config_popover.set_position(Gtk.PositionType.BOTTOM)
-
-        self.unsaved_config_box = Gtk.EventBox()
-        self.unsaved_config_box.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
-        self.unsaved_config_box.add_events(Gdk.EventMask.TOUCH_MASK)
-        self.unsaved_config_box.connect("button_release_event", self.on_unsaved_config_clicked)
 
         self.on_unsaved_config = Gtk.Image()
         self.on_unsaved_config.set_margin_left(15)
@@ -268,7 +267,7 @@ class BasePanel(ScreenPanel):
                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
                 )
                 logging.info("time synchromized")
-            if self.timezone:
+            if self.timepicker.cur_timezone:
                 subprocess.call(
                   ["timedatectl", "set-timezone", self.timezone],
                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL

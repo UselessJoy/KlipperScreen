@@ -48,13 +48,16 @@ class Timepicker(Gtk.Box):
         if not self.cur_city:
           cities_combo_box.set_sensitive(False)
         self.timezones = {} 
+        self.regions = self.cities = {}
         for timezone in list_timezones:
           region, sep, city = timezone.partition('/')
           if region not in self.timezones and region:
             self.timezones[region] = []
             regions_combo_box.append(_(region))
+            self.regions[_(region)] = region
           if region:
-            self.timezones[region].append(city)
+            self.timezones[region].append(_(city))
+            self.cities[_(city)] = city
           if region == self.cur_region:
             cities_combo_box.append(_(city))
         regions_combo_box.connect("selected", self.on_region_changed, cities_combo_box)
@@ -76,7 +79,7 @@ class Timepicker(Gtk.Box):
         except FileNotFoundError:
             self.is_timesync = False
 
-        self.switch_button_ntp.set_active(self.is_active)
+        self.switch_button_ntp.set_active(self.is_timesync)
         self.spin_minutes.set_sensitive(not self.switch_button_ntp.get_active())
         self.spin_hours.set_sensitive(not self.switch_button_ntp.get_active())
         label = {
@@ -93,17 +96,17 @@ class Timepicker(Gtk.Box):
         
     def on_region_changed(self, widget, region, cities_combo_box):
       cities_combo_box.remove_all()
-      self.cur_region = region
-      for city in self.timezones[region]:
+      self.cur_region = self.regions[region]
+      for city in self.timezones[self.cur_region]:
         cities_combo_box.append(_(city))
-      if self.cur_city and self.cur_city in self.timezones[region]:
-        cities_combo_box.set_active_text(_(self.cur_city))
+      if self.cur_city and self.cur_city in self.timezones[self.cur_region]:
+        cities_combo_box.set_active_text(self.cur_city)
       else:
         cities_combo_box.set_active_num(0)
       cities_combo_box.set_sensitive(True)
 
     def on_city_changed(self, widget, city, combo_regions):
-      self.cur_city = city
+      self.cur_city = self.cities[city]
       if self.cur_region == "UTC":
         self.cur_timezone = self.cur_region
       else:
