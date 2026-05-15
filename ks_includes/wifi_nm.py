@@ -3,6 +3,8 @@
 
 import contextlib
 import logging
+import subprocess
+import time
 import traceback
 import uuid
 from ks_includes import NetworkManager
@@ -88,53 +90,117 @@ class WifiManager:
     def __init__(self, wireless_interface, *args, **kwargs):
         super().__init__(*args, **kwargs)
         DBusGMainLoop(set_as_default=True)
+        self._init_started = False
+        self._init_complete = False
+        self._pending_callbacks = []
         try:
-          nm = dbus.SystemBus().get_object('org.freedesktop.NetworkManager', '/org/freedesktop/NetworkManager')
-          self.nm_iface = dbus.Interface(nm, 'org.freedesktop.NetworkManager')
+            nm = dbus.SystemBus().get_object(
+                'org.freedesktop.NetworkManager', 
+                '/org/freedesktop/NetworkManager'
+            )
+            self.nm_iface = dbus.Interface(nm, 'org.freedesktop.NetworkManager')
+            self.wireless_device = NetworkManager.NetworkManager.GetDeviceByIpIface(
+                wireless_interface
+            )
+            self._callbacks = {
+                "connected": [],
+                "connecting_status": [],
+                "scan_results": [],
+                "popup": [],
+                "disconnected": [],
+                "connecting": [],
+                "rescan_finish": []
+            }
+            self.known_networks = {}
+            self.visible_networks = {}
+            self.ssid_by_path = {}
+            self.path_by_ssid = {}
+            self.hidden_ssid_index = 0
+            self.initialized = False
+            self.rescan_thread = None
+            self.rescan_timer = None
+            GLib.idle_add(self._delayed_init)
+            
         except Exception as e:
             logging.exception(f"Cannot create self.nm_iface: {e}")
-            # Что происходит при таком выходе
             return
-        self._callbacks = {
-            "connected": [],
-            "connecting_status": [],
-            "scan_results": [],
-            "popup": [],
-            "disconnected": [],
-            "connecting": [],
-            "rescan_finish": []
-            #"properties_changed": []
-        }
-        self.known_networks = {}  # List of known connections
-        self.visible_networks = {}  # List of visible access points
-        self.ssid_by_path = {}
-        self.path_by_ssid = {}
-        self.hidden_ssid_index = 0
-        self.wireless_device = NetworkManager.NetworkManager.GetDeviceByIpIface(wireless_interface)
-        self.wireless_device.OnAccessPointAdded(self._ap_added)
-        self.wireless_device.OnAccessPointRemoved(self._ap_removed)
-        self.wireless_device.OnStateChanged(self._ap_state_changed)
+    
+    def _delayed_init(self):
+        if self._init_started:
+            return False
+        self._init_started = True
+        logging.info("Starting delayed WiFi initialization...")
+        self._connect_signals()
+        GLib.timeout_add_seconds(1, self._initial_scan)
+        GLib.timeout_add_seconds(10, self._start_scan)
+        return False
 
-        for ap in self.wireless_device.GetAccessPoints():
-            self._add_ap(ap)
-        self._update_known_connections()
-        self.initialized = True
-        self.rescan_thread = None
-        self.rescan_thread = self.thread_rescan_popen_callback(self._on_rescan)
-        self.rescan_timer = GLib.timeout_add_seconds(30, self.rescan)
+    def _connect_signals(self):
+        try:
+            self.wireless_device.OnAccessPointAdded(self._ap_added)
+            self.wireless_device.OnAccessPointRemoved(self._ap_removed)
+            self.wireless_device.OnStateChanged(self._ap_state_changed)
+        except Exception as e:
+            logging.exception(f"Error connecting signals: {e}")
+
+    def _initial_scan(self):
+        try:
+            self._update_known_connections()
+            for ap in self.wireless_device.GetAccessPoints():
+                try:
+                    self._add_ap(ap)
+                except Exception:
+                    pass
+            self.initialized = True
+            self._init_complete = True
+            logging.info("WiFi initialization complete")
+            GLib.timeout_add_seconds(5, self._first_rescan)
+            
+        except Exception as e:
+            logging.exception(f"Error in initial scan: {e}")
+            GLib.timeout_add_seconds(5, self._initial_scan)
+        return False
+
+    def _first_rescan(self):
+        if not self.rescan_thread or not self.rescan_thread.is_alive():
+            self.rescan_thread = self.thread_rescan_popen_callback(
+                self._on_first_rescan_complete
+            )
+        return False
+
+    def _on_first_rescan_complete(self):
+        self._init_complete = True
+        self.callback("rescan_finish", "")
+        if not self.rescan_timer:
+            self.rescan_timer = GLib.timeout_add_seconds(30, self.rescan)
+    
+    def _start_scan(self):
+        if not self.rescan_timer and self._init_complete:
+            self.rescan_timer = GLib.timeout_add_seconds(30, self.rescan)
+        return False
 
     def get_connectivity(self):
+        if not self._init_complete:
+            return 0  # NM_STATE_UNKNOWN
         return self.nm_iface.CheckConnectivity()
 
     def _update_known_connections(self):
-        self.known_networks = {}
-        for con in NetworkManager.Settings.ListConnections():
-            settings = con.GetSettings()
-            if "802-11-wireless" in settings:
-                ssid = settings["802-11-wireless"]['ssid']
-                self.known_networks[ssid] = con
+        try:
+            self.known_networks = {}
+            for con in NetworkManager.Settings.ListConnections():
+                settings = con.GetSettings()
+                if "802-11-wireless" in settings:
+                    ssid = settings["802-11-wireless"]['ssid']
+                    self.known_networks[ssid] = con
+        except Exception as e:
+            logging.debug(f"Error updating known connections: {e}")
                 
     def _ap_added(self, nm, interface, signal, access_point):
+        if not self._init_complete:
+            self._pending_callbacks.append(
+                ('ap_added', nm, interface, signal, access_point)
+            )
+            return
         try:
             ssid = self._add_ap(access_point)
             for cb in self._callbacks['scan_results']:
@@ -145,6 +211,8 @@ class WifiManager:
             logging.exception(f"{e}\n\n{traceback.format_exc()}")
 
     def _ap_removed(self, dev, interface, signal, access_point):
+        if not self._init_complete:
+            return
         try:
             path = access_point.object_path
             if path in self.ssid_by_path:
@@ -158,23 +226,29 @@ class WifiManager:
             logging.exception(f"{e}\n\n{traceback.format_exc()}")
 
     def _ap_state_changed(self, nm, interface, signal, old_state, new_state, reason):
+        if not self._init_complete:
+            return
         if new_state in NM_STATE:
-            self.callback(NM_STATE[new_state]['callback'], _(NM_STATE[new_state]['msg']))
-
+            self.callback(NM_STATE[new_state]['callback'], 
+                         _(NM_STATE[new_state]['msg']))
         if new_state == NetworkManager.NM_DEVICE_STATE_ACTIVATED:
             for cb in self._callbacks['connected']:
                 args = (cb, self.get_connected_ssid(), None)
                 GLib.idle_add(*args)
 
     def _add_ap(self, ap):
-        ssid = ap.Ssid
-        if ssid == "":
-            ssid = _("Hidden") + f" {self.hidden_ssid_index}"
-            self.hidden_ssid_index += 1
-        self.ssid_by_path[ap.object_path] = ssid
-        self.path_by_ssid[ssid] = ap.object_path
-        self.visible_networks[ap.object_path] = ap
-        return ssid
+        try:
+            ssid = ap.Ssid
+            if ssid == "":
+                ssid = _("Hidden") + f" {self.hidden_ssid_index}"
+                self.hidden_ssid_index += 1
+            self.ssid_by_path[ap.object_path] = ssid
+            self.path_by_ssid[ssid] = ap.object_path
+            self.visible_networks[ap.object_path] = ap
+            return ssid
+        except Exception as e:
+            logging.debug(f"Error adding AP: {e}")
+            return ""
 
     def _remove_ap(self, path):
         self.ssid_by_path.pop(path, None)
@@ -190,6 +264,9 @@ class WifiManager:
                 GLib.idle_add(cb, msg)
 
     def add_network(self, ssid, psk):
+        if not self._init_complete:
+            logging.warning(f"Cannot add network before initialization")
+            return False
         aps = self._visible_networks_by_ssid()
         if ssid in aps:
             ap = aps[ssid]
@@ -227,6 +304,9 @@ class WifiManager:
         return True
 
     def connect(self, ssid):
+        if not self._init_complete:
+            logging.warning(f"Cannot connect before initialization")
+            return
         if ssid in self.known_networks:
             conn = self.known_networks[ssid]
             with contextlib.suppress(NetworkManager.ObjectVanished):
@@ -244,8 +324,14 @@ class WifiManager:
         self._update_known_connections()
 
     def get_connected_ssid(self):
-        if self.wireless_device.SpecificDevice().ActiveAccessPoint:
-            return self.wireless_device.SpecificDevice().ActiveAccessPoint.Ssid
+        try:
+            if not self._init_complete:
+                return None
+            device = self.wireless_device.SpecificDevice()
+            if device.ActiveAccessPoint:
+                return device.ActiveAccessPoint.Ssid
+        except Exception:
+            pass
         return None
 
     def _get_connected_ap(self):
@@ -330,26 +416,48 @@ class WifiManager:
         return encryption.strip()
 
     def get_networks(self):
-        return list(set(list(self.known_networks.keys()) + list(self.ssid_by_path.values())))
+        if not self._init_complete:
+            return list(self.known_networks.keys())
+        return list(set(list(self.known_networks.keys()) + 
+                       list(self.ssid_by_path.values())))
 
     def get_supplicant_networks(self):
         return {ssid: {"ssid": ssid} for ssid in self.known_networks.keys()}
 
-    def rescan(self):
-        if self.rescan_thread and not self.rescan_thread.is_alive():
-            self.rescan_thread = self.thread_rescan_popen_callback(self._on_rescan)
-        return True
-    
     def _on_rescan(self):
         self.callback("rescan_finish", "")
-        
+
+    def rescan(self):
+        if self.rescan_thread and self.rescan_thread.is_alive():
+            logging.debug("Rescan already in progress, skipping")
+            return True
+        now = time.time()
+        if hasattr(self, '_last_rescan_time') and \
+          now - self._last_rescan_time < 5:
+            logging.debug("Rescan too frequent, skipping")
+            return True
+        self._last_rescan_time = now
+        self.rescan_thread = self.thread_rescan_popen_callback(self._on_rescan)
+        return True
+
     def thread_rescan_popen_callback(self, callback) -> Thread:
         def run_in_thread(callback):
-            proc = Popen(["nmcli","device", "wifi", "list", "--rescan", "yes"])
-            proc.wait()
-            callback()
-            return
-        thread = Thread(target=run_in_thread, args=(callback,))
+            try:
+                proc = Popen(
+                    ["nmcli", "device", "wifi", "list", "--rescan", "yes"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                logging.debug("WiFi rescan timeout")
+            except Exception as e:
+                logging.debug(f"Rescan error: {e}")
+            finally:
+                callback()
+
+        thread = Thread(target=run_in_thread, args=(callback,), daemon=True)
         thread.start()
         return thread
 

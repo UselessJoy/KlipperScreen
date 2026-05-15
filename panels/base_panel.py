@@ -18,6 +18,7 @@ from ks_includes.screen_panel import ScreenPanel
 from ks_includes.widgets.timepicker import Timepicker
 import netifaces
 from ks_includes.KlippyGcodes import KlippyGcodes
+from ks_includes.wifi_nm import WifiManager
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 
@@ -39,9 +40,6 @@ class BasePanel(ScreenPanel):
         self.time_update = None
         self.new_popup_msg = ""
         self.new_popup_level = 1
-
-        self.hours = None
-        self.minutes = None
         self.last_time_message = None
 
         self.interrupt_dialog = None
@@ -57,6 +55,8 @@ class BasePanel(ScreenPanel):
         self.missing = self.pip_restart_button_grid = self.pip_tb = self.pip_scroll = self.pip_box = self.pip_dialog = self.packages_thread = None
         self.all_packages_installed = False
         self._packages_lock = threading.Lock()
+
+        self.timepicker = None
 
         self.tb = None
         self.titlebar_items = []
@@ -76,17 +76,11 @@ class BasePanel(ScreenPanel):
         self.control['home'].connect("clicked", self._screen._menu_go_back, True)
         ####      NEW      ####
         self.network_interfaces = netifaces.interfaces()
-        self.wireless_interfaces = [iface for iface in self.network_interfaces if iface.startswith('w')]
+        self.wireless_interfaces = [iface for iface in self.network_interfaces 
+                                  if iface.startswith('w')]
         self.is_connecting_to_network = False
-        self.use_network_manager = os.system('systemctl is-active --quiet NetworkManager.service') == 0
         if len(self.wireless_interfaces) > 0:
             logging.info(f"Found wireless interfaces: {self.wireless_interfaces}")
-            if self.use_network_manager:
-                logging.info("Using NetworkManager")
-                from ks_includes.wifi_nm import WifiManager
-            else:
-                logging.info("Using wpa_cli")
-                from ks_includes.wifi import WifiManager
             self.wifi = WifiManager(self.wireless_interfaces[0])
             self.wifi.add_callback("connecting", self.connecting_callback)
             self.wifi.add_callback("connected", self.connected_callback)
@@ -132,7 +126,6 @@ class BasePanel(ScreenPanel):
         self.action_bar.add(self.control['printer_select'])
         self.action_bar.add(self.control['shortcut'])
         self.action_bar.add(self.control['estop'])
-        # self.action_bar.add(self.control['shutdown'])
         self.action_bar.add(self.control['power'])
         self.show_printer_select(len(self._config.get_printers()) > 1)
         # Titlebar
@@ -151,6 +144,13 @@ class BasePanel(ScreenPanel):
         self.on_connecting_spinner = Gtk.Spinner()
         self.on_connecting_spinner.set_size_request(self.img_titlebar_size, self.img_titlebar_size)
         self.on_connecting_spinner.hide()
+
+        self.unsaved_config_popover = Gtk.Popover()
+        self.unsaved_config_popover.get_style_context().add_class("message_popup")
+        self.unsaved_config_popover.set_halign(Gtk.Align.CENTER)
+        self.unsaved_config_popover.add(Gtk.Label(label=_("Have unsaved options")))
+        self.unsaved_config_popover.set_relative_to(self.unsaved_config_box)
+        self.unsaved_config_popover.set_position(Gtk.PositionType.BOTTOM)
 
         self.unsaved_config_box = Gtk.EventBox()
         self.unsaved_config_box.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
@@ -242,30 +242,25 @@ class BasePanel(ScreenPanel):
                     {"name": _("Cancel"), "response": Gtk.ResponseType.CANCEL, "style": "color2"},
                     {"name": _("Resume"), "response": Gtk.ResponseType.OK, "style": "color4"}
                 ]
-        now = datetime.datetime.now()
-        self.hours = int(f'{now:%H}')
-        self.minutes = int(f'{now:%M}')
-        stat = subprocess.call(["systemctl", "is-active", "--quiet", "systemd-timesyncd.service"])
-        self.is_timesync = True if stat == 0 else False
-        timepicker = Timepicker(self._screen, self.on_change_value, self.on_change_timesync, self.on_change_timezone)
-        dialog = self._gtk.Dialog(buttons, timepicker, _("Time"), self.close_time_modal, width=1, height=1)
+        self.timepicker = Timepicker(self._screen)
+        dialog = self._gtk.Dialog(buttons, self.timepicker, _("Time"), self.close_time_modal, width=1, height=1)
         dialog.get_action_area().set_layout(Gtk.ButtonBoxStyle.EXPAND)
         dialog.show_all()
 
     def close_time_modal(self, dialog, response_id):
         self._gtk.remove_dialog(dialog)
         if response_id == Gtk.ResponseType.OK:
-            if not self.is_timesync:
+            if not self.timepicker.is_timesync:
                 subprocess.call(
                     ["systemctl", "stop", "chronyd.service", "disable", "chronyd.service",
                     "stop", "systemd-timesyncd.service", "disable", "systemd-timesyncd.service"],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
                 )
                 subprocess.call(
-                    ["timedatectl", "set-time", f"{self.hours}:{self.minutes}:00"],
+                    ["timedatectl", "set-time", f"{self.timepicker.cur_hours}:{self.timepicker.cur_minutes}:00"],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
                 )
-                logging.info(f"set time to {self.hours}:{self.minutes}")
+                logging.info(f"set time to {self.timepicker.cur_hours}:{self.timepicker.cur_minutes}")
             else:
                 subprocess.call(
                   ["systemctl", "start", "chronyd.service", "enable", "chronyd.service",
@@ -280,19 +275,6 @@ class BasePanel(ScreenPanel):
                 )
         self.update_time()
         time.tzset()
-
-    def on_change_timesync(self, switch_status):
-        self.is_timesync = switch_status
-    
-    def on_change_timezone(self, timezone):
-      self.timezone = timezone
-
-    def on_change_value(self, name, value):
-        logging.info(f'in on_change name is {name} value is {value}')
-        if name == 'hours':
-            self.hours = value
-        else:
-            self.minutes = value
 
     ####      NEW      ####
     def show_power_dialog(self, widget=None):
@@ -337,24 +319,26 @@ class BasePanel(ScreenPanel):
     def connecting_callback(self, msg):
         logging.info("connecting...")
         self.is_connecting_to_network = True
-        self.update_connected_network_status()
+        GLib.idle_add(self.update_connected_network_status)
 
     def connected_callback(self, ssid, prev_ssid):
         logging.info("connected!")
         self.is_connecting_to_network = False
-        self.update_connected_network_status()
+        GLib.idle_add(self.update_connected_network_status)
 
     def disconnected_callback(self, msg):
         logging.info("disconnected!")
         self.is_connecting_to_network = False
-        self.update_connected_network_status()
+        GLib.idle_add(self.update_connected_network_status)
 
     def popup_callback(self, msg):
         logging.exception("exception connect!")
         self.is_connecting_to_network = False
-        self.update_connected_network_status()
+        GLib.idle_add(self.update_connected_network_status)
 
     def update_connected_network_status(self):
+        if not self._screen.initialized:
+            return True
         try:
             if not self.is_connecting_to_network:
                 if self.on_connecting_spinner.get_visible():
@@ -405,9 +389,9 @@ class BasePanel(ScreenPanel):
     def signal_strength(self, signal_level):
         # networkmanager uses percentage not dbm
         # the bars of nmcli are aligned near this breakpoints
-        exc = 77 if self.use_network_manager else -50
-        good = 60 if self.use_network_manager else -60
-        fair = 35 if self.use_network_manager else -70
+        exc = 77
+        good = 60
+        fair = 35
         if signal_level > exc:
             return "wifi_excellent"
         elif signal_level > good:

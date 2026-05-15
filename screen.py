@@ -785,9 +785,7 @@ class KlipperScreen(Gtk.Window):
 
     def state_disconnected(self):
         self.printer.stop_tempstore_updates()
-        ####      NEW      ####
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
-        ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-disconnected")
         logging.debug("### Going to disconnected")
         self.close_screensaver()
@@ -796,9 +794,7 @@ class KlipperScreen(Gtk.Window):
         self._init_printer(_("Klipper has disconnected"), remove=True)
 
     def state_error(self):
-        ####      NEW      ####
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
-        ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-error")
         self.close_screensaver()
         msg = _("Klipper has encountered an error.") + "\n"
@@ -814,20 +810,16 @@ class KlipperScreen(Gtk.Window):
         self.show_panel("job_status", _("Printing"), remove_all=True)
         if self._config.get_main_config().getboolean("auto_open_extrude", fallback=True):
             self.show_panel("extrude", _("Extrude"))
-        ####      NEW      ####
         self.last_window_class = "window-paused"
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         self.base_panel.main_grid.get_style_context().add_class("window-paused")
-        ####    END NEW    ####
 
     def state_printing(self):
         self.close_screensaver()
         self.show_panel("job_status", _("Printing"), remove_all=True)
-        ####      NEW      ####
         self.last_window_class = "window-printing"
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         self.base_panel.main_grid.get_style_context().add_class("window-printing")
-        ####    END NEW    ####
 
 
     def state_ready(self, wait = True):
@@ -839,28 +831,22 @@ class KlipperScreen(Gtk.Window):
             self.printer.state = "not ready"
             return
         self.files.refresh_files()
-        ####      NEW      ####
         self.last_window_class = "window-ready"
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
         self.base_panel.main_grid.get_style_context().add_class("window-ready")
-        ####    END NEW    ####
         self.show_panel("main_menu", None, remove_all=True, items=self._config.get_menu_items("__main"))
         self.base_panel.check_system_fix_dialog()
         self.base_panel.check_missing_packages()
 
     def state_startup(self):
         self.last_window_class = "window-ready"
-        ####      NEW      ####
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
-        ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-startup")
         self.printer_initializing(_("Klipper is attempting to start"))
 
     def state_shutdown(self):
         self.printer.stop_tempstore_updates()
-        ####      NEW      ####
         self.remove_window_classes(self.base_panel.main_grid.get_style_context())
-        ####    END NEW    ####
         self.base_panel.main_grid.get_style_context().add_class("window-shutdown")
         self.close_screensaver()
         msg = self.printer.get_stat("webhooks", "state_message")
@@ -1093,8 +1079,6 @@ class KlipperScreen(Gtk.Window):
             return False
         if not server_info:
             server_info = self.apiclient.get_server_info()["result"]
-        #logging.info(f"Moonraker info {server_info}")
-
         self.reinit_count += 1
 
         if server_info['klippy_connected'] is False:
@@ -1104,36 +1088,71 @@ class KlipperScreen(Gtk.Window):
             if self.reinit_count <= self.max_retries:
                 msg += _("Retrying") + f' #{self.reinit_count}'
             return self._init_printer(msg, klipper=True)
-        printer_info = self.apiclient.get_printer_info()
-        if printer_info is False:
+
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        results = {}
+        errors = []
+
+        def fetch_printer_info():
+            try:
+                return ('printer_info', self.apiclient.get_printer_info())
+            except Exception as e:
+                return ('error', f"printer_info: {e}")
+        
+        def fetch_config():
+            try:
+                return ('config', self.apiclient.send_request("printer/objects/query?configfile"))
+            except Exception as e:
+                return ('error', f"config: {e}")
+        
+        def fetch_system_info():
+            try:
+                return ('info', self.apiclient.send_request("machine/system_info"))
+            except Exception as e:
+                return ('error', f"system_info: {e}")
+
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = [
+                executor.submit(fetch_printer_info),
+                executor.submit(fetch_config),
+                executor.submit(fetch_system_info),
+            ]
+            
+            for future in as_completed(futures):
+                try:
+                    key, value = future.result(timeout=10)
+                    if key == 'error':
+                        errors.append(value)
+                    else:
+                        results[key] = value
+                except Exception as e:
+                    errors.append(str(e))
+        if 'printer_info' not in results or results['printer_info'] is False:
             return self._init_printer(_("Unable to get printer info from moonraker"))
-        config = self.apiclient.send_request("printer/objects/query?configfile")
-        if config is False:
+        if 'config' not in results or results['config'] is False:
             return self._init_printer(_("Error getting printer configuration"))
-        #logging.debug(config['result']['status'])
-        # Reinitialize printer, in case the printer was shut down and anything has changed.
+        printer_info = results['printer_info']
+        config = results['config']
+        info = results.get('info')
         self.printer.reinit(printer_info['result'], config['result']['status'])
         self.printer.available_commands = self.apiclient.get_gcode_help()['result']
-        info = self.apiclient.send_request("machine/system_info")
         if info and 'result' in info and 'system_info' in info['result']:
             self.printer.system_info = info['result']['system_info']
-
         self.ws_subscribe()
         extra_items = (self.printer.get_tools()
-                       + self.printer.get_heaters()
-                       + self.printer.get_temp_sensors()
-                       + self.printer.get_fans()
-                       + self.printer.get_temp_fans()
-                       + self.printer.get_filament_sensors()
-                       + self.printer.get_output_pins()
-                       + self.printer.get_leds()
-                       )
-
-        data = self.apiclient.send_request("printer/objects/query?" + "&".join(PRINTER_BASE_STATUS_OBJECTS +
-                                                                               extra_items))
+                      + self.printer.get_heaters()
+                      + self.printer.get_temp_sensors()
+                      + self.printer.get_fans()
+                      + self.printer.get_temp_fans()
+                      + self.printer.get_filament_sensors()
+                      + self.printer.get_output_pins()
+                      + self.printer.get_leds()
+                      )
+        data = self.apiclient.send_request(
+            "printer/objects/query?" + "&".join(PRINTER_BASE_STATUS_OBJECTS + extra_items)
+        )
         if data is False:
             return self._init_printer(_("Error getting printer object data with extra items"))
-
         self.files.set_gcodes_path()
         self.init_spoolman()
         logging.info("Printer initialized")
@@ -1141,6 +1160,8 @@ class KlipperScreen(Gtk.Window):
         self.reinit_count = 0
         self.initializing = False
         self.printer.process_update(data['result']['status'])
+        if errors:
+            logging.warning(f"Some parallel requests failed: {errors}")
         self.log_notification("Printer Initialized", 1)
         return False
 
